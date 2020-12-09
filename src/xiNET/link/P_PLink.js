@@ -9,7 +9,7 @@
 xiNET.P_PLink = function (p_pId, crossLink, crosslinkViewer) {
     this.id = p_pId;
     this.controller = crosslinkViewer;
-    this.crossLinks = [];
+    this.crossLinks = []; //todo rename to crosslinks
     this.renderedFromProtein = this.controller.renderedProteins.get(crossLink.fromProtein.id);
     this.renderedFromProtein.renderedP_PLinks.push(this);
     if (crossLink.toProtein) {
