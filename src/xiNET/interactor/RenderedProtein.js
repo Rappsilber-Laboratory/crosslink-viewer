@@ -119,7 +119,8 @@ xiNET.RenderedProtein = function (participant, crosslinkViewer) {
         .attr("x", -r - 2.5).attr("y", -r - 2.5)
         .attr("rx", r + 2.5).attr("ry", r + 2.5)
         .attr("stroke-opacity", 0)
-        .attr("fill-opacity", 0);
+        .attr("fill-opacity", 1)
+        .attr("stroke", "white"); // todo - this is a bit yucky
     d3.select(this.labelSVG).attr("transform",
         "translate(0, 0) rotate(0) scale(1, 1)");
     // events

@@ -51,10 +51,12 @@ xiNET.Interactor.prototype.showHighlight = function (show) {
             .attr("stroke-opacity", "1");
     } else {
         if (!this.isSelected) {
-            d3HighSel.attr("stroke-opacity", "0");
+            d3HighSel.attr("stroke", "white");
+        } else {
+            d3HighSel
+                .classed("selectedProtein", true)
         }
         d3HighSel
-            .classed("selectedProtein", true)
             .classed("highlightedProtein", false);
     }
     this.isHighlighted = !!show; // mjg apr 18

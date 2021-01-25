@@ -1375,8 +1375,9 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
             if (proteinColourModel) {
                 d3.select(renderedParticipant.outline)
                     .attr("fill", proteinColourModel.getColour(renderedParticipant.participant));
+                d3.select(renderedParticipant.highlight)
+                    .attr("fill", proteinColourModel.getColour(renderedParticipant.participant));
             }
-
         }
         return this;
     },
