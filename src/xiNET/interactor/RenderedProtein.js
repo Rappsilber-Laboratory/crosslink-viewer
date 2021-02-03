@@ -41,7 +41,7 @@ xiNET.RenderedProtein = function (participant, crosslinkViewer) {
 
     //make highlight
     this.highlight = document.createElementNS(this.controller.svgns, "rect");
-    this.highlight.setAttribute("class", "highlightedProtein");
+    // this.highlight.setAttribute("class", "highlightedProtein");
     this.highlight.setAttribute("stroke-width", "5");
     this.highlight.setAttribute("fill", "#ffffff");
     this.lowerGroup.appendChild(this.highlight);
@@ -118,7 +118,7 @@ xiNET.RenderedProtein = function (participant, crosslinkViewer) {
         .attr("width", (r * 2) + 5).attr("height", (r * 2) + 5)
         .attr("x", -r - 2.5).attr("y", -r - 2.5)
         .attr("rx", r + 2.5).attr("ry", r + 2.5)
-        .attr("stroke-opacity", 0)
+        // .attr("stroke-opacity", 0)
         .attr("fill-opacity", 1)
         .attr("stroke", "white"); // todo - this is a bit yucky
     d3.select(this.labelSVG).attr("transform",
