@@ -47,17 +47,18 @@ xiNET.Interactor.prototype.showHighlight = function (show) {
     if (show === true) {
         d3HighSel
             .classed("selectedProtein", false)
-            .classed("highlightedProtein", true)
-            .attr("stroke-opacity", "1");
+            .classed("highlightedProtein", true);
+            // .attr("stroke-opacity", "1");
     } else {
+        d3HighSel
+            .classed("highlightedProtein", false);
         if (!this.isSelected) {
-            d3HighSel.attr("stroke", "white");
+            d3HighSel//.attr("stroke", "white")
+                .classed("selectedProtein", false);
         } else {
             d3HighSel
                 .classed("selectedProtein", true)
         }
-        d3HighSel
-            .classed("highlightedProtein", false);
     }
     this.isHighlighted = !!show; // mjg apr 18
 };
@@ -67,13 +68,17 @@ xiNET.Interactor.prototype.setSelected = function (select) {
     if (select === true) {
         d3HighSel
             .classed("selectedProtein", true)
-            .classed("highlightedProtein", false)
-            .attr("stroke-opacity", "1");
+            .classed("highlightedProtein", false);
+            // .attr("stroke-opacity", "1");
     } else {
         d3HighSel
-            .attr("stroke-opacity", "0")
-            .classed("selectedProtein", false)
-            .classed("highlightedProtein", true);
+            //.attr("stroke-opacity", "0")
+            .classed("selectedProtein", false);
+        if (this.isHighlighted) {
+            d3HighSel.classed("highlightedProtein", true);
+        } else {
+            d3HighSel.classed("highlightedProtein", false);
+        }
     }
     this.isSelected = !!select;
 };

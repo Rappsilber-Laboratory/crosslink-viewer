@@ -33,10 +33,11 @@ xiNET.Group = function (id, participantIds, xlvController) {
 
     //make highlight
     this.highlight = document.createElementNS(this.controller.svgns, "rect");
-    this.highlight.setAttribute("class", "highlightedProtein");
-    this.highlight.setAttribute("stroke-width", "5");
+    // this.highlight.setAttribute("class", "highlightedProtein");
+    this.highlight.setAttribute("stroke-width", "3");
     this.highlight.setAttribute("fill", "none");
-    this.highlight.setAttribute("stroke-opacity", "0");
+    // this.highlight.setAttribute("stroke-opacity", "0");
+    this.highlight.setAttribute("stroke", "white");
     this.upperGroup.appendChild(this.highlight);
 
     //create label - we will move this svg element around when expand / collapse
