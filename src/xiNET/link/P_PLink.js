@@ -7,6 +7,7 @@
 //  the class representing a protein-protein link
 
 xiNET.P_PLink = function (p_pId, crossLink, crosslinkViewer) {
+    this.isPPLink = true;
     this.id = p_pId;
     this.controller = crosslinkViewer;
     this.crossLinks = []; //todo rename to crosslinks
