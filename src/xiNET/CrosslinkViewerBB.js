@@ -27,7 +27,7 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
     barScales: [0.01, 0.2, 0.5, 0.8, 1, 2, 4, 8],
 
     initialize: function () {
-        //this.debug = true;
+        // this.debug = true;
         this.fixedSize = this.model.get("xinetFixedSize");
         const self = this;
 
@@ -1036,11 +1036,12 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
     autoLayout: function () {
         this.d3cola.stop();
 
-        this.z = 1;
+        // this.z = 1; //doesn't work this way, z gets set in scale() func by looking at containers transform
+        this.container.setAttribute("transform", "scale(" + 1 + ")");// translate(" + ((width / scaleFactor) - bbox.width - bbox.x) + " " + -bbox.y + ")");
         this.scale();
 
         const fixSelected = this.model.get("xinetFixSelected");
-        // HERE? clear collpased group att's also
+
         for (let renderedProtein of this.renderedProteins.values()) {
             if (!fixSelected) {
                 delete renderedProtein.x;

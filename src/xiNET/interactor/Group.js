@@ -85,7 +85,7 @@ xiNET.Group = function (id, participantIds, xlvController) {
             //     console.log("get width on expanded group");
             //     this.upperGroup.getBBox().width + 10;
             // } else {
-            return 60;//this.upperGroup.getBBox().width + 10;
+            return this.upperGroup.getBBox().width + 10;
             // }
         }
     });

@@ -153,7 +153,7 @@ xiNET.RenderedProtein = function (participant, crosslinkViewer) {
             if (this.expanded) {
                 return this.upperGroup.getBBox().width + 10;
             } else {
-                return 60;//this.upperGroup.getBBox().width + 10;
+                return this.upperGroup.getBBox().width + 10;
             }
         }
     });
