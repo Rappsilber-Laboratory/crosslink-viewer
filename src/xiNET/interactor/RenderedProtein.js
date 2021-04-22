@@ -1,10 +1,3 @@
-//  xiNET cross-link viewer
-//  Copyright 2013 Rappsilber Laboratory, University of Edinburgh
-//
-//  authors: Lutz Fischer, Colin Combe
-//
-//  xiNET.RenderedProtein.js
-
 var xiNET = xiNET || {};
 
 xiNET.disulfide = "disulfide bond";
@@ -41,10 +34,14 @@ xiNET.RenderedProtein = function (participant, crosslinkViewer) {
 
     //make highlight
     this.highlight = document.createElementNS(this.controller.svgns, "rect");
-    // this.highlight.setAttribute("class", "highlightedProtein");
     this.highlight.setAttribute("stroke-width", "5");
-    this.highlight.setAttribute("fill", "#ffffff");
     this.lowerGroup.appendChild(this.highlight);
+
+    //make background
+    this.background = document.createElementNS(this.controller.svgns, "rect");
+    this.lowerGroup.appendChild(this.background);
+
+
 
     //domains in rectangle form (shown underneath links)
     this.rectDomains = document.createElementNS(this.controller.svgns, "g");
@@ -70,7 +67,7 @@ xiNET.RenderedProtein = function (participant, crosslinkViewer) {
     //create label - we will move this svg element around when protein form changes
     this.labelSVG = document.createElementNS(this.controller.svgns, "text");
     this.labelSVG.setAttribute("text-anchor", "middle");
-    this.labelSVG.setAttribute("alignment-baseline", "middle");
+    this.labelSVG.setAttribute("dominant-baseline", "middle");
     this.labelSVG.setAttribute("fill", this.participant.is_decoy ? "#FB8072" : "black")
     this.labelSVG.setAttribute("x", 0);
     this.labelSVG.setAttribute("y", 0); //10);
@@ -109,7 +106,12 @@ xiNET.RenderedProtein = function (participant, crosslinkViewer) {
     const r = this.getBlobRadius();
     d3.select(this.outline)
         .attr("fill-opacity", 1)
-        //.attr("fill", "#ffffff")
+        .attr("fill", protColourModel.getColour(participant))
+        .attr("x", -r).attr("y", -r)
+        .attr("width", r * 2).attr("height", r * 2)
+        .attr("rx", r).attr("ry", r);
+    d3.select(this.background)
+        .attr("fill-opacity", 1)
         .attr("fill", protColourModel.getColour(participant))
         .attr("x", -r).attr("y", -r)
         .attr("width", r * 2).attr("height", r * 2)
@@ -118,9 +120,10 @@ xiNET.RenderedProtein = function (participant, crosslinkViewer) {
         .attr("width", (r * 2) + 5).attr("height", (r * 2) + 5)
         .attr("x", -r - 2.5).attr("y", -r - 2.5)
         .attr("rx", r + 2.5).attr("ry", r + 2.5)
-        // .attr("stroke-opacity", 0)
-        .attr("fill-opacity", 1)
-        .attr("stroke", "white"); // todo - this is a bit yucky
+        .attr("stroke-opacity", 0)
+        .attr("fill-opacity", 0);
+
+
     d3.select(this.labelSVG).attr("transform",
         "translate(0, 0) rotate(0) scale(1, 1)");
     // events
@@ -206,6 +209,10 @@ xiNET.RenderedProtein.prototype.resize = function () {
     if (!this.expanded) {
         const r = this.getBlobRadius();
         d3.select(this.outline)
+            .attr("x", -r).attr("y", -r)
+            .attr("width", r * 2).attr("height", r * 2)
+            .attr("rx", r).attr("ry", r);
+        d3.select(this.background)
             .attr("x", -r).attr("y", -r)
             .attr("width", r * 2).attr("height", r * 2)
             .attr("rx", r).attr("ry", r);
@@ -400,6 +407,9 @@ xiNET.RenderedProtein.prototype.scale = function () {
         d3.select(this.outline)
             .attr("width", protLength)
             .attr("x", this.getResXwithStickZoom(0.5));
+        d3.select(this.background)
+            .attr("width", protLength)
+            .attr("x", this.getResXwithStickZoom(0.5));
 
         d3.select(this.highlight)
             .attr("width", protLength + 5)
@@ -540,6 +550,16 @@ xiNET.RenderedProtein.prototype.toCircle = function (svgP) {
     const protColourModel = CLMSUI.compositeModelInst.get("proteinColourAssignment");
 
     d3.select(this.outline).transition()
+        //.attr("stroke-opacity", 1) //needed?
+        .attr("fill-opacity", 1)
+        //.attr("fill", "#ffffff")
+        .attr("fill", protColourModel.getColour(this.participant))
+        .attr("x", -r).attr("y", -r)
+        .attr("width", r * 2).attr("height", r * 2)
+        .attr("rx", r).attr("ry", r)
+        .duration(xiNET.RenderedProtein.transitionTime);
+
+    d3.select(this.background).transition()
         //.attr("stroke-opacity", 1) //needed?
         .attr("fill-opacity", 1)
         //.attr("fill", "#ffffff")
@@ -730,6 +750,15 @@ xiNET.RenderedProtein.prototype.toStick = function () {
         .attr("rx", 0).attr("ry", 0)
         .duration(xiNET.RenderedProtein.transitionTime);
 
+    d3.select(this.background).transition().attr("stroke-opacity", 1)
+        // .attr("fill-opacity", 0)
+        // //.attr("fill", "#ffffff")
+        .attr("fill", protColourModel.getColour(this.participant))
+        .attr("height", xiNET.RenderedProtein.STICKHEIGHT)
+        .attr("y", -xiNET.RenderedProtein.STICKHEIGHT / 2)
+        .attr("rx", 0).attr("ry", 0)
+        .duration(xiNET.RenderedProtein.transitionTime);
+
     d3.select(this.highlight).transition()
         .attr("width", protLength + 5).attr("height", xiNET.RenderedProtein.STICKHEIGHT + 5)
         .attr("x", this.getResXwithStickZoom(0.5) - 2.5).attr("y", (-xiNET.RenderedProtein.STICKHEIGHT / 2) - 2.5)
@@ -802,6 +831,7 @@ xiNET.RenderedProtein.prototype.toStick = function () {
 
         const currentLength = lengthInterpol(cubicInOut(interp));
         d3.select(self.outline).attr("width", currentLength).attr("x", -(currentLength / 2) + (0.5 * self.stickZoom));
+        d3.select(self.background).attr("width", currentLength).attr("x", -(currentLength / 2) + (0.5 * self.stickZoom));
         self.stickZoom = stickZoomInterpol(cubicInOut(interp))
         self.setAllLinkCoordinates();
 
@@ -862,6 +892,14 @@ xiNET.RenderedProtein.prototype.toStickNoTransition = function () { //TODo - tid
     const protColourModel = CLMSUI.compositeModelInst.get("proteinColourAssignment");
     d3.select(this.outline).attr("stroke-opacity", 1)
         .attr("fill-opacity", 0)
+        //.attr("fill", "#ffffff")
+        .attr("fill", protColourModel.getColour(this.participant))
+        .attr("height", xiNET.RenderedProtein.STICKHEIGHT)
+        .attr("y", -xiNET.RenderedProtein.STICKHEIGHT / 2)
+        .attr("rx", 0).attr("ry", 0);
+    // .duration(xiNET.RenderedProtein.transitionTime);
+    d3.select(this.background).attr("stroke-opacity", 1)
+        // .attr("fill-opacity", 0)
         //.attr("fill", "#ffffff")
         .attr("fill", protColourModel.getColour(this.participant))
         .attr("height", xiNET.RenderedProtein.STICKHEIGHT)
@@ -941,6 +979,7 @@ xiNET.RenderedProtein.prototype.toStickNoTransition = function () { //TODo - tid
 
         const currentLength = lengthInterpol(cubicInOut(interp));
         d3.select(self.outline).attr("width", currentLength).attr("x", -(currentLength / 2) + (0.5 * self.stickZoom));
+        d3.select(self.background).attr("width", currentLength).attr("x", -(currentLength / 2) + (0.5 * self.stickZoom));
         self.stickZoom = stickZoomInterpol(cubicInOut(interp))
         self.setAllLinkCoordinates();
 

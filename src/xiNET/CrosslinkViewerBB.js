@@ -1,9 +1,3 @@
-//  xiNET
-//
-//  Colin Combe, Martin Graham, Rappsilber Laboratory, 2015
-//
-//  CrosslinkViewerBB.js
-
 var CLMSUI = CLMSUI || {};
 
 CLMSUI.CrosslinkViewer = Backbone.View.extend({
@@ -208,6 +202,7 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
         this.listenTo(CLMSUI.vent, "xinetSaveLayout", this.saveLayout);
 
         this.listenTo(this.model, "change:xinetShowLabels", this.showLabels);
+        this.listenTo(this.model, "change:xinetShowExpandedGroupLabels", this.showExpandedGroupLabels);
         this.listenTo(this.model, "change:xinetFixedSize", this.setFixedSize);
         this.listenTo(this.model, "change:xinetThickLinks", this.render);
         this.listenTo(this.model, "change:xinetPpiSteps", this.render);
@@ -409,6 +404,8 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
         }
         for (let g of this.groupMap.values()) {
             if (!g.hidden) {
+                g.outline.setAttribute("stroke-width", this.z * 5);
+                g.highlight.setAttribute("stroke-width", this.z * 5);
                 if (g.expanded) {
                     g.updateExpandedGroup();
                 } else {
@@ -1191,8 +1188,9 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
             .size([height, width])
             .symmetricDiffLinkLengths(length);
 
+        let participantDebugSel, groupDebugSel;
         if (self.debug) {
-            var participantDebugSel = d3.select(this.groupsSVG).selectAll('.node')
+            participantDebugSel = d3.select(this.groupsSVG).selectAll('.node')
                 .data(nodeArr);
             participantDebugSel.enter().append('rect')
                 .classed('node', true)
@@ -1202,7 +1200,7 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
                 })
                 .style('stroke', "red")
                 .style('fill', "none");
-            var groupDebugSel = d3.select(this.groupsSVG).selectAll('.group')
+            groupDebugSel = d3.select(this.groupsSVG).selectAll('.group')
                 .data(groups);
             groupDebugSel.enter().append('rect')
                 .classed('group', true)
@@ -1376,7 +1374,7 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
             if (proteinColourModel) {
                 d3.select(renderedParticipant.outline)
                     .attr("fill", proteinColourModel.getColour(renderedParticipant.participant));
-                d3.select(renderedParticipant.highlight)
+                d3.select(renderedParticipant.background)
                     .attr("fill", proteinColourModel.getColour(renderedParticipant.participant));
             }
         }
@@ -1387,6 +1385,13 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
         const show = this.model.get("xinetShowLabels");
         for (let renderedParticipant of this.renderedProteins.values()) {
             renderedParticipant.showLabel(show);
+        }
+        return this;
+    },
+
+    showExpandedGroupLabels: function () {
+        for (let group of this.groupMap.values()) {
+            group.setExpanded(group.expanded);
         }
         return this;
     },

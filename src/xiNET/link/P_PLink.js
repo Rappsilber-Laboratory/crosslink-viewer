@@ -1,11 +1,3 @@
-//  xiNET Crosslink Viewer
-//  Copyright 2013 Rappsilber Laboratory
-//
-//  author: Colin Combe
-//
-//  xiNET.P_PLink.js
-//  the class representing a protein-protein link
-
 xiNET.P_PLink = function (p_pId, crossLink, crosslinkViewer) {
     this.isPPLink = true;
     this.id = p_pId;
@@ -208,7 +200,6 @@ xiNET.P_PLink.prototype.check = function () {
             if (match.crossLinks.length === 1) {
                 // this.ambiguous = false; //yeah... whats this doing when this.ambiguous gets set later, just before end of function
             } else {
-                const matchCrossLinks = match.crossLinks;
                 for (let matchCrossLink of match.crossLinks) {
                     if (!matchCrossLink.isDecoyLink()) {
                         altP_PLinks.add(matchCrossLink.p_pLink.id);

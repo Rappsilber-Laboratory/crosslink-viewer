@@ -1,13 +1,3 @@
-//    	xiNET Interaction Viewer
-//    	Copyright 2014 Rappsilber Laboratory
-//
-//    	This product includes software developed at
-//    	the Rappsilber Laboratory (http://www.rappsilberlab.org/).
-//
-//		xiNET.Group.js
-//
-//		authors: Colin Combe
-
 var xiNET = xiNET || {};
 
 xiNET.Group = function (id, participantIds, xlvController) {
@@ -26,19 +16,18 @@ xiNET.Group = function (id, participantIds, xlvController) {
     this.hidden = false;
     this.type = 'group';
 
-    this.padding = 40; // used by cola.js
+    this.padding = 45; // used by cola.js
 
     this.upperGroup = document.createElementNS(this.controller.svgns, "g");
     this.upperGroup.setAttribute("class", "protein upperGroup");
 
     //make highlight
     this.highlight = document.createElementNS(this.controller.svgns, "rect");
-    // this.highlight.setAttribute("class", "highlightedProtein");
+    this.highlight.setAttribute("class", "highlightedProtein");
     this.highlight.setAttribute("stroke-width", "3");
     this.highlight.setAttribute("fill", "none");
-    // this.highlight.setAttribute("stroke-opacity", "0");
-    this.highlight.setAttribute("stroke", "white");
-    this.upperGroup.appendChild(this.highlight);
+    this.highlight.setAttribute("stroke-opacity", "0");
+    // this.highlight.setAttribute("stroke", "white");
 
     //create label - we will move this svg element around when expand / collapse
     this.labelSVG = document.createElementNS(this.controller.svgns, "text");
@@ -46,12 +35,12 @@ xiNET.Group = function (id, participantIds, xlvController) {
     this.labelSVG.setAttribute("x", "0");
     this.labelSVG.setAttribute("y", "0");
     this.labelSVG.setAttribute("class", "xlv_text proteinLabel");
-    this.labelSVG.setAttribute("alignment-baseline", "central");
-    this.labelSVG.setAttribute("text-anchor", "middle");
+    // this.labelSVG.setAttribute("alignment-baseline", "central");
+    // this.labelSVG.setAttribute("text-anchor", "middle");
+    this.labelSVG.setAttribute("text-decoration", "underline");
     this.labelText = this.name;
     this.labelTextNode = document.createTextNode(this.labelText);
     this.labelSVG.appendChild(this.labelTextNode);
-    this.upperGroup.appendChild(this.labelSVG);
 
     //make blob
     this.outline = document.createElementNS(this.controller.svgns, "rect");
@@ -60,7 +49,10 @@ xiNET.Group = function (id, participantIds, xlvController) {
     this.outline.setAttribute("stroke-opacity", "1");
     this.outline.setAttribute("fill-opacity", "0.5");
     this.outline.setAttribute("fill", "#cccccc");
+
     this.upperGroup.appendChild(this.outline);
+    this.upperGroup.appendChild(this.highlight);
+    this.upperGroup.appendChild(this.labelSVG);
 
     //need to change this if default is unexpanded
     this.controller.groupsSVG.appendChild(this.upperGroup);
@@ -230,7 +222,7 @@ xiNET.Group.prototype.setPositionFromCola = function () {
 
 /* calculate top left of interactor's glyph,
 set this.x and this.y as cola would have them,
-    call setPosition with same params this recieved
+    call setPosition with same params this received
 */
 xiNET.Group.prototype.setPositionFromXinet = function (ix, iy) {
     this.px = this.x;
@@ -248,7 +240,7 @@ xiNET.Group.prototype.setPositionFromXinet = function (ix, iy) {
 }
 
 //also setting size of collapsed group symbol; scaling line widths, corner radii
-xiNET.Group.prototype.setPosition = function (ix, iy) { //todo - array as coord param?
+xiNET.Group.prototype.setPosition = function (ix, iy) { //todo - array for coordinate param?
     if (!this.expanded) {
         this.ix = ix;
         this.iy = iy;
@@ -268,10 +260,10 @@ xiNET.Group.prototype.setPosition = function (ix, iy) { //todo - array as coord 
         };
 
         updateOutline(this.outline);
-        this.outline.setAttribute("stroke-width", 3 * this.controller.z);
+        // this.outline.setAttribute("stroke-width", 3 * this.controller.z);
 
         updateOutline(this.highlight);
-        this.highlight.setAttribute("stroke-width", 9 * this.controller.z);
+        // this.highlight.setAttribute("stroke-width", 9 * this.controller.z);
 
         this.labelSVG.setAttribute("transform", "translate(" + this.ix + " " + this.iy + ")" +
             " scale(" + (this.controller.z) + ")");
@@ -288,7 +280,7 @@ xiNET.Group.prototype.setPosition = function (ix, iy) { //todo - array as coord 
 
 xiNET.Group.prototype.updateExpandedGroup = function () {
     let x1 = 0, y1 = 0, x2 = 0, y2 = 0;
-    const z = this.controller.z, pad = 5 * z;
+    const z = this.controller.z, pad = 5 * z, self = this;
 
     for (let rp of this.renderedParticipants) {
         if (!rp.hidden && !this.containsInSubgroup(rp)) {
@@ -335,10 +327,14 @@ xiNET.Group.prototype.updateExpandedGroup = function () {
     }
 
     updateOutline(this.outline);
-    this.outline.setAttribute("stroke-width", 3 * this.controller.z);
+    // this.outline.setAttribute("stroke-width", 3 * this.controller.z);
 
     updateOutline(this.highlight);
-    this.highlight.setAttribute("stroke-width", 9 * this.controller.z);
+    // this.highlight.setAttribute("stroke-width", 9 * this.controller.z);
+
+    //move label
+    this.labelSVG.setAttribute("transform", "translate(" + (x1 - (1 * pad))  + " " + (y1 - (1 * pad)) + ")" +
+        " scale(" + (this.controller.z) + ")");
 
     for (let group of this.parentGroups) {
         if (group.expanded && !this.hidden) {
@@ -455,10 +451,15 @@ xiNET.Group.prototype.dashedOutline = function (dash) {
 
 xiNET.Group.prototype.setExpanded = function (expanded) {
     this.expanded = !!expanded;
+    const expandedGroupLabels = this.controller.model.get("xinetShowExpandedGroupLabels"); // todo - will need to look at this again (for anim)
     if (!expanded) { // is collapsing
+        this.labelSVG.setAttribute("dominant-baseline", "central");
+        this.labelSVG.setAttribute("text-anchor", "middle");
         this.hideSubgroups();
         this.controller.proteinUpper.appendChild(this.upperGroup);
-        this.upperGroup.appendChild(this.labelSVG);
+        if (!expandedGroupLabels) {
+            this.upperGroup.appendChild(this.labelSVG);
+        }
         this.outline.setAttribute("fill-opacity", "1");
         const pPos = this.getAverageParticipantPosition(); // todo - use svgP
         this.setPositionFromXinet(pPos[0], pPos[1]);
@@ -468,10 +469,16 @@ xiNET.Group.prototype.setExpanded = function (expanded) {
             rp.checkLinks();
         }
     } else { // is expanding
+        this.labelSVG.setAttribute("dominant-baseline", null);
+        this.labelSVG.setAttribute("text-anchor", null);
         this.showSubgroups();
         this.controller.groupsSVG.appendChild(this.upperGroup);
-        if (this.upperGroup.contains(this.labelSVG)) {
-            this.upperGroup.removeChild(this.labelSVG);
+        if (!expandedGroupLabels) {
+            if (this.upperGroup.contains(this.labelSVG)) {
+                this.upperGroup.removeChild(this.labelSVG);
+            }
+        } else { // this is a mess? todo
+            this.upperGroup.appendChild(this.labelSVG);
         }
         this.outline.setAttribute("fill-opacity", "0.5");
         for (let rp of this.renderedParticipants) {
