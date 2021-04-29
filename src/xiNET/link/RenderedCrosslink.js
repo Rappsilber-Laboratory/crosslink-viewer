@@ -1,11 +1,3 @@
-//  xiNET cross-link viewer
-//  Copyright 2013 Rappsilber Laboratory, University of Edinburgh
-//
-//  author: Colin Combe
-//
-//  xiNET.RenderedCrosslink.js
-//  the class representing a residue-residue link
-
 xiNET.RenderedCrosslink = function (crossLink, crosslinkViewer) {
     this.crossLink = crossLink;
     this.controller = crosslinkViewer;
@@ -97,9 +89,9 @@ xiNET.RenderedCrosslink.prototype.mouseDown = function (evt) {
     this.controller.d3cola.stop();
     this.controller.dragElement = this;
 
-    let rightclick = (evt.button === 2);
+    let rightClick = (evt.button === 2);
 
-    if (rightclick && this.crossLink.isSelfLink()) {
+    if (rightClick && this.crossLink.isSelfLink()) {
         this.renderedFromProtein.toggleFlipped();
     } else {
         const add = evt.shiftKey || evt.ctrlKey;
@@ -123,7 +115,7 @@ xiNET.RenderedCrosslink.prototype.mouseDown = function (evt) {
 }*/
 
 // andAlternatives means highlight alternative links in case of site ambiguity,
-// need to be able to switch this on and off to avoid inifite loop
+// need to be able to switch this on and off to avoid infinite loop
 xiNET.RenderedCrosslink.prototype.showHighlight = function (show) {
     //~ if (!this.renderedFromProtein.busy && (!this.renderedToProtein || !this.renderedToProtein.busy)) {
     if (this.shown) {
@@ -174,39 +166,39 @@ xiNET.RenderedCrosslink.prototype.showPeptides = function (pepBounds, renderedPr
     const yIncrement = xiNET.RenderedProtein.STICKHEIGHT / count;
     for (let i = 0; i < count; i++) {
         const pep = pepBounds[i];
-        let annotColouredRect = document.createElementNS(this.controller.svgns, "rect");
-        annotColouredRect.setAttribute("class", "protein");
+        let annoColouredRect = document.createElementNS(this.controller.svgns, "rect");
+        annoColouredRect.setAttribute("class", "protein");
 
-        //make domain rect's
+        //make domain rectangles
         const annoSize = pep[1] - 0.2;
-        let annotX = ((pep[0] + 0.6) - (renderedProtein.participant.size / 2));
+        let annoX = ((pep[0] + 0.6) - (renderedProtein.participant.size / 2));
         let annoLength = annoSize;
-        annotColouredRect.setAttribute("x", annotX);
-        annotColouredRect.setAttribute("y", y);
-        annotColouredRect.setAttribute("width", annoLength);
-        annotColouredRect.setAttribute("height", yIncrement);
+        annoColouredRect.setAttribute("x", annoX);
+        annoColouredRect.setAttribute("y", y);
+        annoColouredRect.setAttribute("width", annoLength);
+        annoColouredRect.setAttribute("height", yIncrement);
         //style 'em
-        d3.select(annotColouredRect).classed("highlightedPeptide", true);
+        d3.select(annoColouredRect).classed("highlightedPeptide", true);
         //annotColouredRect.setAttribute("fill-opacity", "0.7");
-        renderedProtein.peptides.appendChild(annotColouredRect);
-        this.pepSvgArr.push(annotColouredRect);
+        renderedProtein.peptides.appendChild(annoColouredRect);
+        this.pepSvgArr.push(annoColouredRect);
 
-        if (typeof pep[2] != "undefined") { //homodimer like
-            annotColouredRect = document.createElementNS(this.controller.svgns, "rect");
-            annotColouredRect.setAttribute("class", "protein");
-            annotX = ((pep[2] + 0.5) - (renderedProtein.participant.size / 2));
+        if (typeof pep[2] != "undefined") { //homomultimer like
+            annoColouredRect = document.createElementNS(this.controller.svgns, "rect");
+            annoColouredRect.setAttribute("class", "protein");
+            annoX = ((pep[2] + 0.5) - (renderedProtein.participant.size / 2));
             annoLength = (pep[3] - pep[2]);
-            annotColouredRect.setAttribute("x", annotX);
-            annotColouredRect.setAttribute("y", y);
-            annotColouredRect.setAttribute("width", annoLength);
-            annotColouredRect.setAttribute("height", yIncrement);
+            annoColouredRect.setAttribute("x", annoX);
+            annoColouredRect.setAttribute("y", y);
+            annoColouredRect.setAttribute("width", annoLength);
+            annoColouredRect.setAttribute("height", yIncrement);
 
             //style 'em
-            d3.select(annotColouredRect).classed("peptideOverlap", true);
-            annotColouredRect.setAttribute("fill-opacity", "0.5");
+            d3.select(annoColouredRect).classed("peptideOverlap", true);
+            annoColouredRect.setAttribute("fill-opacity", "0.5");
 
-            renderedProtein.peptides.appendChild(annotColouredRect);
-            this.pepSvgArr.push(annotColouredRect);
+            renderedProtein.peptides.appendChild(annoColouredRect);
+            this.pepSvgArr.push(annoColouredRect);
         }
         y += yIncrement;
     }
@@ -235,21 +227,14 @@ xiNET.RenderedCrosslink.prototype.setSelected = function (select) {
 };
 
 
-//used when filter changed // todo - tidy
+//used when filter changed
 xiNET.RenderedCrosslink.prototype.check = function () {
-    // neither end is a bar which isn't in a collpased group? then hide
+    // neither end is a bar which isn't in a collapsed group? then hide
     if ((!this.renderedFromProtein.expanded || (this.renderedFromProtein.inCollapsedGroup())) &&
         (this.renderedToProtein ? (!this.renderedToProtein.expanded || this.renderedToProtein.inCollapsedGroup()) : false)) {
         this.hide();
         return false;
     }
-
-    // both ends in a collapsed complex? then hide
-    // if (this.renderedFromProtein.complex && !this.renderedFromProtein.complex.expanded
-    //     && (this.renderedToProtein && this.renderedToProtein.complex && !this.renderedToProtein.complex.expanded)) {
-    //     this.hide();
-    //     return false;
-    // }
 
     // either end manually hidden? then hide
     if (this.renderedFromProtein.participant.hidden === true ||
@@ -330,7 +315,7 @@ xiNET.RenderedCrosslink.prototype.hide = function () {
     }
 };
 
-// there's an efficiency saving possible by passing in the renderedInteractor thats moved,
+// there's an efficiency saving possible by passing in the renderedInteractor that's moved,
 // then only need to change that end
 xiNET.RenderedCrosslink.prototype.setLineCoordinates = function () {
     if (this.shown) {
@@ -412,7 +397,7 @@ xiNET.RenderedCrosslink.prototype.getResidueCoordinates = function (r, renderedI
         const deltaX = from.ix - to.ix;
         const deltaY = from.iy - to.iy;
         const angleBetweenMidPoints = Math.atan2(deltaY, deltaX);
-        //todo: tidy up trig code so eveything is always in radians?
+        //todo: tidy up trig code so everything is always in radians?
         let abmpDeg = angleBetweenMidPoints / (2 * Math.PI) * 360;
         if (abmpDeg < 0) {
             abmpDeg += 360;

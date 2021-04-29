@@ -222,16 +222,50 @@ xiNET.P_PLink.prototype.update = function () {
         //hide if prot either end is hidden
         this.renderedFromProtein.participant.hidden ||
         this.renderedToProtein.participant.hidden ||
+        // or is self link in collapsed group
+        (this.crossLinks[0].isSelfLink() && this.renderedFromProtein.inCollapsedGroup()) ||
         // or either end is expanded to bar and not in collapsed group
         (this.renderedFromProtein.expanded && !this.renderedFromProtein.inCollapsedGroup()) ||
-        (this.renderedToProtein.expanded && !this.renderedToProtein.inCollapsedGroup()) ||
+        (this.renderedToProtein.expanded && !this.renderedToProtein.inCollapsedGroup()) // ||
+        /*
         // or no matches pass filter
         this.filteredCrossLinkCount === 0 ||
-        // or is self link in collapsed group
-        (this.crossLinks[0].isSelfLink() && this.renderedFromProtein.inCollapsedGroup())) {
+        */
+        ) {
         this.hide();
     } else {
-        this.show();
+
+        this.check();
+        if (this.filteredCrossLinkCount === 0){
+            this.hide();
+        } else {
+
+            // if (this.renderedFromProtein.inCollapsedGroup() && this.renderedToProtein.inCollapsedGroup()) {
+            //     const source = this.renderedFromProtein.getRenderedParticipant();
+            //     const target = this.renderedToProtein.getRenderedParticipant();
+            //     let ggId;
+            //     if (source.id < target.id) {
+            //         ggId = source.id + "_" + target.id;
+            //     } else {
+            //         ggId = target.id + "_" + source.id;
+            //     }
+            //     let ggLink = this.controller.g_gLinks.get(ggId);
+            //     if (!ggLink){
+            //         if (source.id < target.id) {
+            //             ggLink = new G_GLink (ggId, source, target);
+            //         } else {
+            //             ggLink = new G_GLink (ggId, source, target);
+            //         }
+            //         this.controller.g_gLinks.add(ggId, ggLink);
+            //     }
+            //     ggLink.p_pLinks.add(this);
+            //     this.hide();
+            //     ggLink.show();
+            // }
+            // else {
+                this.show();
+            // }
+        };
     }
 }
 

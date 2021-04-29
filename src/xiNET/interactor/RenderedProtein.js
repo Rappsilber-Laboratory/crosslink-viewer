@@ -393,15 +393,10 @@ xiNET.RenderedProtein.prototype.scale = function () {
             .translate((-(((this.participant.size / 2) * this.stickZoom) + +(labelWidth / 2) + 10)), 0);
         this.labelSVG.transform.baseVal.initialize(this.controller.svgElement.createSVGTransformFromMatrix(k));
 
-        if (this.annotations) {
-            const annotArr = CLMS.arrayFromMapValues(this.annotations);
-            const annotationCount = annotArr.length;
-            for (let a = 0; a < annotationCount; a++) {
-                const anno = annotArr[a],
-                    feature = anno.feature;
-                anno.pieSlice.setAttribute("d", this.getAnnotationRectPath(feature));
-                anno.colouredRect.setAttribute("d", this.getAnnotationRectPath(feature));
-            }
+        for (let anno of this.annotations.values()) {
+            const feature = anno.feature;
+            anno.pieSlice.setAttribute("d", this.getAnnotationRectPath(feature));
+            anno.colouredRect.setAttribute("d", this.getAnnotationRectPath(feature));
         }
 
         d3.select(this.outline)
@@ -629,11 +624,8 @@ xiNET.RenderedProtein.prototype.toCircle = function (svgP) {
     }
 
     if (this.annotations) {
-        const annotArr = CLMS.arrayFromMapValues(this.annotations);
-        const annotationCount = annotArr.length;
-        for (let a = 0; a < annotationCount; a++) {
-            const anno = annotArr[a],
-                feature = anno.feature,
+        for (let ann of this.annotations.values()) {
+            const feature = anno.feature,
                 pieSlice = anno.pieSlice,
                 rectDomain = anno.colouredRect;
             if (feature.type !== xiNET.disulfide) {
@@ -788,12 +780,8 @@ xiNET.RenderedProtein.prototype.toStick = function () {
     }
 
     if (this.annotations) {
-        //var bottom = xiNET.RenderedProtein.STICKHEIGHT / 2, top = -xiNET.RenderedProtein.STICKHEIGHT / 2;
-        const annotArr = CLMS.arrayFromMapValues(this.annotations);
-        const annotationCount = annotArr.length;
-        for (let a = 0; a < annotationCount; a++) {
-            const anno = annotArr[a],
-                feature = anno.feature,
+        for (let anno of this.annotations.values()) {
+            const feature = anno.feature,
                 pieSlice = anno.pieSlice,
                 rectDomain = anno.colouredRect;
 
@@ -936,12 +924,8 @@ xiNET.RenderedProtein.prototype.toStickNoTransition = function () { //TODo - tid
     }
 
     if (this.annotations) {
-        //var bottom = xiNET.RenderedProtein.STICKHEIGHT / 2, top = -xiNET.RenderedProtein.STICKHEIGHT / 2;
-        const annotArr = CLMS.arrayFromMapValues(this.annotations);
-        const annotationCount = annotArr.length;
-        for (let a = 0; a < annotationCount; a++) {
-            const anno = annotArr[a],
-                feature = anno.feature,
+        for (let anno of this.annotations.values()) {
+            const feature = anno.feature,
                 pieSlice = anno.pieSlice,
                 rectDomain = anno.colouredRect;
 

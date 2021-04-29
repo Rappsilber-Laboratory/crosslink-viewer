@@ -176,54 +176,10 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
             .attr("fill", "none")
             .attr("display", "none");
 
-        this.clear();
-        this.update();
-
-        this.listenTo(this.model, "filteringDone", this.render);
-        this.listenTo(this.model, "hiddenChanged", this.hiddenProteinsChanged);
-        this.listenTo(this.model, "change:highlights", this.highlightedLinksChanged);
-        this.listenTo(this.model, "change:selection", this.selectedLinksChanged);
-
-        this.listenTo(this.model, "change:linkColourAssignment currentColourModelChanged", this.render);
-        this.listenTo(this.model, "change:proteinColourAssignment currentProteinColourModelChanged", this.proteinMetadataUpdated);
-
-        this.listenTo(this.model.get("annotationTypes"), "change:shown", this.setAnnotations);
-        this.listenTo(this.model.get("alignColl"), "bulkAlignChange", this.setAnnotations);
-        this.listenTo(this.model, "change:selectedProteins", this.selectedProteinsChanged);
-        this.listenTo(this.model, "change:highlightedProteins", this.highlightedProteinsChanged);
-        this.listenTo(this.model.get("clmsModel"), "change:matches", this.update);
-
-        this.listenTo(CLMSUI.vent, "proteinMetadataUpdated", this.proteinMetadataUpdated);
-        this.listenTo(this.model, "change:groups", this.groupsChanged);
-
-        this.listenTo(CLMSUI.vent, "xinetSvgDownload", this.downloadSVG);
-        this.listenTo(CLMSUI.vent, "xinetAutoLayout", this.autoLayout);
-        this.listenTo(CLMSUI.vent, "xinetLoadLayout", this.loadLayout);
-        this.listenTo(CLMSUI.vent, "xinetSaveLayout", this.saveLayout);
-
-        this.listenTo(this.model, "change:xinetShowLabels", this.showLabels);
-        this.listenTo(this.model, "change:xinetShowExpandedGroupLabels", this.showExpandedGroupLabels);
-        this.listenTo(this.model, "change:xinetFixedSize", this.setFixedSize);
-        this.listenTo(this.model, "change:xinetThickLinks", this.render);
-        this.listenTo(this.model, "change:xinetPpiSteps", this.render);
-        return this;
-    },
-
-    clear: function () {
-        if (this.d3cola) { // cola layout
-            this.d3cola.stop();
-        }
         this.d3cola = cola.d3adaptor()
             .groupCompactness(1e-5)
             .avoidOverlaps(true);
 
-        d3.select(this.groupsSVG).selectAll("*").remove();
-        d3.select(this.p_pLinksWide).selectAll("*").remove();
-        d3.select(this.highlights).selectAll("*").remove();
-        d3.select(this.p_pLinks).selectAll("*").remove();
-        d3.select(this.res_resLinks).selectAll("*").remove();
-        d3.select(this.proteinLower).selectAll("*").remove();
-        d3.select(this.proteinUpper).selectAll("*").remove();
 
         this.dragElement = null;
         this.dragStart = null;
@@ -235,57 +191,13 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
         this.groupMap = new Map();
         // only those xiNET.Groups that would currently be used by autolayout
         // this.groupArr = new Map();
+        this.g_gLinks = new Map();
 
         this.z = 1;
         this.container.setAttribute("transform", "scale(1)");
         this.state = this.STATES.MOUSE_UP;
-    },
 
-    collapseParticipant: function (evt) {
-        d3.select(".custom-menu-margin").style("display", "none");
-        d3.select(".group-custom-menu-margin").style("display", "none");
-        this.contextMenuParticipant.setExpanded(false, this.contextMenuPoint);
-        this.hiddenProteinsChanged();
-        this.contextMenuParticipant = null;
-    },
-
-    cantCollapseGroup: function (evt) {
-        d3.select(".custom-menu-margin").style("display", "none");
-        d3.select(".group-custom-menu-margin").style("display", "none");
-    },
-
-    ungroup: function (evt) {
-        d3.select(".group-custom-menu-margin").style("display", "none");
-        this.model.get("groups").delete(this.contextMenuParticipant.id);
-        this.model.trigger("change:groups");
-        this.contextMenuParticipant = null;
-    },
-
-    render: function () {
-        this.d3cola.stop();
-
-        if (this.wasEmpty) {
-            this.wasEmpty = false;
-            if (this.model.get("clmsModel").get("xiNETLayout")) {
-                this.loadLayout(this.model.get("clmsModel").get("xiNETLayout").layout);
-            } else {
-                this.autoLayout();
-            }
-        }
-
-        for (let p_pLink of this.renderedP_PLinks.values()) {
-            p_pLink.check();
-            p_pLink.update();
-        }
-        for (let cLink of this.renderedCrosslinks.values()) {
-            cLink.check();
-        }
-    },
-
-    update: function () {
-        this.d3cola.stop();
-
-        this.wasEmpty = (this.renderedProteins.size === 0);
+        this.wasEmpty = true;//(this.renderedProteins.size === 0); // todo - tidy
 
         // calculate default bar scale
         let maxSeqLength = 0;
@@ -350,6 +262,81 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
                     crossLink.p_pLink = p_pLink;
                 }
             }
+        }
+
+        this.listenTo(this.model, "filteringDone", this.render);
+        this.listenTo(this.model, "hiddenChanged", this.hiddenProteinsChanged);
+        this.listenTo(this.model, "change:highlights", this.highlightedLinksChanged);
+        this.listenTo(this.model, "change:selection", this.selectedLinksChanged);
+
+        this.listenTo(this.model, "change:linkColourAssignment currentColourModelChanged", this.render);
+        this.listenTo(this.model, "change:proteinColourAssignment currentProteinColourModelChanged", this.proteinMetadataUpdated);
+
+        this.listenTo(this.model.get("annotationTypes"), "change:shown", this.setAnnotations);
+        this.listenTo(this.model.get("alignColl"), "bulkAlignChange", this.setAnnotations);
+        this.listenTo(this.model, "change:selectedProteins", this.selectedProteinsChanged);
+        this.listenTo(this.model, "change:highlightedProteins", this.highlightedProteinsChanged);
+        this.listenTo(this.model.get("clmsModel"), "change:matches", this.update);
+
+        this.listenTo(CLMSUI.vent, "proteinMetadataUpdated", this.proteinMetadataUpdated);
+        this.listenTo(this.model, "change:groups", this.groupsChanged);
+
+        this.listenTo(CLMSUI.vent, "xinetSvgDownload", this.downloadSVG);
+        this.listenTo(CLMSUI.vent, "xinetAutoLayout", this.autoLayout);
+        this.listenTo(CLMSUI.vent, "xinetLoadLayout", this.loadLayout);
+        this.listenTo(CLMSUI.vent, "xinetSaveLayout", this.saveLayout);
+
+        this.listenTo(this.model, "change:xinetShowLabels", this.showLabels);
+        this.listenTo(this.model, "change:xinetShowExpandedGroupLabels", this.showExpandedGroupLabels);
+        this.listenTo(this.model, "change:xinetFixedSize", this.setFixedSize);
+        this.listenTo(this.model, "change:xinetThickLinks", this.render);
+        this.listenTo(this.model, "change:xinetPpiSteps", this.render);
+        return this;
+
+
+    },
+
+    collapseParticipant: function (evt) {
+        d3.select(".custom-menu-margin").style("display", "none");
+        d3.select(".group-custom-menu-margin").style("display", "none");
+        this.contextMenuParticipant.setExpanded(false, this.contextMenuPoint);
+        this.hiddenProteinsChanged();
+        this.contextMenuParticipant = null;
+    },
+
+    cantCollapseGroup: function (evt) {
+        d3.select(".custom-menu-margin").style("display", "none");
+        d3.select(".group-custom-menu-margin").style("display", "none");
+    },
+
+    ungroup: function (evt) {
+        d3.select(".group-custom-menu-margin").style("display", "none");
+        this.model.get("groups").delete(this.contextMenuParticipant.id);
+        this.model.trigger("change:groups");
+        this.contextMenuParticipant = null;
+    },
+
+    render: function () {
+        this.d3cola.stop();
+
+        if (this.wasEmpty) { // first render
+            this.wasEmpty = false;
+            if (this.model.get("clmsModel").get("xiNETLayout")) {
+                this.loadLayout(this.model.get("clmsModel").get("xiNETLayout").layout);
+            } else {
+                this.autoLayout();
+            }
+        }
+
+        this.g_gLinks.clear();
+
+
+        for (let p_pLink of this.renderedP_PLinks.values()) {
+            // p_pLink.check();
+            p_pLink.update();
+        }
+        for (let cLink of this.renderedCrosslinks.values()) {
+            cLink.check();
         }
     },
 
@@ -552,10 +539,8 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
                         .attr("height", Math.abs(sy));
 
                     this.toSelect = [];
-                    const renderedParticipantArr = CLMS.arrayFromMapValues(this.renderedProteins);
-                    const rpCount = renderedParticipantArr.length;
-                    for (let rp = 0; rp < rpCount; rp++) {
-                        const renderedParticipant = renderedParticipantArr[rp];
+
+                    for (let renderedParticipant of this.renderedProteins) {
                         if (renderedParticipant.hidden !== true) {
                             const svgRect = this.svgElement.createSVGRect();
                             svgRect.x = rectX;
@@ -638,9 +623,9 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
                                     // for groups
 
                                     const overlapping = this.dragElement.isOverlappingGroup();
-                                    const  canny = d3.select(".cant-collapse-group");
-                                    canny.style("display", (overlapping? null : "none"));
-                                    d3.select(".collapse-group").style("display", (overlapping? "none" : null));
+                                    const canny = d3.select(".cant-collapse-group");
+                                    canny.style("display", (overlapping ? null : "none"));
+                                    d3.select(".collapse-group").style("display", (overlapping ? "none" : null));
 
                                     const menu = d3.select(".group-custom-menu-margin")
                                     menu.style("top", (evt.pageY - 20) + "px").style("left", (evt.pageX - 20) + "px").style("display", "block");
@@ -655,11 +640,11 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
 
                     } else if (this.dragElement.type === "group" && !this.mouseMoved) { // was left click on a group, no move mouse
                         //add all group proteins to selection
-                            const participants = [];
-                            for (let rp of this.dragElement.renderedParticipants) {
-                                participants.push(rp.participant);
-                            }
-                            this.model.setSelectedProteins(participants, add);
+                        const participants = [];
+                        for (let rp of this.dragElement.renderedParticipants) {
+                            participants.push(rp.participant);
+                        }
+                        this.model.setSelectedProteins(participants, add);
                     }
 
                 } else { //no drag element
@@ -668,7 +653,7 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
                             // ADD TO SELECT POST RIGHT CLICK DRAG -- RIGHT CLICK, HAS MOVED, NO DRAG ELEMENT
                             this.model.setSelectedProteins(this.toSelect, add);
                         }
-                    } else if (!this.mouseMoved){
+                    } else if (!this.mouseMoved) {
 
                         //UNSELECT - EITHER MOUSE BUTTON, NO MOVE, NO DRAG ELEMENT
                         this.model.setMarkedCrossLinks("selection", [], false, add);
@@ -1365,11 +1350,8 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
 
     // updates protein names and colours
     proteinMetadataUpdated: function () {
-        const renderedParticipantArr = CLMS.arrayFromMapValues(this.renderedProteins);
         const proteinColourModel = CLMSUI.compositeModelInst.get("proteinColourAssignment");
-        const rpCount = renderedParticipantArr.length;
-        for (let rp = 0; rp < rpCount; rp++) {
-            const renderedParticipant = renderedParticipantArr[rp];
+        for (let renderedParticipant of this.renderedProteins) {
             renderedParticipant.updateName();
             if (proteinColourModel) {
                 d3.select(renderedParticipant.outline)

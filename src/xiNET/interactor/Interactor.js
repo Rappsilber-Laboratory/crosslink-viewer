@@ -183,12 +183,12 @@ xiNET.Interactor.prototype.inCollapsedGroup = function () {
     return false;
 }
 
-
+//
 // xiNET.Interactor.prototype.getTopParentGroups = function(results) {
 //     if (!results) {
 //         results = new Set();
 //     }
-//     for (var pg of this.parentGroups) {
+//     for (let pg of this.parentGroups) {
 //         if (pg.parentGroups.size) {
 //             pg.getTopParentGroups(results);
 //         } else {
