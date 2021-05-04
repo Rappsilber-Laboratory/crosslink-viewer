@@ -1090,7 +1090,7 @@ xiNET.RenderedProtein.prototype.getResXwithStickZoom = function (r) {
 
 xiNET.RenderedProtein.prototype.checkLinks = function () {
     for (let p_pLink of this.renderedP_PLinks) {
-        p_pLink.check();
+        //p_pLink.check();
         p_pLink.update();
     }
     for (let renderedCrosslink of this.renderedCrosslinks) {

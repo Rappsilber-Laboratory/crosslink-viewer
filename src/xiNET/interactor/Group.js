@@ -273,6 +273,10 @@ xiNET.Group.prototype.setPosition = function (ix, iy) { //todo - array for coord
                 group.updateExpandedGroup();
             }
         }
+        for (let ggLink of this.controller.g_gLinks.values()) {
+            ggLink.setLineCoordinates();
+        }
+
     } else {
         console.log("error - calling setPosition on unexpanded Group");
     }
@@ -466,7 +470,7 @@ xiNET.Group.prototype.setExpanded = function (expanded) {
         for (let rp of this.renderedParticipants) {
             rp.setAllLinkCoordinates();
             rp.setHidden(true);
-            rp.checkLinks();
+            //rp.checkLinks();
         }
     } else { // is expanding
         this.labelSVG.setAttribute("dominant-baseline", null);
@@ -484,7 +488,7 @@ xiNET.Group.prototype.setExpanded = function (expanded) {
         for (let rp of this.renderedParticipants) {
             rp.setAllLinkCoordinates();
             rp.setHidden(rp.participant.hidden || rp.inCollapsedGroup());
-            rp.checkLinks();
+            //rp.checkLinks();
         }
         this.updateExpandedGroup();
     }

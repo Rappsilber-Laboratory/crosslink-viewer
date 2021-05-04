@@ -2,7 +2,7 @@ xiNET.G_GLink = function (id, group1, group2, crosslinkViewer) {
     this.id = id;
     this.controller = crosslinkViewer;
 
-    this.p_pLinks = []; //todo rename to crosslinks
+    this.p_pLinks = new Map ();
     this.group1 = group1;
     this.group2 = group2;
     // this.renderedFromProtein = this.controller.renderedProteins.get(crossLink.fromProtein.id);
@@ -86,13 +86,14 @@ xiNET.G_GLink.prototype.mouseOver = function (evt) {
 
     this.controller.model.get("tooltipModel")
         //TODO - reuse other multiLink tooltips in CLM-UI?
-        .set("header", "G_G Link")
-        // .set("contents", [
-        //     ["From", this.renderedFromProtein.participant.name],
-        //     ["To", this.renderedToProtein.participant.name],
-        //     ["Unique Linked Residue Pairs", this.filteredCrossLinkCount],
-        //     ["Matches", this.filteredMatchCount ? this.filteredMatchCount : "filter not yet applied"]
-        // ])
+        .set("header", "group to group link")
+        .set("contents", [
+            ["From", this.group1.name],
+            ["To", this.group2.name],
+            ["More summary info:", "it's coming dude"],
+            // ["Unique Linked Residue Pairs", this.filteredCrossLinkCount],
+            // ["Matches", this.filteredMatchCount ? this.filteredMatchCount : "filter not yet applied"]
+        ])
         .set("location", {
             pageX: p.x,
             pageY: p.y
@@ -260,8 +261,7 @@ xiNET.G_GLink.prototype.show = function () {
     // } else {
         this.line.setAttribute("stroke-width", this.controller.z * this.controller.linkWidth);
         this.highlightLine.setAttribute("stroke-width", this.controller.z * 10);
-        this.setLineCoordinates(this.renderedFromProtein);
-        this.setLineCoordinates(this.renderedToProtein);
+        this.setLineCoordinates();
     // }
     d3.select(this.thickLine).style("display", null);
     d3.select(this.line).style("display", null);
@@ -295,23 +295,23 @@ xiNET.G_GLink.prototype.show = function () {
     // if (this.colours.size === 1 && CLMSUI.compositeModelInst.get("linkColourAssignment").get("id") !== "Default") { // todo - fix this
     //     this.line.setAttribute("stroke", Array.from(this.colours)[0]);
     // } else {
-    this.line.setAttribute("stroke", CLMSUI.compositeModelInst.get("linkColourAssignment").getColour(this));
+    this.line.setAttribute("stroke", "black");//CLMSUI.compositeModelInst.get("linkColourAssignment").getColour(this));
     // }
 
     this.setSelected(this.isSelected);
 };
 
 xiNET.G_GLink.prototype.hide = function () {
-    if (this.shown) {
-        this.shown = false;
+    // if (this.shown) {
+    //     this.shown = false;
         d3.select(this.thickLine).style("display", "none");
         d3.select(this.highlightLine).style("display", "none");
         d3.select(this.line).style("display", "none");
-    }
+    // }
 };
 
 xiNET.G_GLink.prototype.setLineCoordinates = function () {
-    if (this.renderedToProtein && this.renderedFromProtein !== this.renderedToProtein) {
+    // if (this.renderedToProtein && this.renderedFromProtein !== this.renderedToProtein) {
         if (this.shown) {
             const source = this.group1;//.getRenderedParticipant();
             const target = this.group2;//renderedToProtein.getRenderedParticipant();
@@ -335,7 +335,7 @@ xiNET.G_GLink.prototype.setLineCoordinates = function () {
             this.thickLine.setAttribute("y2", target.iy);
             // }
         }
-    }
+    // }
 }
 /*
 xiNET.P_PLink.prototype.getOtherEnd = function(protein) {

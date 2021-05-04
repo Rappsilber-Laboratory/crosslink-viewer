@@ -11,7 +11,6 @@ xiNET.P_PLink = function (p_pId, crossLink, crosslinkViewer) {
     }
     this.shown = false; //used to avoid some unnecessary manipulation of DOM
     this.isSelected = false;
-    // this.colours = new Set(); // TODO - problems here
 };
 
 xiNET.P_PLink.prototype = new xiNET.Link();
@@ -173,53 +172,9 @@ xiNET.P_PLink.prototype.setSelected = function (select) {
     this.isSelected = select;
 };
 
-xiNET.P_PLink.prototype.check = function () {
-    // this.ambiguous = true; // todo - looks like this could be removed
-    this.hd = false;
-
-    const filteredCrossLinks = new Set();
-    const filteredMatches = new Set();
-    const altP_PLinks = new Set();
-
-    // this.colours.clear();
-
-    for (let crossLink of this.crossLinks) {
-
-        if (crossLink.filteredMatches_pp.length > 0) {
-            filteredCrossLinks.add(crossLink.id);
-            // this.colours.add(CLMSUI.compositeModelInst.get("linkColourAssignment").getColour(crossLink));
-        }
-
-        for (let m of crossLink.filteredMatches_pp) {
-            // i think there's a performance improvement to be had here
-            const match = m.match; // oh dear, this...
-            filteredMatches.add(match.id);
-            if (match.hd === true) {
-                this.hd = true;
-            }
-            if (match.crossLinks.length === 1) {
-                // this.ambiguous = false; //yeah... whats this doing when this.ambiguous gets set later, just before end of function
-            } else {
-                for (let matchCrossLink of match.crossLinks) {
-                    if (!matchCrossLink.isDecoyLink()) {
-                        altP_PLinks.add(matchCrossLink.p_pLink.id);
-                    }
-                }
-            }
-        }
-    }
-
-    this.filteredMatchCount = filteredMatches.size;
-    this.filteredCrossLinkCount = filteredCrossLinks.size;
-    if (this.filteredCrossLinkCount > 0) {
-        this.ambiguous = altP_PLinks.size > 1;
-    }
-    return this.filteredCrossLinkCount;
-};
-
 xiNET.P_PLink.prototype.update = function () {
-    if (!this.renderedToProtein || // todo - ok... check why this is here
-        //hide if prot either end is hidden
+    if (!this.renderedToProtein || // not linear
+        //or either end hidden hidden
         this.renderedFromProtein.participant.hidden ||
         this.renderedToProtein.participant.hidden ||
         // or is self link in collapsed group
@@ -227,45 +182,66 @@ xiNET.P_PLink.prototype.update = function () {
         // or either end is expanded to bar and not in collapsed group
         (this.renderedFromProtein.expanded && !this.renderedFromProtein.inCollapsedGroup()) ||
         (this.renderedToProtein.expanded && !this.renderedToProtein.inCollapsedGroup()) // ||
-        /*
-        // or no matches pass filter
-        this.filteredCrossLinkCount === 0 ||
-        */
-        ) {
+    ) {
         this.hide();
     } else {
+        this.hd = false;
+        const filteredCrossLinks = new Set();
+        const filteredMatches = new Set();
+        const altP_PLinks = new Set();
 
-        this.check();
-        if (this.filteredCrossLinkCount === 0){
-            this.hide();
-        } else {
+        for (let crossLink of this.crossLinks) {
+            if (crossLink.filteredMatches_pp.length > 0) {
+                filteredCrossLinks.add(crossLink.id);
+                for (let m of crossLink.filteredMatches_pp) {
+                    const match = m.match; // oh dear, this...
+                    filteredMatches.add(match.id);
+                    if (match.hd === true) {
+                        this.hd = true;
+                    }
+                    if (match.crossLinks.length > 1) {
+                        for (let matchCrossLink of match.crossLinks) {
+                            if (!matchCrossLink.isDecoyLink()) {
+                                altP_PLinks.add(matchCrossLink.p_pLink.id);
+                            }
+                        }
+                    }
+                }
+            }
 
-            // if (this.renderedFromProtein.inCollapsedGroup() && this.renderedToProtein.inCollapsedGroup()) {
-            //     const source = this.renderedFromProtein.getRenderedParticipant();
-            //     const target = this.renderedToProtein.getRenderedParticipant();
-            //     let ggId;
-            //     if (source.id < target.id) {
-            //         ggId = source.id + "_" + target.id;
-            //     } else {
-            //         ggId = target.id + "_" + source.id;
-            //     }
-            //     let ggLink = this.controller.g_gLinks.get(ggId);
-            //     if (!ggLink){
-            //         if (source.id < target.id) {
-            //             ggLink = new G_GLink (ggId, source, target);
-            //         } else {
-            //             ggLink = new G_GLink (ggId, source, target);
-            //         }
-            //         this.controller.g_gLinks.add(ggId, ggLink);
-            //     }
-            //     ggLink.p_pLinks.add(this);
-            //     this.hide();
-            //     ggLink.show();
-            // }
-            // else {
-                this.show();
-            // }
-        };
+            this.filteredMatchCount = filteredMatches.size;
+            this.filteredCrossLinkCount = filteredCrossLinks.size;
+
+            if (this.filteredCrossLinkCount === 0) {
+                this.hide();
+            } else {
+                this.ambiguous = altP_PLinks.size > 1;
+                if (this.renderedFromProtein.inCollapsedGroup() && this.renderedToProtein.inCollapsedGroup()) {
+                    const source = this.renderedFromProtein.getRenderedParticipant();
+                    const target = this.renderedToProtein.getRenderedParticipant();
+                    let ggId;
+                    if (source.id < target.id) {
+                        ggId = source.id + "_" + target.id;
+                    } else {
+                        ggId = target.id + "_" + source.id;
+                    }
+                    let ggLink = this.controller.g_gLinks.get(ggId);
+                    if (!ggLink) {
+                        if (source.id < target.id) {
+                            ggLink = new xiNET.G_GLink(ggId, source, target, this.controller);
+                        } else {
+                            ggLink = new xiNET.G_GLink(ggId, target, source, this.controller);
+                        }
+                        this.controller.g_gLinks.set(ggId, ggLink);
+                    }
+                    ggLink.p_pLinks.set(this.id, this);
+                    this.hide();
+//                ggLink.show();
+                } else {
+                    this.show();
+                }
+            }
+        }
     }
 }
 
@@ -310,7 +286,6 @@ xiNET.P_PLink.prototype.show = function () {
         } else {
             thickLineWidth = 10;
         }
-        this.w = thickLineWidth; // TODO - tidy up
         if (this.renderedFromProtein === this.renderedToProtein) {
             this.thickLine.setAttribute("stroke-width", thickLineWidth);
         } else {
@@ -319,13 +294,7 @@ xiNET.P_PLink.prototype.show = function () {
     }
 
     this.dashedLine(this.ambiguous);
-
-    // if (this.colours.size === 1 && CLMSUI.compositeModelInst.get("linkColourAssignment").get("id") !== "Default") { // todo - fix this
-    //     this.line.setAttribute("stroke", Array.from(this.colours)[0]);
-    // } else {
     this.line.setAttribute("stroke", CLMSUI.compositeModelInst.get("linkColourAssignment").getColour(this));
-    // }
-
     this.setSelected(this.isSelected);
 };
 

@@ -300,6 +300,9 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
         d3.select(".custom-menu-margin").style("display", "none");
         d3.select(".group-custom-menu-margin").style("display", "none");
         this.contextMenuParticipant.setExpanded(false, this.contextMenuPoint);
+        if (this.contextMenuParticipant.type == "group"){
+            this.render();
+        }
         this.hiddenProteinsChanged();
         this.contextMenuParticipant = null;
     },
@@ -318,7 +321,6 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
 
     render: function () {
         this.d3cola.stop();
-
         if (this.wasEmpty) { // first render
             this.wasEmpty = false;
             if (this.model.get("clmsModel").get("xiNETLayout")) {
@@ -327,16 +329,24 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
                 this.autoLayout();
             }
         }
-
-        this.g_gLinks.clear();
-
-
-        for (let p_pLink of this.renderedP_PLinks.values()) {
-            // p_pLink.check();
-            p_pLink.update();
+        for (let ppLink of this.renderedP_PLinks.values()) {
+            ppLink.update(); // protein-protein links initialise group-group links if needed
         }
         for (let cLink of this.renderedCrosslinks.values()) {
             cLink.check();
+        }
+        const ggLinkIdsToRemove = []
+        for (let ggLink of this.g_gLinks.values()) {
+            if (ggLink.group1.expanded === false  && ggLink.group2.expanded === false){
+                ggLink.show();
+                //set line coord?
+            } else {
+                ggLinkIdsToRemove.push(ggLink.id);
+                ggLink.hide();
+            }
+        }
+        for (let id of ggLinkIdsToRemove) {
+            this.g_gLinks.delete(id);
         }
     },
 
@@ -540,7 +550,7 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
 
                     this.toSelect = [];
 
-                    for (let renderedParticipant of this.renderedProteins) {
+                    for (let renderedParticipant of this.renderedProteins.values()) {
                         if (renderedParticipant.hidden !== true) {
                             const svgRect = this.svgElement.createSVGRect();
                             svgRect.x = rectX;
@@ -607,6 +617,7 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
                                 this.dragElement.setExpanded(true, c);
                                 if (this.dragElement.type === "group") {
                                     this.hiddenProteinsChanged();
+                                    this.render();
                                 }
                             } else {
                                 //give context menu that allows collapsing the expanded...
