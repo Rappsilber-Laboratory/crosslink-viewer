@@ -150,7 +150,6 @@ xiNET.RenderedProtein = function (participant, crosslinkViewer) {
         return false;
     };
 
-    //TODO - this wastes a bit memory coz the property is not on the prototype, fix
     Object.defineProperty(this, "width", {
         get: function width() {
             if (this.expanded) {
@@ -700,7 +699,7 @@ xiNET.RenderedProtein.prototype.toCircle = function (svgP) {
     }
 };
 
-xiNET.RenderedProtein.prototype.toStick = function () {
+xiNET.RenderedProtein.prototype.toStick = function (transition = true) {
     this.busy = true;
     this.expanded = true;
 
