@@ -101,31 +101,35 @@ xiNET.RenderedProtein = function (participant, crosslinkViewer) {
 
     const protColourModel = CLMSUI.compositeModelInst.get("proteinColourAssignment");
 
-    //since this.expanded is false, make this a circle, this stuff is equivalant to
-    // end result of toCircle but without transition
-    const r = this.getBlobRadius();
-    d3.select(this.outline)
-        .attr("fill-opacity", 1)
-        .attr("fill", protColourModel.getColour(participant))
-        .attr("x", -r).attr("y", -r)
-        .attr("width", r * 2).attr("height", r * 2)
-        .attr("rx", r).attr("ry", r);
-    d3.select(this.background)
-        .attr("fill-opacity", 1)
-        .attr("fill", protColourModel.getColour(participant))
-        .attr("x", -r).attr("y", -r)
-        .attr("width", r * 2).attr("height", r * 2)
-        .attr("rx", r).attr("ry", r);
-    d3.select(this.highlight)
-        .attr("width", (r * 2) + 5).attr("height", (r * 2) + 5)
-        .attr("x", -r - 2.5).attr("y", -r - 2.5)
-        .attr("rx", r + 2.5).attr("ry", r + 2.5)
-        .attr("stroke-opacity", 0)
-        .attr("fill-opacity", 0);
+    this.toCircle(null, false);
+
+    //since this.expanded is false, make this a circle,
+    // this stuff is equivalant to end result of toCircle but without transition (18/5/21 - apparently it isn't)
+    // const r = this.getBlobRadius();
+    // d3.select(this.outline)
+    //     .attr("fill-opacity", 1)
+    //     .attr("fill", protColourModel.getColour(participant))
+    //     .attr("x", -r).attr("y", -r)
+    //     .attr("width", r * 2).attr("height", r * 2)
+    //     .attr("rx", r).attr("ry", r);
+    // d3.select(this.background)
+    //     .attr("fill-opacity", 1)
+    //     .attr("fill", protColourModel.getColour(participant))
+    //     .attr("x", -r).attr("y", -r)
+    //     .attr("width", r * 2).attr("height", r * 2)
+    //     .attr("rx", r).attr("ry", r);
+    // d3.select(this.highlight)
+    //     .attr("width", (r * 2) + 5).attr("height", (r * 2) + 5)
+    //     .attr("x", -r - 2.5).attr("y", -r - 2.5)
+    //     .attr("rx", r + 2.5).attr("ry", r + 2.5)
+    //     .attr("stroke-opacity", 0)
+    //     .attr("fill-opacity", 0);
+    //
+    //
+    // d3.select(this.labelSVG).attr("transform",
+    //     "translate(0, 0) rotate(0) scale(1, 1)");
 
 
-    d3.select(this.labelSVG).attr("transform",
-        "translate(0, 0) rotate(0) scale(1, 1)");
     // events
     const self = this;
     this.upperGroup.onmousedown = function (evt) {
@@ -535,7 +539,9 @@ xiNET.RenderedProtein.prototype.setExpanded = function (expanded, svgP) {
     }
 };
 
-xiNET.RenderedProtein.prototype.toCircle = function (svgP) {
+xiNET.RenderedProtein.prototype.toCircle = function (svgP, transition = true) {
+    const transitionTime = transition? xiNET.RenderedProtein.transitionTime : 0; //this maybe isn't so good
+
     this.busy = true;
     CLMS.removeDomElement(this.lowerRotator.svg);
     CLMS.removeDomElement(this.upperRotator.svg);
@@ -545,14 +551,12 @@ xiNET.RenderedProtein.prototype.toCircle = function (svgP) {
     const protColourModel = CLMSUI.compositeModelInst.get("proteinColourAssignment");
 
     d3.select(this.outline).transition()
-        //.attr("stroke-opacity", 1) //needed?
         .attr("fill-opacity", 1)
-        //.attr("fill", "#ffffff")
         .attr("fill", protColourModel.getColour(this.participant))
         .attr("x", -r).attr("y", -r)
         .attr("width", r * 2).attr("height", r * 2)
         .attr("rx", r).attr("ry", r)
-        .duration(xiNET.RenderedProtein.transitionTime);
+        .duration(transitionTime);
 
     d3.select(this.background).transition()
         //.attr("stroke-opacity", 1) //needed?
@@ -562,15 +566,15 @@ xiNET.RenderedProtein.prototype.toCircle = function (svgP) {
         .attr("x", -r).attr("y", -r)
         .attr("width", r * 2).attr("height", r * 2)
         .attr("rx", r).attr("ry", r)
-        .duration(xiNET.RenderedProtein.transitionTime);
+        .duration(transitionTime);
 
     d3.select(this.rectDomains).transition().attr("opacity", 0)
         .attr("transform", "scale(1, 1)")
-        .duration(xiNET.RenderedProtein.transitionTime);
+        .duration(transitionTime);
 
     d3.select(this.circDomains).transition().attr("opacity", 1)
         .attr("transform", "scale(1, 1)")
-        .duration(xiNET.RenderedProtein.transitionTime);
+        .duration(transitionTime);
 
     const stickZoomInterpol = d3.interpolate(this.stickZoom, 0);
     const rotationInterpol = d3.interpolate((this.rotation > 180) ? this.rotation - 360 : this.rotation, 0);
@@ -587,7 +591,7 @@ xiNET.RenderedProtein.prototype.toCircle = function (svgP) {
     }
 
     const self = this;
-    d3.select(this.ticks).transition().attr("opacity", 0).duration(xiNET.RenderedProtein.transitionTime / 4)
+    d3.select(this.ticks).transition().attr("opacity", 0).duration(transitionTime / 4)
         .each("end",
             function () {
                 d3.select(this).selectAll("*").remove();
@@ -598,7 +602,7 @@ xiNET.RenderedProtein.prototype.toCircle = function (svgP) {
         .attr("width", (r * 2) + 5).attr("height", (r * 2) + 5)
         .attr("x", -r - 2.5).attr("y", -r - 2.5)
         .attr("rx", r + 2.5).attr("ry", r + 2.5)
-        .duration(xiNET.RenderedProtein.transitionTime);
+        .duration(transitionTime);
 
     const aggSelfLinkPath = this.getAggregateSelfLinkPath();
     for (let residueLink of this.renderedCrosslinks) {
@@ -607,19 +611,19 @@ xiNET.RenderedProtein.prototype.toCircle = function (svgP) {
         if (residueLink.crossLink.isSelfLink()) {
             lineSel.attr("d", crosslinkPath);
             lineSel.transition().attr("d", aggSelfLinkPath)
-                .duration(xiNET.RenderedProtein.transitionTime);
+                .duration(transitionTime);
             const highlightLineSel = d3.select(residueLink.highlightLine);
             highlightLineSel.attr("d", crosslinkPath);
             highlightLineSel.transition().attr("d", aggSelfLinkPath)
-                .duration(xiNET.RenderedProtein.transitionTime);
+                .duration(transitionTime);
         } else if (residueLink.crossLink.isMonoLink()) {
             lineSel.attr("d", crosslinkPath);
             lineSel.transition().attr("d", "M 0,0 L 0,0 L 0,0 L 0,0")
-                .duration(xiNET.RenderedProtein.transitionTime);
+                .duration(transitionTime);
             const highlightLineSel = d3.select(residueLink.highlightLine);
             highlightLineSel.attr("d", crosslinkPath);
             highlightLineSel.transition().attr("d", "M 0,0 L 0,0 L 0,0 L 0,0")
-                .duration(xiNET.RenderedProtein.transitionTime);
+                .duration(transitionTime);
         }
     }
 
@@ -630,7 +634,7 @@ xiNET.RenderedProtein.prototype.toCircle = function (svgP) {
                 rectDomain = anno.colouredRect;
             if (feature.type !== xiNET.disulfide) {
                 d3.select(pieSlice).transition().attr("d", this.getAnnotationPieSliceApproximatePath(feature))
-                    .duration(xiNET.RenderedProtein.transitionTime).each("end",
+                    .duration(transitionTime).each("end",
                     function () {
                         for (let b = 0; b < annotationCount; b++) {
                             const annoB = annotArr[b];
@@ -642,12 +646,12 @@ xiNET.RenderedProtein.prototype.toCircle = function (svgP) {
                 );
 
                 d3.select(rectDomain).transition().attr("d", self.getAnnotationPieSliceApproximatePath(feature))
-                    .duration(xiNET.RenderedProtein.transitionTime);
+                    .duration(transitionTime);
             } else {
                 d3.select(pieSlice).transition().attr("d", this.getDisulfidAnnotationCircPath(feature))
-                    .duration(xiNET.RenderedProtein.transitionTime);
+                    .duration(transitionTime);
                 d3.select(rectDomain).transition().attr("d", self.getDisulfidAnnotationRectPath(feature))
-                    .duration(xiNET.RenderedProtein.transitionTime);
+                    .duration(transitionTime);
             }
         }
     }
@@ -655,9 +659,13 @@ xiNET.RenderedProtein.prototype.toCircle = function (svgP) {
     const originalStickZoom = this.stickZoom;
     const originalRotation = this.rotation;
     const cubicInOut = d3.ease('cubic-in-out');
-    d3.timer(function (elapsed) {
-        return update(elapsed / xiNET.RenderedProtein.transitionTime);
-    });
+    if (transition) {
+        d3.timer(function (elapsed) {
+            return update(elapsed / transitionTime);
+        });
+    } else {
+        update(1);
+    }
 
     function update(interp) {
         const labelTransform = d3.transform(self.labelSVG.getAttribute("transform"));
@@ -691,7 +699,7 @@ xiNET.RenderedProtein.prototype.toCircle = function (svgP) {
             // }
 
             return true;
-        } else if (interp > 1) {
+        } else if (interp > 1 || isNaN(interp)) {
             return update(1);
         } else {
             return false;
@@ -700,6 +708,8 @@ xiNET.RenderedProtein.prototype.toCircle = function (svgP) {
 };
 
 xiNET.RenderedProtein.prototype.toStick = function (transition = true) {
+    const transitionTime = transition? xiNET.RenderedProtein.transitionTime : 0;
+
     this.busy = true;
     this.expanded = true;
 
@@ -725,37 +735,31 @@ xiNET.RenderedProtein.prototype.toStick = function (transition = true) {
     this.checkLinks();
     this.stickZoom = origStickZoom;
 
-    d3.select(this.circDomains).transition().attr("opacity", 0)
-        //~ .attr("transform", "scale(" + this.stickZoom + ", 1)")
-        .duration(xiNET.RenderedProtein.transitionTime);
-    d3.select(this.rectDomains).transition().attr("opacity", 1)
-        //~ .attr("transform", "scale(" + this.stickZoom + ", 1)")
-        .duration(xiNET.RenderedProtein.transitionTime);
-
     const protColourModel = CLMSUI.compositeModelInst.get("proteinColourAssignment");
+
+    d3.select(this.circDomains).transition().attr("opacity", 0).duration(transitionTime);
+    d3.select(this.rectDomains).transition().attr("opacity", 1).duration(transitionTime);
+
     d3.select(this.outline).transition().attr("stroke-opacity", 1)
         .attr("fill-opacity", 0)
-        //.attr("fill", "#ffffff")
         .attr("fill", protColourModel.getColour(this.participant))
         .attr("height", xiNET.RenderedProtein.STICKHEIGHT)
         .attr("y", -xiNET.RenderedProtein.STICKHEIGHT / 2)
         .attr("rx", 0).attr("ry", 0)
-        .duration(xiNET.RenderedProtein.transitionTime);
+        .duration(transitionTime);
 
     d3.select(this.background).transition().attr("stroke-opacity", 1)
-        // .attr("fill-opacity", 0)
-        // //.attr("fill", "#ffffff")
         .attr("fill", protColourModel.getColour(this.participant))
         .attr("height", xiNET.RenderedProtein.STICKHEIGHT)
         .attr("y", -xiNET.RenderedProtein.STICKHEIGHT / 2)
         .attr("rx", 0).attr("ry", 0)
-        .duration(xiNET.RenderedProtein.transitionTime);
+        .duration(transitionTime);
 
     d3.select(this.highlight).transition()
         .attr("width", protLength + 5).attr("height", xiNET.RenderedProtein.STICKHEIGHT + 5)
         .attr("x", this.getResXwithStickZoom(0.5) - 2.5).attr("y", (-xiNET.RenderedProtein.STICKHEIGHT / 2) - 2.5)
         .attr("rx", 0).attr("ry", 0)
-        .duration(xiNET.RenderedProtein.transitionTime);
+        .duration(transitionTime);
 
     const aggSelfLinkPath = this.getAggregateSelfLinkPath();
     for (let residueLink of this.renderedCrosslinks) {
@@ -765,17 +769,17 @@ xiNET.RenderedProtein.prototype.toStick = function (transition = true) {
         if (residueLink.crossLink.isSelfLink()) {
             lineSel.attr("d", aggSelfLinkPath);
             lineSel.transition().attr("d", crosslinkPath)
-                .duration(xiNET.RenderedProtein.transitionTime);
+                .duration(transitionTime);
             highlightLineSel.attr("d", aggSelfLinkPath);
             highlightLineSel.transition().attr("d", crosslinkPath)
-                .duration(xiNET.RenderedProtein.transitionTime);
+                .duration(transitionTime);
         } else if (residueLink.crossLink.isMonoLink()) {
             lineSel.attr("d", "M 0,0 L 0,0 L 0,0 L 0,0");
             lineSel.transition().attr("d", crosslinkPath)
                 .duration(xiNET.RenderedProtein.transitionTime);
             highlightLineSel.attr("d", "M 0,0 L 0,0 L 0,0 L 0,0");
             highlightLineSel.transition().attr("d", crosslinkPath)
-                .duration(xiNET.RenderedProtein.transitionTime);
+                .duration(transitionTime);
         }
     }
 
@@ -788,14 +792,14 @@ xiNET.RenderedProtein.prototype.toStick = function (transition = true) {
             if (feature.type !== xiNET.disulfide) {
                 pieSlice.setAttribute("d", this.getAnnotationPieSliceApproximatePath(feature));
                 d3.select(pieSlice).transition().attr("d", this.getAnnotationRectPath(feature))
-                    .duration(xiNET.RenderedProtein.transitionTime);
+                    .duration(transitionTime);
                 d3.select(rectDomain).transition().attr("d", this.getAnnotationRectPath(feature))
                     .duration(xiNET.RenderedProtein.transitionTime);
             } else {
                 d3.select(pieSlice).transition().attr("d", this.getDisulfidAnnotationRectPath(feature))
-                    .duration(xiNET.RenderedProtein.transitionTime);
+                    .duration(transitionTime);
                 d3.select(rectDomain).transition().attr("d", this.getDisulfidAnnotationRectPath(feature))
-                    .duration(xiNET.RenderedProtein.transitionTime);
+                    .duration(transitionTime);
 
             }
         }
@@ -803,9 +807,13 @@ xiNET.RenderedProtein.prototype.toStick = function (transition = true) {
 
     const self = this;
     const cubicInOut = d3.ease('cubic-in-out');
-    d3.timer(function (elapsed) {
-        return update(elapsed / xiNET.RenderedProtein.transitionTime);
-    });
+    if (transition) {
+        d3.timer(function (elapsed) {
+            return update(elapsed / transitionTime);
+        });
+    } else {
+        update(1);
+    }
 
     //~ update(1);
 
@@ -830,7 +838,7 @@ xiNET.RenderedProtein.prototype.toStick = function (transition = true) {
         if (interp === 1) { // finished - tidy up
             self.busy = false;
             return true;
-        } else if (interp > 1) {
+        } else if (interp > 1 || isNaN(interp)) {
             return update(1);
         } else {
             return false;
@@ -840,146 +848,147 @@ xiNET.RenderedProtein.prototype.toStick = function (transition = true) {
     d3.select(this.ticks).attr("opacity", 0);
     this.setScaleGroup();
     d3.select(this.ticks).transition().attr("opacity", 1)
-        .delay(xiNET.RenderedProtein.transitionTime * 0.8).duration(xiNET.RenderedProtein.transitionTime / 2);
+        .delay(transitionTime * 0.8).duration(transitionTime / 2);
 };
 
-
 xiNET.RenderedProtein.prototype.toStickNoTransition = function () { //TODo - tidy this mess
-    this.busy = true;
-    this.expanded = true;
+    this.toStick(false);
 
-    //place rotators
-    this.upperGroup.appendChild(this.lowerRotator.svg);
-    this.upperGroup.appendChild(this.upperRotator.svg);
-    this.lowerRotator.svg.setAttribute("transform",
-        "translate(" + (this.getResXwithStickZoom(0.5) - xiNET.RenderedProtein.rotOffset) + " 0)");
-    this.upperRotator.svg.setAttribute("transform",
-        "translate(" + (this.getResXwithStickZoom(this.participant.size - 0 + 0.5) + xiNET.RenderedProtein.rotOffset) + " 0)");
-
-    const protLength = this.participant.size * this.stickZoom;
-    const r = this.getBlobRadius();
-
-    const lengthInterpol = d3.interpolate((2 * r), protLength);
-    const stickZoomInterpol = d3.interpolate(0, this.stickZoom);
-    const rotationInterpol = d3.interpolate(0, (this.rotation > 180) ? this.rotation - 360 : this.rotation);
-    const labelWidth = this.labelSVG.getBBox().width;
-    const labelTranslateInterpol = d3.interpolate(0 /*-(r + 5)*/, -(((this.participant.size / 2) * this.stickZoom) + (labelWidth / 2) + 10));
-
-    const origStickZoom = this.stickZoom;
-    this.stickZoom = 0;
-    this.checkLinks();
-    this.stickZoom = origStickZoom;
-
-    d3.select(this.circDomains).attr("opacity", 0);
-    //~ .attr("transform", "scale(" + this.stickZoom + ", 1)")
-    // .duration(xiNET.RenderedProtein.transitionTime);
-    d3.select(this.rectDomains).attr("opacity", 1);
-    //~ .attr("transform", "scale(" + this.stickZoom + ", 1)")
-    // .duration(xiNET.RenderedProtein.transitionTime);
-
-    const protColourModel = CLMSUI.compositeModelInst.get("proteinColourAssignment");
-    d3.select(this.outline).attr("stroke-opacity", 1)
-        .attr("fill-opacity", 0)
-        //.attr("fill", "#ffffff")
-        .attr("fill", protColourModel.getColour(this.participant))
-        .attr("height", xiNET.RenderedProtein.STICKHEIGHT)
-        .attr("y", -xiNET.RenderedProtein.STICKHEIGHT / 2)
-        .attr("rx", 0).attr("ry", 0);
-    // .duration(xiNET.RenderedProtein.transitionTime);
-    d3.select(this.background).attr("stroke-opacity", 1)
-        // .attr("fill-opacity", 0)
-        //.attr("fill", "#ffffff")
-        .attr("fill", protColourModel.getColour(this.participant))
-        .attr("height", xiNET.RenderedProtein.STICKHEIGHT)
-        .attr("y", -xiNET.RenderedProtein.STICKHEIGHT / 2)
-        .attr("rx", 0).attr("ry", 0);
-    // .duration(xiNET.RenderedProtein.transitionTime);
-
-    d3.select(this.highlight)
-        .attr("width", protLength + 5).attr("height", xiNET.RenderedProtein.STICKHEIGHT + 5)
-        .attr("x", this.getResXwithStickZoom(0.5) - 2.5).attr("y", (-xiNET.RenderedProtein.STICKHEIGHT / 2) - 2.5)
-        .attr("rx", 0).attr("ry", 0);
-    // .duration(xiNET.RenderedProtein.transitionTime);
-
-    const aggSelfLinkPath = this.getAggregateSelfLinkPath();
-    for (let residueLink of this.renderedCrosslinks) {
-        const crosslinkPath = this.getCrossLinkPath(residueLink);
-        const lineSel = d3.select(residueLink.line);
-        const highlightLineSel = d3.select(residueLink.highlightLine);
-        if (residueLink.crossLink.isSelfLink()) {
-            lineSel.attr("d", aggSelfLinkPath);
-            lineSel.attr("d", crosslinkPath);
-            // .duration(xiNET.RenderedProtein.transitionTime);
-            highlightLineSel.attr("d", aggSelfLinkPath);
-            highlightLineSel.attr("d", crosslinkPath);
-            // .duration(xiNET.RenderedProtein.transitionTime);
-        } else if (residueLink.crossLink.isMonoLink()) {
-            lineSel.attr("d", "M 0,0 L 0,0 L 0,0 L 0,0");
-            lineSel.attr("d", crosslinkPath);
-            // .duration(xiNET.RenderedProtein.transitionTime);
-            highlightLineSel.attr("d", "M 0,0 L 0,0 L 0,0 L 0,0");
-            highlightLineSel.attr("d", crosslinkPath);
-            // .duration(xiNET.RenderedProtein.transitionTime);
-        }
-    }
-
-    if (this.annotations) {
-        for (let anno of this.annotations.values()) {
-            const feature = anno.feature,
-                pieSlice = anno.pieSlice,
-                rectDomain = anno.colouredRect;
-
-            if (feature.type !== xiNET.disulfide) {
-                pieSlice.setAttribute("d", this.getAnnotationPieSliceApproximatePath(feature));
-                d3.select(pieSlice).attr("d", this.getAnnotationRectPath(feature));
-                // .duration(xiNET.RenderedProtein.transitionTime);
-                d3.select(rectDomain).attr("d", this.getAnnotationRectPath(feature));
-                // .duration(xiNET.RenderedProtein.transitionTime);
-            } else {
-                d3.select(pieSlice).attr("d", this.getDisulfidAnnotationRectPath(feature));
-                // .duration(xiNET.RenderedProtein.transitionTime);
-                d3.select(rectDomain).attr("d", this.getDisulfidAnnotationRectPath(feature));
-                // .duration(xiNET.RenderedProtein.transitionTime);
-
-            }
-        }
-    }
-
-    const self = this;
-    const cubicInOut = d3.ease('cubic-in-out');
-    d3.timer(function (elapsed) {
-        return update(elapsed / xiNET.RenderedProtein.transitionTime);
-    });
-
-    update(1);
-
-    function update(interp) {
-        const labelTransform = d3.transform(self.labelSVG.getAttribute("transform"));
-        const k = self.controller.svgElement.createSVGMatrix().rotate(labelTransform.rotate).translate(labelTranslateInterpol(cubicInOut(interp)), 0);
-        self.labelSVG.transform.baseVal.initialize(self.controller.svgElement.createSVGTransformFromMatrix(k));
-
-        const rot = rotationInterpol(cubicInOut(interp));
-        self.setRotation(rot);
-
-        const currentLength = lengthInterpol(cubicInOut(interp));
-        d3.select(self.outline).attr("width", currentLength).attr("x", -(currentLength / 2) + (0.5 * self.stickZoom));
-        d3.select(self.background).attr("width", currentLength).attr("x", -(currentLength / 2) + (0.5 * self.stickZoom));
-        self.stickZoom = stickZoomInterpol(cubicInOut(interp))
-        self.setAllLinkCoordinates();
-
-        if (interp === 1) { // finished - tidy up
-            self.busy = false;
-            return true;
-        } else if (interp > 1) {
-            return update(1);
-        } else {
-            return false;
-        }
-    }
-
-    d3.select(this.ticks).attr("opacity", 0);
-    this.setScaleGroup();
-    d3.select(this.ticks).attr("opacity", 1);
+    // this.busy = true;
+    // this.expanded = true;
+    //
+    // //place rotators
+    // this.upperGroup.appendChild(this.lowerRotator.svg);
+    // this.upperGroup.appendChild(this.upperRotator.svg);
+    // this.lowerRotator.svg.setAttribute("transform",
+    //     "translate(" + (this.getResXwithStickZoom(0.5) - xiNET.RenderedProtein.rotOffset) + " 0)");
+    // this.upperRotator.svg.setAttribute("transform",
+    //     "translate(" + (this.getResXwithStickZoom(this.participant.size - 0 + 0.5) + xiNET.RenderedProtein.rotOffset) + " 0)");
+    //
+    // const protLength = this.participant.size * this.stickZoom;
+    // const r = this.getBlobRadius();
+    //
+    // const lengthInterpol = d3.interpolate((2 * r), protLength);
+    // const stickZoomInterpol = d3.interpolate(0, this.stickZoom);
+    // const rotationInterpol = d3.interpolate(0, (this.rotation > 180) ? this.rotation - 360 : this.rotation);
+    // const labelWidth = this.labelSVG.getBBox().width;
+    // const labelTranslateInterpol = d3.interpolate(0 /*-(r + 5)*/, -(((this.participant.size / 2) * this.stickZoom) + (labelWidth / 2) + 10));
+    //
+    // const origStickZoom = this.stickZoom;
+    // this.stickZoom = 0;
+    // this.checkLinks();
+    // this.stickZoom = origStickZoom;
+    //
+    // d3.select(this.circDomains).attr("opacity", 0);
+    // //~ .attr("transform", "scale(" + this.stickZoom + ", 1)")
+    // // .duration(xiNET.RenderedProtein.transitionTime);
+    // d3.select(this.rectDomains).attr("opacity", 1);
+    // //~ .attr("transform", "scale(" + this.stickZoom + ", 1)")
+    // // .duration(xiNET.RenderedProtein.transitionTime);
+    //
+    // const protColourModel = CLMSUI.compositeModelInst.get("proteinColourAssignment");
+    // d3.select(this.outline).attr("stroke-opacity", 1)
+    //     .attr("fill-opacity", 0)
+    //     //.attr("fill", "#ffffff")
+    //     .attr("fill", protColourModel.getColour(this.participant))
+    //     .attr("height", xiNET.RenderedProtein.STICKHEIGHT)
+    //     .attr("y", -xiNET.RenderedProtein.STICKHEIGHT / 2)
+    //     .attr("rx", 0).attr("ry", 0);
+    // // .duration(xiNET.RenderedProtein.transitionTime);
+    // d3.select(this.background).attr("stroke-opacity", 1)
+    //     // .attr("fill-opacity", 0)
+    //     //.attr("fill", "#ffffff")
+    //     .attr("fill", protColourModel.getColour(this.participant))
+    //     .attr("height", xiNET.RenderedProtein.STICKHEIGHT)
+    //     .attr("y", -xiNET.RenderedProtein.STICKHEIGHT / 2)
+    //     .attr("rx", 0).attr("ry", 0);
+    // // .duration(xiNET.RenderedProtein.transitionTime);
+    //
+    // d3.select(this.highlight)
+    //     .attr("width", protLength + 5).attr("height", xiNET.RenderedProtein.STICKHEIGHT + 5)
+    //     .attr("x", this.getResXwithStickZoom(0.5) - 2.5).attr("y", (-xiNET.RenderedProtein.STICKHEIGHT / 2) - 2.5)
+    //     .attr("rx", 0).attr("ry", 0);
+    // // .duration(xiNET.RenderedProtein.transitionTime);
+    //
+    // const aggSelfLinkPath = this.getAggregateSelfLinkPath();
+    // for (let residueLink of this.renderedCrosslinks) {
+    //     const crosslinkPath = this.getCrossLinkPath(residueLink);
+    //     const lineSel = d3.select(residueLink.line);
+    //     const highlightLineSel = d3.select(residueLink.highlightLine);
+    //     if (residueLink.crossLink.isSelfLink()) {
+    //         lineSel.attr("d", aggSelfLinkPath);
+    //         lineSel.attr("d", crosslinkPath);
+    //         // .duration(xiNET.RenderedProtein.transitionTime);
+    //         highlightLineSel.attr("d", aggSelfLinkPath);
+    //         highlightLineSel.attr("d", crosslinkPath);
+    //         // .duration(xiNET.RenderedProtein.transitionTime);
+    //     } else if (residueLink.crossLink.isMonoLink()) {
+    //         lineSel.attr("d", "M 0,0 L 0,0 L 0,0 L 0,0");
+    //         lineSel.attr("d", crosslinkPath);
+    //         // .duration(xiNET.RenderedProtein.transitionTime);
+    //         highlightLineSel.attr("d", "M 0,0 L 0,0 L 0,0 L 0,0");
+    //         highlightLineSel.attr("d", crosslinkPath);
+    //         // .duration(xiNET.RenderedProtein.transitionTime);
+    //     }
+    // }
+    //
+    // if (this.annotations) {
+    //     for (let anno of this.annotations.values()) {
+    //         const feature = anno.feature,
+    //             pieSlice = anno.pieSlice,
+    //             rectDomain = anno.colouredRect;
+    //
+    //         if (feature.type !== xiNET.disulfide) {
+    //             pieSlice.setAttribute("d", this.getAnnotationPieSliceApproximatePath(feature));
+    //             d3.select(pieSlice).attr("d", this.getAnnotationRectPath(feature));
+    //             // .duration(xiNET.RenderedProtein.transitionTime);
+    //             d3.select(rectDomain).attr("d", this.getAnnotationRectPath(feature));
+    //             // .duration(xiNET.RenderedProtein.transitionTime);
+    //         } else {
+    //             d3.select(pieSlice).attr("d", this.getDisulfidAnnotationRectPath(feature));
+    //             // .duration(xiNET.RenderedProtein.transitionTime);
+    //             d3.select(rectDomain).attr("d", this.getDisulfidAnnotationRectPath(feature));
+    //             // .duration(xiNET.RenderedProtein.transitionTime);
+    //
+    //         }
+    //     }
+    // }
+    //
+    // const self = this;
+    // const cubicInOut = d3.ease('cubic-in-out');
+    // d3.timer(function (elapsed) {
+    //     return update(elapsed / xiNET.RenderedProtein.transitionTime);
+    // });
+    //
+    // update(1);
+    //
+    // function update(interp) {
+    //     const labelTransform = d3.transform(self.labelSVG.getAttribute("transform"));
+    //     const k = self.controller.svgElement.createSVGMatrix().rotate(labelTransform.rotate).translate(labelTranslateInterpol(cubicInOut(interp)), 0);
+    //     self.labelSVG.transform.baseVal.initialize(self.controller.svgElement.createSVGTransformFromMatrix(k));
+    //
+    //     const rot = rotationInterpol(cubicInOut(interp));
+    //     self.setRotation(rot);
+    //
+    //     const currentLength = lengthInterpol(cubicInOut(interp));
+    //     d3.select(self.outline).attr("width", currentLength).attr("x", -(currentLength / 2) + (0.5 * self.stickZoom));
+    //     d3.select(self.background).attr("width", currentLength).attr("x", -(currentLength / 2) + (0.5 * self.stickZoom));
+    //     self.stickZoom = stickZoomInterpol(cubicInOut(interp))
+    //     self.setAllLinkCoordinates();
+    //
+    //     if (interp === 1) { // finished - tidy up
+    //         self.busy = false;
+    //         return true;
+    //     } else if (interp > 1) {
+    //         return update(1);
+    //     } else {
+    //         return false;
+    //     }
+    // }
+    //
+    // d3.select(this.ticks).attr("opacity", 0);
+    // this.setScaleGroup();
+    // d3.select(this.ticks).attr("opacity", 1);
 
 };
 
