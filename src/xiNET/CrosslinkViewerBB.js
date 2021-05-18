@@ -772,7 +772,7 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
                 }
                 protein.ix = protLayout["x"];
                 protein.iy = protLayout["y"];
-                protein.newForm = protLayout["form"] - 0;
+                protein.newForm = protLayout["expanded"];
                 if (this.barScales.indexOf(+protLayout["stickZoom"]) > -1) {
                     protein.stickZoom = protLayout["stickZoom"];
                 }
@@ -1034,19 +1034,20 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
 
     autoLayout: function (fixedParticipants) {
         this.d3cola.stop();
-
-        // this.container.setAttribute("transform", "scale(" + 1 + ")");// translate(" + ((width / scaleFactor) - bbox.width - bbox.x) + " " + -bbox.y + ")");
-        // this.scale();
+        if (fixedParticipants.length == 0) {
+            this.container.setAttribute("transform", "scale(" + 1 + ")");// translate(" + ((width / scaleFactor) - bbox.width - bbox.x) + " " + -bbox.y + ")");
+            this.scale();
+        }
 
         for (let renderedProtein of this.renderedProteins.values()) {
-            if (fixedParticipants.indexOf(renderedProtein.participant) == -1) {
+            if (fixedParticipants.length == 0){
                 delete renderedProtein.x;
                 delete renderedProtein.y;
                 delete renderedProtein.px; // todo - check if this is necessary
                 delete renderedProtein.py;
-
+            }
+            if (fixedParticipants.indexOf(renderedProtein.participant) == -1) {
                 renderedProtein.fixed = false;
-
             }
             else {
                 renderedProtein.fixed = true;
@@ -1202,7 +1203,9 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
                             g.updateExpandedGroup();
                         }
                     }
-                    // self.zoomToFullExtent();
+                    if (fixedParticipants.length == 0){
+                        self.zoomToFullExtent();
+                    }
 
                     // if (self.debug) {
                     //     groupDebugSel.attr({
