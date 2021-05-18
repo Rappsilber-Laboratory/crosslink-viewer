@@ -180,7 +180,6 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
             .groupCompactness(1e-5)
             .avoidOverlaps(true);
 
-
         this.dragElement = null;
         this.dragStart = null;
 
@@ -189,8 +188,6 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
         this.renderedP_PLinks = new Map();
         // all xiNET.Groups in play
         this.groupMap = new Map();
-        // only those xiNET.Groups that would currently be used by autolayout
-        // this.groupArr = new Map();
         this.g_gLinks = new Map();
 
         this.z = 1;
@@ -300,7 +297,7 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
         d3.select(".custom-menu-margin").style("display", "none");
         d3.select(".group-custom-menu-margin").style("display", "none");
         this.contextMenuParticipant.setExpanded(false, this.contextMenuPoint);
-        if (this.contextMenuParticipant.type == "group"){
+        if (this.contextMenuParticipant.type == "group") {
             this.render();
         }
         this.hiddenProteinsChanged();
@@ -326,7 +323,7 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
             if (this.model.get("clmsModel").get("xiNETLayout")) {
                 this.loadLayout(this.model.get("clmsModel").get("xiNETLayout").layout);
             } else {
-                this.autoLayout();
+                this.autoLayout([]); //layout all
             }
         }
         for (let ppLink of this.renderedP_PLinks.values()) {
@@ -337,7 +334,7 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
         }
         const ggLinkIdsToRemove = []
         for (let ggLink of this.g_gLinks.values()) {
-            if (ggLink.group1.expanded === false  && ggLink.group2.expanded === false){
+            if (ggLink.group1.expanded === false && ggLink.group2.expanded === false) {
                 ggLink.show();
                 //set line coord?
             } else {
@@ -618,6 +615,15 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
                                 if (this.dragElement.type === "group") {
                                     this.hiddenProteinsChanged();
                                     this.render();
+
+                                    const fixed = [];
+                                    for (let rp of this.renderedProteins.values()) {
+                                        if (this.dragElement.renderedParticipants.indexOf(rp) == -1) {
+                                            fixed.push(rp.participant)
+                                        }
+                                    }
+                                    this.autoLayout(fixed); //pass in those NOT to autolayout
+
                                 }
                             } else {
                                 //give context menu that allows collapsing the expanded...
@@ -1026,234 +1032,211 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
         return this;
     },
 
-    autoLayout: function () {
+    autoLayout: function (fixedParticipants) {
         this.d3cola.stop();
 
-        // this.z = 1; //doesn't work this way, z gets set in scale() func by looking at containers transform
-        this.container.setAttribute("transform", "scale(" + 1 + ")");// translate(" + ((width / scaleFactor) - bbox.width - bbox.x) + " " + -bbox.y + ")");
-        this.scale();
-
-        const fixSelected = this.model.get("xinetFixSelected");
+        // this.container.setAttribute("transform", "scale(" + 1 + ")");// translate(" + ((width / scaleFactor) - bbox.width - bbox.x) + " " + -bbox.y + ")");
+        // this.scale();
 
         for (let renderedProtein of this.renderedProteins.values()) {
-            if (!fixSelected) {
+            if (fixedParticipants.indexOf(renderedProtein.participant) == -1) {
                 delete renderedProtein.x;
                 delete renderedProtein.y;
-                delete renderedProtein.px; // todo - check if this is necessry
+                delete renderedProtein.px; // todo - check if this is necessary
                 delete renderedProtein.py;
+
+                renderedProtein.fixed = false;
+
+            }
+            else {
+                renderedProtein.fixed = true;
             }
             delete renderedProtein.index;
         }
         for (let g of this.groupMap.values()) {
-            if (!fixSelected) {
+            // if (!fixSelected) { // todo - some issues here (select a collpased group and select fixed selected)
                 delete g.x;
                 delete g.y;
-                delete g.px; // todo - check if this is necessry
+                delete g.px; // todo - check if this is necessary
                 delete g.py;
-            }
+            // }
             delete g.index;
             delete g.parent;
         }
 
-        //// TODO: prune leaves from network then layout, then add back leaves and layout again
+        const linkLength = (this.renderedProteins.size < 20) ? 40 : 20;
+        const width = this.svgElement.parentNode.clientWidth;
+        const height = this.svgElement.parentNode.clientHeight;
+        this.d3cola.size([height - 40, width - 40]).symmetricDiffLinkLengths(linkLength);
 
         const self = this;
-        const links = new Map();
-        const nodeSet = new Set();
-        const selected = this.model.get("selectedProteins");
-        const filteredCrossLinks = this.model.getFilteredCrossLinks();
 
-        //THINK THIS COULD MOVE UP
-
-        for (let crossLink of filteredCrossLinks) {
-            if (crossLink.toProtein) {
-                const source = this.renderedProteins.get(crossLink.fromProtein.id).getRenderedParticipant();
-                nodeSet.add(source);
-
-                const fromId = crossLink.fromProtein.id;
-                const toId = crossLink.toProtein.id;
-                const linkId = fromId + "-" + toId;
-                if (!links.has(linkId)) {
-                    const linkObj = {};
-                    linkObj.source = source;
-                    linkObj.target = this.renderedProteins.get(crossLink.toProtein.id).getRenderedParticipant();
-                    if (!linkObj.target) {
-                        alert("!");
+        // function makeLinks(){
+            const links = new Map();
+            const nodeSet = new Set();
+            for (let crossLink of self.model.getFilteredCrossLinks()) {
+                if (crossLink.toProtein) { //?
+                    const source = self.renderedProteins.get(crossLink.fromProtein.id).getRenderedParticipant();
+                    const target = self.renderedProteins.get(crossLink.toProtein.id).getRenderedParticipant();
+                    nodeSet.add(source);
+                    const fromId = crossLink.fromProtein.id;
+                    const toId = crossLink.toProtein.id;
+                    const linkId = fromId + "-" + toId;
+                    if (!links.has(linkId)) {
+                        const linkObj = {};
+                        linkObj.source = source;
+                        linkObj.target = target;
+                        nodeSet.add(target);
+                        linkObj.id = linkId;
+                        links.set(linkId, linkObj);
                     }
-                    nodeSet.add(linkObj.target);
-
-                    linkObj.source.fixed = fixSelected && selected.indexOf(source.participant) !== -1;
-                    linkObj.target.fixed = fixSelected && selected.indexOf(linkObj.target.participant) !== -1;
-
-                    //if in group (expanded? - no must be expanded, coz getRenderedParticipant)
-                    // then add highest parent (all parents must also be expanded)
-                    // if (linkObj.source.parentGroups.size) {
-                    //     // u r here - i think it needs to be all parent groups?
-                    //     var topGroups = linkObj.source.getTopParentGroups();
-                    //     for (var tg of topGroups) {
-                    //         groupSet.add(tg);
-                    //     }
-                    // }
-                    // if (linkObj.target.parentGroups.size) {
-                    //     var topGroups = linkObj.target.getTopParentGroups();
-                    //     for (var tg of topGroups) {
-                    //         groupSet.add(tg);
-                    //     }
-                    // }
-
-                    linkObj.id = linkId;
-                    links.set(linkId, linkObj);
                 }
             }
-        }
-
-        const linkArr = Array.from(links.values());
-        const nodeArr = Array.from(nodeSet);
-
-        //temp(?)
-        // for (var link of linkArr){
-        //  //change to sourec / target to indexes? seems not to be necessary
+            const nodeArr = Array.from(nodeSet);
+            const linkArr = Array.from(links.values());
+        //     return {nodeArr, linkArr};
         // }
+        //
+        // const {nodeArr, linkArr} = makeLinks();
+        // doLayout(nodeArr, linkArr, true); // run it first without the groups, this had beneficial effects for layout in complexviewer
+        doLayout(nodeArr, linkArr, false);
 
-        const groups = [];
-        if (this.groupMap) {
-            for (let g of this.groupMap.values()) {
-                // delete g.index;
-                if (!g.hidden && g.expanded) {
-                    // if (g.expanded) { // if it contains visible participants it must be
-//                    g.leaves = [];
-                    g.groups = [];
-                    // for (var rp of g.renderedParticipants) {
-                    //     var i = nodeArr.indexOf(rp);
-                    //     if (i != -1) {
-                    //         g.leaves.push(i);
-                    //     }
-                    // }
-                    // if (g.leaves.length > 0) {
-                    //     groups.push(g);
-                    // }
+        function doLayout(nodes, links, preRun) {
+            //don't know how necessary these deletions are
+            delete self.d3cola._lastStress;
+            delete self.d3cola._alpha;
+            delete self.d3cola._descent;
+            delete self.d3cola._rootGroup;
 
-                    // put any rp not contained in a subgroup(recursive) in group1.leaves
+            self.d3cola.nodes(nodes).links(links);
 
-                    for (let rp of g.renderedParticipants) {
-                        if (!rp.hidden) {
-                            let inSubGroup = false;
-                            for (let subgroup of g.subgroups) {
-                                // UR HERE
-                                if (subgroup.contains(rp)) {
-                                    inSubGroup = true;
-                                    // break; ?
+            // let participantDebugSel, groupDebugSel;
+            // if (self.debug) {
+            //     participantDebugSel = d3.select(this.groupsSVG).selectAll('.node')
+            //         .data(nodeArr);
+            //     participantDebugSel.enter().append('rect')
+            //         .classed('node', true)
+            //         .attr({
+            //             rx: 5,
+            //             ry: 5
+            //         })
+            //         .style('stroke', "red")
+            //         .style('fill', "none");
+            //     groupDebugSel = d3.select(this.groupsSVG).selectAll('.group')
+            //         .data(groups);
+            //     groupDebugSel.enter().append('rect')
+            //         .classed('group', true)
+            //         .attr({
+            //             rx: 5,
+            //             ry: 5
+            //         })
+            //         .style('stroke', "blue")
+            //         .style('fill', "none");
+            //     groupDebugSel.exit().remove();
+            //     participantDebugSel.exit().remove();
+            // }
+
+            if (preRun) {
+                self.d3cola.groups([]).start(23, 10, 0, 0, false);
+            } else {
+                const groups = [];
+                if (this.groupMap) {
+                    for (let g of this.groupMap.values()) {
+                        // delete g.index;
+                        if (!g.hidden && g.expanded) {
+                            // if (g.expanded) { // if it contains visible participants it must be
+//                    g.leaves = []; //see above
+                            g.groups = [];
+                            // for (var rp of g.renderedParticipants) {
+                            //     var i = nodeArr.indexOf(rp);
+                            //     if (i != -1) {
+                            //         g.leaves.push(i);
+                            //     }
+                            // }
+                            // if (g.leaves.length > 0) {
+                            //     groups.push(g);
+                            // }
+
+                            // put any rp not contained in a subgroup(recursive) in group1.leaves
+
+                            for (let rp of g.renderedParticipants) {
+                                if (!rp.hidden) {
+                                    let inSubGroup = false;
+                                    for (let subgroup of g.subgroups) {
+                                        // UR HERE
+                                        if (subgroup.contains(rp)) {
+                                            inSubGroup = true;
+                                            // break; ?
+                                        }
+                                    }
+                                    if (!inSubGroup) {
+                                        g.leaves.push(nodeArr.indexOf(rp)); /// URHERE - MOVE UP
+                                    }
                                 }
                             }
-                            if (!inSubGroup) {
-                                g.leaves.push(nodeArr.indexOf(rp)); /// URHERE - MOVE UP
+                            // if (groupSet.has(g)) { //shouldn't need this? (coz g not hidden)
+                            groups.push(g);
+                            // }
+                        }
+                        // } // end expanded check
+                    }
+                    //need to use indexes of groups
+                    for (let g of groups) {
+                        for (let i = 0; i < g.subgroups.length; i++) {
+                            if (g.subgroups[i].expanded) {
+                                g.groups[i] = groups.indexOf(g.subgroups[i]);
+                            } else {
+                                g.leaves.push(g.subgroups[i]);
                             }
                         }
                     }
-                    // if (groupSet.has(g)) { //shouldn't need this? (coz g not hidden)
-                    groups.push(g);
+                }
+
+                self.d3cola.groups(groups).start(23, 10, 1, 0, true).on("tick", function () {
+                    for (let node of self.d3cola.nodes()) {
+                        node.setPositionFromCola(node.x, node.y);
+                        node.setAllLinkCoordinates();
+                    }
+                    for (let g of self.d3cola.groups()) { // todo -  seems a bit of a weird way to have done this?
+                        if (g.expanded) {
+                            g.updateExpandedGroup();
+                        }
+                    }
+                    // self.zoomToFullExtent();
+
+                    // if (self.debug) {
+                    //     groupDebugSel.attr({
+                    //         x: function (d) {
+                    //             return d.bounds.x;
+                    //         },
+                    //         y: function (d) {
+                    //             return d.bounds.y;
+                    //         },
+                    //         width: function (d) {
+                    //             return d.bounds.width()
+                    //         },
+                    //         height: function (d) {
+                    //             return d.bounds.height()
+                    //         }
+                    //     });
+                    //     participantDebugSel.attr({
+                    //         x: function (d) {
+                    //             return d.bounds.x;
+                    //         },
+                    //         y: function (d) {
+                    //             return d.bounds.y;
+                    //         },
+                    //         width: function (d) {
+                    //             return d.bounds.width()
+                    //         },
+                    //         height: function (d) {
+                    //             return d.bounds.height()
+                    //         }
+                    //     });
                     // }
-                }
-                // } // end expanded check
-            }
-            //need to use indexes of groups
-            for (let g of groups) {
-                for (let i = 0; i < g.subgroups.length; i++) {
-                    if (g.subgroups[i].expanded) {
-                        g.groups[i] = groups.indexOf(g.subgroups[i]);
-                    } else {
-                        g.leaves.push(g.subgroups[i]);
-                    }
-                }
-            }
-        }
-        console.log("groups", groups);
-
-        delete this.d3cola._lastStress;
-        delete this.d3cola._alpha;
-        delete this.d3cola._descent;
-        delete this.d3cola._rootGroup; // needed?
-
-        const length = (nodeArr.length < 20) ? 40 : 20;
-        const width = this.svgElement.parentNode.clientWidth;
-        const height = this.svgElement.parentNode.clientHeight;
-
-        this.d3cola.nodes(nodeArr)
-            .groups(groups)
-            .links(linkArr)
-            .size([height, width])
-            .symmetricDiffLinkLengths(length);
-
-        let participantDebugSel, groupDebugSel;
-        if (self.debug) {
-            participantDebugSel = d3.select(this.groupsSVG).selectAll('.node')
-                .data(nodeArr);
-            participantDebugSel.enter().append('rect')
-                .classed('node', true)
-                .attr({
-                    rx: 5,
-                    ry: 5
-                })
-                .style('stroke', "red")
-                .style('fill', "none");
-            groupDebugSel = d3.select(this.groupsSVG).selectAll('.group')
-                .data(groups);
-            groupDebugSel.enter().append('rect')
-                .classed('group', true)
-                .attr({
-                    rx: 5,
-                    ry: 5
-                })
-                .style('stroke', "blue")
-                .style('fill', "none");
-            groupDebugSel.exit().remove();
-            participantDebugSel.exit().remove();
-        }
-
-        this.d3cola.on("tick", function (e) {
-            for (let node of self.d3cola.nodes()) {
-                node.setPositionFromCola(node.x, node.y);
-                node.setAllLinkCoordinates();
-            }
-            for (let g of self.d3cola.groups()) {
-                if (g.expanded) {
-                    g.updateExpandedGroup();
-                }
-            }
-            self.zoomToFullExtent();
-
-            if (self.debug) {
-                groupDebugSel.attr({
-                    x: function (d) {
-                        return d.bounds.x;
-                    },
-                    y: function (d) {
-                        return d.bounds.y;
-                    },
-                    width: function (d) {
-                        return d.bounds.width()
-                    },
-                    height: function (d) {
-                        return d.bounds.height()
-                    }
-                });
-                participantDebugSel.attr({
-                    x: function (d) {
-                        return d.bounds.x;
-                    },
-                    y: function (d) {
-                        return d.bounds.y;
-                    },
-                    width: function (d) {
-                        return d.bounds.width()
-                    },
-                    height: function (d) {
-                        return d.bounds.height()
-                    }
                 });
             }
-        });
-        this.d3cola.start(30, 0, 60, 0);
+        }
     },
 
     downloadSVG: function () {

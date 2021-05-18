@@ -77,19 +77,16 @@ xiNET.P_PLink.prototype.initSVG = function () {
 
 xiNET.P_PLink.prototype.mouseOver = function (evt) {
     const p = this.controller.getEventPoint(evt);
-
     const toHighlight = this.crossLinks.slice(0);
-
     this.controller.model.setMarkedCrossLinks("highlights", toHighlight, true, false);
-
     this.controller.model.get("tooltipModel")
-        //TODO - reuse other multiLink tooltips in CLM-UI?
         .set("header", "Linked Protein Pair")
         .set("contents", [
             ["From", this.renderedFromProtein.participant.name],
             ["To", this.renderedToProtein.participant.name],
-            ["Unique Linked Residue Pairs", this.filteredCrossLinkCount],
+            ["Unique Linked Residue Pairs", this.filteredCrossLinkCount ? this.filteredCrossLinkCount : "filter not yet applied"],
             ["Matches", this.filteredMatchCount ? this.filteredMatchCount : "filter not yet applied"]
+            //highest score
         ])
         .set("location", {
             pageX: p.x,

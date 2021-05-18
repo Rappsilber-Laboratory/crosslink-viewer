@@ -392,11 +392,12 @@ xiNET.RenderedProtein.prototype.scale = function () {
         const k = this.controller.svgElement.createSVGMatrix().rotate(labelTransform.rotate)
             .translate((-(((this.participant.size / 2) * this.stickZoom) + +(labelWidth / 2) + 10)), 0);
         this.labelSVG.transform.baseVal.initialize(this.controller.svgElement.createSVGTransformFromMatrix(k));
-
-        for (let anno of this.annotations.values()) {
-            const feature = anno.feature;
-            anno.pieSlice.setAttribute("d", this.getAnnotationRectPath(feature));
-            anno.colouredRect.setAttribute("d", this.getAnnotationRectPath(feature));
+        if (this.annotations) {
+            for (let anno of this.annotations.values()) {
+                const feature = anno.feature;
+                anno.pieSlice.setAttribute("d", this.getAnnotationRectPath(feature));
+                anno.colouredRect.setAttribute("d", this.getAnnotationRectPath(feature));
+            }
         }
 
         d3.select(this.outline)

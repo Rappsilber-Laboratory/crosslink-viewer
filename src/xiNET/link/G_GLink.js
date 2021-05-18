@@ -86,13 +86,14 @@ xiNET.G_GLink.prototype.mouseOver = function (evt) {
 
     this.controller.model.get("tooltipModel")
         //TODO - reuse other multiLink tooltips in CLM-UI?
-        .set("header", "group to group link")
+        .set("header", "Group to Group Links")
         .set("contents", [
             ["From", this.group1.name],
             ["To", this.group2.name],
-            ["More summary info:", "it's coming dude"],
+            ["PPI count", "it's coming dude"],
             // ["Unique Linked Residue Pairs", this.filteredCrossLinkCount],
             // ["Matches", this.filteredMatchCount ? this.filteredMatchCount : "filter not yet applied"]
+            //highest score
         ])
         .set("location", {
             pageX: p.x,
