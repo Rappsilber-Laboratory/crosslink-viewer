@@ -57,7 +57,6 @@ xiNET.Group = function (id, participantIds, xlvController) {
     //need to change this if default is unexpanded
     this.controller.groupsSVG.appendChild(this.upperGroup);
 
-    // events - todo: move to initEvents function in Interactor?
     const self = this;
     //    this.upperGroup.setAttribute('pointer-events','all');
     this.upperGroup.onmousedown = function (evt) {
@@ -70,25 +69,14 @@ xiNET.Group = function (id, participantIds, xlvController) {
         self.mouseOut(evt);
     };
 
-    //TODO - this wastes a bit memory coz the property is not on the prototype, fix
     Object.defineProperty(this, "width", {
         get: function width() {
-            // if (this.expanded) {
-            //     console.log("get width on expanded group");
-            //     this.upperGroup.getBBox().width + 10;
-            // } else {
             return this.upperGroup.getBBox().width + 10;
-            // }
         }
     });
     Object.defineProperty(this, "height", {
         get: function height() {
-            // if (this.expanded) {
-            //     console.log("get width on expanded group");
-            //     this.upperGroup.getBBox().height + 10;
-            // } else {
             return 60;//this.upperGroup.getBBox().height + 10;
-            // }
         }
     });
 }
@@ -210,13 +198,13 @@ xiNET.Group.prototype.getAverageParticipantPosition = function () {
 xiNET.Group.prototype.setPositionFromCola = function () {
     this.px = this.x;
     this.py = this.y;
-    let xOffset = 0;
-    if (!this.hidden) { // todo - hacky
-        xOffset = (this.width / 20); // - (this.getBlobRadius()) + 5)
-        // if (this.expanded) {
-        //   xOffset = xOffset + (this.participant.size / 2 * this.stickZoom );
-        // }
-    }
+    // let xOffset = 0;
+    // if (!this.hidden) { // todo - hacky
+    //     xOffset = (this.width / 20); // - (this.getBlobRadius()) + 5)
+    //     // if (this.expanded) {
+    //     //   xOffset = xOffset + (this.participant.size / 2 * this.stickZoom );
+    //     // }
+    // }
     this.setPosition(this.x /*- xOffset*/, this.y);
 }
 
@@ -364,7 +352,6 @@ xiNET.Group.prototype.updateHighlight = function () {
     // this.updateSelected();
     // this.showHighlight(false);
 
-
     let someHighlighted = false, allHighlighted = true;
     for (let rp of this.renderedParticipants) {
         if (rp.isHighlighted) {
@@ -385,8 +372,6 @@ xiNET.Group.prototype.updateHighlight = function () {
         this.showHighlight(false);
         this.updateSelected();
     }
-
-
 }
 
 xiNET.Group.prototype.updateSelected = function () {
@@ -459,23 +444,31 @@ xiNET.Group.prototype.setExpanded = function (expanded) {
     if (!expanded) { // is collapsing
         this.labelSVG.setAttribute("dominant-baseline", "central");
         this.labelSVG.setAttribute("text-anchor", "middle");
+
         this.hideSubgroups();
+
         this.controller.proteinUpper.appendChild(this.upperGroup);
         if (!expandedGroupLabels) {
             this.upperGroup.appendChild(this.labelSVG);
         }
+
         this.outline.setAttribute("fill-opacity", "1");
-        const pPos = this.getAverageParticipantPosition(); // todo - use svgP
+
+        const pPos = this.getAverageParticipantPosition(); // todo - use svgP?
         this.setPositionFromXinet(pPos[0], pPos[1]);
         for (let rp of this.renderedParticipants) {
+            rp.setPositionFromXinet(pPos[0], pPos[1]);
             rp.setAllLinkCoordinates();
             rp.setHidden(true);
             //rp.checkLinks();
         }
+
     } else { // is expanding
         this.labelSVG.setAttribute("dominant-baseline", null);
         this.labelSVG.setAttribute("text-anchor", null);
+
         this.showSubgroups();
+
         this.controller.groupsSVG.appendChild(this.upperGroup);
         if (!expandedGroupLabels) {
             if (this.upperGroup.contains(this.labelSVG)) {
@@ -484,12 +477,15 @@ xiNET.Group.prototype.setExpanded = function (expanded) {
         } else { // this is a mess? todo
             this.upperGroup.appendChild(this.labelSVG);
         }
+
         this.outline.setAttribute("fill-opacity", "0.5");
+
         for (let rp of this.renderedParticipants) {
             rp.setAllLinkCoordinates();
             rp.setHidden(rp.participant.hidden || rp.inCollapsedGroup());
             //rp.checkLinks();
         }
+
         this.updateExpandedGroup();
     }
 
