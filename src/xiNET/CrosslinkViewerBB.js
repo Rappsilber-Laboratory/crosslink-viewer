@@ -1109,40 +1109,16 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
             delete self.d3cola._descent;
             delete self.d3cola._rootGroup;
 
-            self.d3cola.nodes(nodes).links(links);
+           // self.d3cola.nodes(nodes).links(links);
 
-            // let participantDebugSel, groupDebugSel;
-            // if (self.debug) {
-            //     participantDebugSel = d3.select(this.groupsSVG).selectAll('.node')
-            //         .data(nodeArr);
-            //     participantDebugSel.enter().append('rect')
-            //         .classed('node', true)
-            //         .attr({
-            //             rx: 5,
-            //             ry: 5
-            //         })
-            //         .style('stroke', "red")
-            //         .style('fill', "none");
-            //     groupDebugSel = d3.select(this.groupsSVG).selectAll('.group')
-            //         .data(groups);
-            //     groupDebugSel.enter().append('rect')
-            //         .classed('group', true)
-            //         .attr({
-            //             rx: 5,
-            //             ry: 5
-            //         })
-            //         .style('stroke', "blue")
-            //         .style('fill', "none");
-            //     groupDebugSel.exit().remove();
-            //     participantDebugSel.exit().remove();
-            // }
 
-            if (preRun) {
-                self.d3cola.groups([]).start(23, 10, 0, 0, false);
-            } else {
+            //
+            // if (preRun) {
+            //     self.d3cola.groups([]).start(23, 10, 0, 0, false);
+            // } else {
                 const groups = [];
-                if (this.groupMap) {
-                    for (let g of this.groupMap.values()) {
+                if (self.groupMap) {
+                    for (let g of self.groupMap.values()) {
                         // delete g.index;
                         if (!g.hidden && g.expanded) {
                             // if (g.expanded) { // if it contains visible participants it must be
@@ -1192,8 +1168,32 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
                         }
                     }
                 }
-
-                self.d3cola.groups(groups).start(23, 10, 1, 0, true).on("tick", function () {
+                let participantDebugSel, groupDebugSel;
+                if (self.debug) {
+                    participantDebugSel = d3.select(this.groupsSVG).selectAll('.node')
+                        .data(nodeArr);
+                    participantDebugSel.enter().append('rect')
+                        .classed('node', true)
+                        .attr({
+                            rx: 5,
+                            ry: 5
+                        })
+                        .style('stroke', "red")
+                        .style('fill', "none");
+                    groupDebugSel = d3.select(this.groupsSVG).selectAll('.group')
+                        .data(groups);
+                    groupDebugSel.enter().append('rect')
+                        .classed('group', true)
+                        .attr({
+                            rx: 5,
+                            ry: 5
+                        })
+                        .style('stroke', "blue")
+                        .style('fill', "none");
+                    groupDebugSel.exit().remove();
+                    participantDebugSel.exit().remove();
+                }
+                self.d3cola.nodes(nodes).groups(groups).links(links).start(23, 10, 1, 0, true).on("tick", function () { //.start(23, 10, 1, 0, true)
                     for (let node of self.d3cola.nodes()) {
                         node.setPositionFromCola(node.x, node.y);
                         node.setAllLinkCoordinates();
@@ -1207,38 +1207,38 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
                         self.zoomToFullExtent();
                     }
 
-                    // if (self.debug) {
-                    //     groupDebugSel.attr({
-                    //         x: function (d) {
-                    //             return d.bounds.x;
-                    //         },
-                    //         y: function (d) {
-                    //             return d.bounds.y;
-                    //         },
-                    //         width: function (d) {
-                    //             return d.bounds.width()
-                    //         },
-                    //         height: function (d) {
-                    //             return d.bounds.height()
-                    //         }
-                    //     });
-                    //     participantDebugSel.attr({
-                    //         x: function (d) {
-                    //             return d.bounds.x;
-                    //         },
-                    //         y: function (d) {
-                    //             return d.bounds.y;
-                    //         },
-                    //         width: function (d) {
-                    //             return d.bounds.width()
-                    //         },
-                    //         height: function (d) {
-                    //             return d.bounds.height()
-                    //         }
-                    //     });
-                    // }
+                    if (self.debug) {
+                        groupDebugSel.attr({
+                            x: function (d) {
+                                return d.bounds.x;
+                            },
+                            y: function (d) {
+                                return d.bounds.y;
+                            },
+                            width: function (d) {
+                                return d.bounds.width()
+                            },
+                            height: function (d) {
+                                return d.bounds.height()
+                            }
+                        });
+                        participantDebugSel.attr({
+                            x: function (d) {
+                                return d.bounds.x;
+                            },
+                            y: function (d) {
+                                return d.bounds.y;
+                            },
+                            width: function (d) {
+                                return d.bounds.width()
+                            },
+                            height: function (d) {
+                                return d.bounds.height()
+                            }
+                        });
+                    }
                 });
-            }
+            //}
         }
     },
 
@@ -1348,7 +1348,7 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
     // updates protein names and colours
     proteinMetadataUpdated: function () {
         const proteinColourModel = CLMSUI.compositeModelInst.get("proteinColourAssignment");
-        for (let renderedParticipant of this.renderedProteins) {
+        for (let renderedParticipant of this.renderedProteins.values()) {
             renderedParticipant.updateName();
             if (proteinColourModel) {
                 d3.select(renderedParticipant.outline)
