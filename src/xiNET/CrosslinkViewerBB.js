@@ -237,6 +237,7 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
                 rp.stickZoom = this.defaultBarScale;
             }
             rp.scale();
+           // rp.width;// cause it to store a constant value for unexpanded width?
             if (expand) {
                 rp.toStickNoTransition()
             }
@@ -615,7 +616,7 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
                                 if (this.dragElement.type === "group") {
                                     this.hiddenProteinsChanged();
                                     this.render();
-
+/*
                                     const fixed = [];
                                     for (let rp of this.renderedProteins.values()) {
                                         if (this.dragElement.renderedParticipants.indexOf(rp) == -1) {
@@ -623,7 +624,7 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
                                         }
                                     }
                                     this.autoLayout(fixed); //pass in those NOT to autolayout
-
+*/
                                 }
                             } else {
                                 //give context menu that allows collapsing the expanded...
@@ -798,7 +799,14 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
         if (groups && typeof groups[Symbol.iterator] === 'function') {
             const modelGroupMap = new Map();
             for (const savedGroup of groups) {
-                modelGroupMap.set(savedGroup.id, new Set(savedGroup.participantIds));
+                //gonna need to check for proteins now missing from results
+                const presentProteins = new Set();
+                for (let pId of savedGroup.participantIds){
+                     if (this.renderedProteins.get(pId)) {
+                         presentProteins.add(pId);
+                     }
+                }
+                modelGroupMap.set(savedGroup.id, presentProteins);
             }
             this.model.set("groups", modelGroupMap);
             this.model.trigger("change:groups");
@@ -1055,12 +1063,12 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
             delete renderedProtein.index;
         }
         for (let g of this.groupMap.values()) {
-            // if (!fixSelected) { // todo - some issues here (select a collpased group and select fixed selected)
+            if (fixedParticipants.length == 0) { // todo - some issues here (select a collpased group and select fixed selected)
                 delete g.x;
                 delete g.y;
                 delete g.px; // todo - check if this is necessary
                 delete g.py;
-            // }
+            }
             delete g.index;
             delete g.parent;
         }

@@ -456,12 +456,12 @@ xiNET.Group.prototype.setExpanded = function (expanded) {
 
         const pPos = this.getAverageParticipantPosition(); // todo - use svgP?
         this.setPositionFromXinet(pPos[0], pPos[1]);
-        for (let rp of this.renderedParticipants) {
+       /* for (let rp of this.renderedParticipants) {
             rp.setPositionFromXinet(pPos[0], pPos[1]);
             rp.setAllLinkCoordinates();
             rp.setHidden(true);
             //rp.checkLinks();
-        }
+        }*/
 
     } else { // is expanding
         this.labelSVG.setAttribute("dominant-baseline", null);
