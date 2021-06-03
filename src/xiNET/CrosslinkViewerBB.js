@@ -189,7 +189,7 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
         // all xiNET.Groups in play
         this.groupMap = new Map();
         this.g_gLinks = new Map();
-
+        this.toSelect = []; // used by right click drag
         this.z = 1;
         this.container.setAttribute("transform", "scale(1)");
         this.state = this.STATES.MOUSE_UP;
@@ -327,6 +327,7 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
                 this.autoLayout([]); //layout all
             }
         }
+        //this is where the tidy up of the links code should probably start...
         for (let ppLink of this.renderedP_PLinks.values()) {
             ppLink.update(); // protein-protein links initialise group-group links if needed
         }
@@ -390,11 +391,23 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
                 if (p_pLink.line) {
                     p_pLink.line.setAttribute("stroke-width", this.z * this.linkWidth);
                     p_pLink.highlightLine.setAttribute("stroke-width", this.z * 10);
-                    p_pLink.thickLine.setAttribute("stroke-width", this.z * p_pLink.w);
+                    p_pLink.updateThickLineWidth();
                     if (p_pLink.ambiguous) {
                         p_pLink.dashedLine(true); //rescale spacing of dashes
                     }
                 }
+            }
+        }
+        for (let gg of this.g_gLinks.values()) {
+            if (gg.group1 !== gg.group2){
+            //     if (p_pLink.line) {
+                    gg.line.setAttribute("stroke-width", this.z * this.linkWidth);
+                    gg.highlightLine.setAttribute("stroke-width", this.z * 10);
+                    gg.updateThickLineWidth();
+                    // if (p_pLink.ambiguous) {
+                    //     p_pLink.dashedLine(true); //rescale spacing of dashes
+                    // }
+                // }
             }
         }
         for (let g of this.groupMap.values()) {
@@ -1283,6 +1296,9 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
                 renderedCrossLink.showHighlight(false);
             }
         }
+        for (let gg of this.g_gLinks.values()) {
+            gg.checkHighlight();
+        }
         return this;
     },
 
@@ -1302,6 +1318,9 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
             } else {
                 renderedCrossLink.setSelected(false);
             }
+        }
+        for (let gg of this.g_gLinks.values()) {
+            gg.checkSelected();
         }
         return this;
     },

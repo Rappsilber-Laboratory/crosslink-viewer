@@ -1,6 +1,7 @@
 xiNET.G_GLink = function (id, group1, group2, crosslinkViewer) {
     this.id = id;
     this.controller = crosslinkViewer;
+    this.isAggregateLink = true;
 
     this.p_pLinks = new Map ();
     this.group1 = group1;
@@ -12,25 +13,34 @@ xiNET.G_GLink = function (id, group1, group2, crosslinkViewer) {
     //     this.renderedToProtein.renderedP_PLinks.push(this);
     // }
     // this.shown = false; //used to avoid some unnecessary manipulation of DOM
-    // this.isSelected = false;
+    this.isSelected = false;
 };
 
 xiNET.G_GLink.prototype = new xiNET.Link();
 
+
+xiNET.G_GLink.prototype.getCrosslinks = function () {
+    let allCrosslinks = [];
+    for (let pp of this.p_pLinks.values()) {
+        allCrosslinks = allCrosslinks.concat(pp.crossLinks);
+    }
+    return allCrosslinks;
+}
+
 xiNET.G_GLink.prototype.initSVG = function () {
-    // if (this.crossLinks[0].isSelfLink() === false) {
+    if (this.group1 !== this.group2) {
         this.line = document.createElementNS(this.controller.svgns, "line");
         this.highlightLine = document.createElementNS(this.controller.svgns, "line");
         this.thickLine = document.createElementNS(this.controller.svgns, "line");
-    // } else {
-    //     this.renderedFromProtein.selfLink = this;
-    //
-    //     this.line = document.createElementNS(this.controller.svgns, "path");
-    //     this.highlightLine = document.createElementNS(this.controller.svgns, 'path');
-    //     this.thickLine = document.createElementNS(this.controller.svgns, 'path');
-    //
-    //     this.initSelfLinkSVG();
-    // }
+    } else {
+        this.group1.selfLink = this;
+
+        this.line = document.createElementNS(this.controller.svgns, "path");
+        this.highlightLine = document.createElementNS(this.controller.svgns, 'path');
+        this.thickLine = document.createElementNS(this.controller.svgns, 'path');
+
+        this.initSelfLinkSVG();
+    }
 
     this.line.setAttribute("class", "link");
     this.line.setAttribute("fill", "none");
@@ -79,20 +89,28 @@ xiNET.G_GLink.prototype.initSVG = function () {
 
 xiNET.G_GLink.prototype.mouseOver = function (evt) {
     const p = this.controller.getEventPoint(evt);
-
-    // const toHighlight = this.crossLinks.slice(0);
-
-    // this.controller.model.setMarkedCrossLinks("highlights", toHighlight, true, false);
-
+    let allCrosslinks = [];
+    this.filteredCrosslinkCount = 0;
+    let filteredMatchCount = 0;
+    let ppiCount = 0;
+    for (let pp of this.p_pLinks.values()) {
+        if (pp.filteredCrossLinkCount > 0) {
+            allCrosslinks = allCrosslinks.concat(pp.crossLinks);
+            ppiCount++;
+            this.filteredCrosslinkCount += pp.filteredCrossLinkCount;
+            filteredMatchCount += pp.filteredMatchCount;
+        }
+    }
+    this.controller.model.setMarkedCrossLinks("highlights", allCrosslinks, true, false);
     this.controller.model.get("tooltipModel")
         //TODO - reuse other multiLink tooltips in CLM-UI?
         .set("header", "Group to Group Links")
         .set("contents", [
             ["From", this.group1.name],
             ["To", this.group2.name],
-            ["PPI count", "it's coming dude"],
-            // ["Unique Linked Residue Pairs", this.filteredCrossLinkCount],
-            // ["Matches", this.filteredMatchCount ? this.filteredMatchCount : "filter not yet applied"]
+            ["PPI count", ppiCount],
+            ["Unique Linked Residue Pairs", this.filteredCrosslinkCount],
+            ["Matches", filteredMatchCount ? filteredMatchCount : "filter not yet applied"]
             //highest score
         ])
         .set("location", {
@@ -103,28 +121,27 @@ xiNET.G_GLink.prototype.mouseOver = function (evt) {
 
 // event handler for starting dragging or rotation (or flipping internal links)
 xiNET.G_GLink.prototype.mouseDown = function (evt) {
-    //stop layout
     this.controller.d3cola.stop();
-
+    let allCrosslinks = [];
+    for (let pp of this.p_pLinks.values()){
+        allCrosslinks = allCrosslinks.concat(pp.crossLinks);
+    }
     this.controller.dragElement = this;
-    // if (evt.shiftKey || evt.ctrlKey) {
-    //     let selection = this.controller.model.get("selection");
-    //     if (this.isSelected) {
-    //         const self = this;
-    //         selection = selection.filter(function (d) {
-    //             return self.crossLinks.indexOf(d) === -1;
-    //         });
-    //     } else {
-    //         selection = selection.concat(this.crossLinks);
-    //     }
-    //     this.controller.model.setMarkedCrossLinks("selection", selection);
-    // } else {
-    //     this.controller.model.setMarkedCrossLinks("selection", _.clone(this.crossLinks));
-    // }
-
+    if (evt.shiftKey || evt.ctrlKey) {
+        let selection = this.controller.model.get("selection");
+        if (this.isSelected) {
+            selection = selection.filter(function (d) {
+                return allCrosslinks.indexOf(d) === -1;
+            });
+        } else {
+            selection = selection.concat(allCrosslinks);
+        }
+        this.controller.model.setMarkedCrossLinks("selection", selection);
+    } else {
+        this.controller.model.setMarkedCrossLinks("selection", _.clone(allCrosslinks));
+    }
     //store start location
     this.controller.dragStart = evt;
-
     d3.select(".custom-menu-margin").style("display", "none");
     d3.select(".group-custom-menu-margin").style("display", "none");
 };
@@ -138,12 +155,34 @@ xiNET.G_GLink.prototype.mouseDown = function (evt) {
     this.controller.dragStart = evt;
 }*/
 
-// xiNET.P_PLink.prototype.initSelfLinkSVG = function () {
-//     const path = this.renderedFromProtein.getAggregateSelfLinkPath();
-//     this.line.setAttribute('d', path);
-//     this.highlightLine.setAttribute('d', path);
-//     this.thickLine.setAttribute('d', path);
-// };
+xiNET.G_GLink.prototype.initSelfLinkSVG = function () {
+    const path = this.group1.getAggregateSelfLinkPath();
+    this.line.setAttribute('d', path);
+    this.highlightLine.setAttribute('d', path);
+    this.thickLine.setAttribute('d', path);
+};
+
+xiNET.G_GLink.prototype.checkHighlight = function () {
+    for (let pp of this.p_pLinks.values()) {
+        // if (pp.filteredCrossLinkCount > 0) { ? // shouldn't be needed
+        if (pp.isHighlighted) {
+            this.showHighlight(true);
+            return;
+        }
+    }
+    this.showHighlight(false);
+}
+
+xiNET.G_GLink.prototype.checkSelected = function () {
+    for (let pp of this.p_pLinks.values()) {
+        // if (pp.filteredCrossLinkCount > 0) { ? // shouldn't be needed
+        if (pp.isSelected) {
+            this.setSelected(true);
+            return;
+        }
+    }
+    this.setSelected(false);
+}
 
 xiNET.G_GLink.prototype.showHighlight = function (show) {
     if (this.shown) {
@@ -249,57 +288,56 @@ xiNET.G_GLink.prototype.show = function () {
         this.initSVG();
     }
     this.shown = true;
-    // if (this.renderedFromProtein === this.renderedToProtein) {
-    //     this.thickLine.setAttribute("transform", "translate(" +
-    //         this.renderedFromProtein.ix + " " + this.renderedFromProtein.iy + ")" // possibly not neccessary
-    //         +
-    //         " scale(" + (this.controller.z) + ")");
-    //     this.line.setAttribute("transform", "translate(" + this.renderedFromProtein.ix +
-    //         " " + this.renderedFromProtein.iy + ")" + " scale(" + (this.controller.z) + ")");
-    //     this.highlightLine.setAttribute("transform", "translate(" + this.renderedFromProtein.ix +
-    //         " " + this.renderedFromProtein.iy + ")" + " scale(" + (this.controller.z) + ")");
-    //
-    // } else {
+    if (this.group1 === this.group2) {
+        this.thickLine.setAttribute("transform", "translate(" +
+            this.group1.ix + " " + this.group2.iy + ")" // possibly not neccessary
+            +
+            " scale(" + (this.controller.z) + ")");
+        this.line.setAttribute("transform", "translate(" + this.group1.ix +
+            " " + this.group1.iy + ")" + " scale(" + (this.controller.z) + ")");
+        this.highlightLine.setAttribute("transform", "translate(" + this.group1.ix +
+            " " + this.group1.iy + ")" + " scale(" + (this.controller.z) + ")");
+
+    } else {
         this.line.setAttribute("stroke-width", this.controller.z * this.controller.linkWidth);
         this.highlightLine.setAttribute("stroke-width", this.controller.z * 10);
         this.setLineCoordinates();
-    // }
+    }
     d3.select(this.thickLine).style("display", null);
     d3.select(this.line).style("display", null);
     d3.select(this.highlightLine).style("display", null);
     //}
 
-    // if (this.controller.model.get("xinetThickLinks") === false) {
+    if (this.controller.model.get("xinetThickLinks") === false) {
         d3.select(this.thickLine).style("display", "none");
-    // } else {
-    //     d3.select(this.thickLine).style("display", null);
-    //     const steps = this.controller.model.get("xinetPpiSteps");
-    //
-    //     let thickLineWidth;
-    //     if (this.filteredCrossLinkCount < steps[0]) {
-    //         thickLineWidth = 1;
-    //     } else if (this.filteredCrossLinkCount < steps[1]) {
-    //         thickLineWidth = 5;
-    //     } else {
-    //         thickLineWidth = 10;
-    //     }
-    //     this.w = thickLineWidth; // TODO - tidy up
-    //     if (this.renderedFromProtein === this.renderedToProtein) {
-    //         this.thickLine.setAttribute("stroke-width", thickLineWidth);
-    //     } else {
-    //         this.thickLine.setAttribute("stroke-width", this.controller.z * thickLineWidth);
-    //     }
-    // }
+    } else {
+        d3.select(this.thickLine).style("display", null);
+        this.updateThickLineWidth();
+    }
 
-    this.dashedLine(this.ambiguous);
+    // this.dashedLine(this.ambiguous);
 
-    // if (this.colours.size === 1 && CLMSUI.compositeModelInst.get("linkColourAssignment").get("id") !== "Default") { // todo - fix this
-    //     this.line.setAttribute("stroke", Array.from(this.colours)[0]);
-    // } else {
-    this.line.setAttribute("stroke", "black");//CLMSUI.compositeModelInst.get("linkColourAssignment").getColour(this));
-    // }
+    this.line.setAttribute("stroke", CLMSUI.compositeModelInst.get("linkColourAssignment").getColour(this));
 
     this.setSelected(this.isSelected);
+};
+
+xiNET.G_GLink.prototype.updateThickLineWidth = function () {
+    const steps = this.controller.model.get("xinetPpiSteps");
+
+    let thickLineWidth;
+    if (this.filteredCrosslinkCount < steps[0]) {
+        thickLineWidth = 1;
+    } else if (this.filteredCrosslinkCount < steps[1]) {
+        thickLineWidth = 5;
+    } else {
+        thickLineWidth = 10;
+    }
+    if (this.group1 === this.group2) {
+        this.thickLine.setAttribute("stroke-width", thickLineWidth);
+    } else {
+        this.thickLine.setAttribute("stroke-width", this.controller.z * thickLineWidth);
+    }
 };
 
 xiNET.G_GLink.prototype.hide = function () {
@@ -312,7 +350,7 @@ xiNET.G_GLink.prototype.hide = function () {
 };
 
 xiNET.G_GLink.prototype.setLineCoordinates = function () {
-    // if (this.renderedToProtein && this.renderedFromProtein !== this.renderedToProtein) {
+    if (this.group1 !== this.group2) {
         if (this.shown) {
             const source = this.group1;//.getRenderedParticipant();
             const target = this.group2;//renderedToProtein.getRenderedParticipant();
@@ -336,7 +374,7 @@ xiNET.G_GLink.prototype.setLineCoordinates = function () {
             this.thickLine.setAttribute("y2", target.iy);
             // }
         }
-    // }
+    }
 }
 /*
 xiNET.P_PLink.prototype.getOtherEnd = function(protein) {

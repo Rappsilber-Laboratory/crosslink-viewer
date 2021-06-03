@@ -83,6 +83,10 @@ xiNET.Group = function (id, participantIds, xlvController) {
 
 xiNET.Group.prototype = new xiNET.Interactor();
 
+xiNET.Group.prototype.getBlobRadius = function () {
+    return 25;
+};
+
 //only output the info needed to reproduce the layout, used by save layout function
 xiNET.Group.prototype.toJSON = function () {
     const participantIds = [];
@@ -263,6 +267,16 @@ xiNET.Group.prototype.setPosition = function (ix, iy) { //todo - array for coord
         }
         for (let ggLink of this.controller.g_gLinks.values()) {
             ggLink.setLineCoordinates();
+        }
+        if (this.selfLink != null) {
+            if (typeof this.selfLink.thickLine !== 'undefined') {
+                this.selfLink.thickLine.setAttribute("transform", "translate(" + this.ix +
+                    " " + this.iy + ")" + " scale(" + (this.controller.z) + ")");
+            }
+            this.selfLink.line.setAttribute("transform", "translate(" + this.ix +
+                " " + this.iy + ")" + " scale(" + (this.controller.z) + ")");
+            this.selfLink.highlightLine.setAttribute("transform", "translate(" + this.ix +
+                " " + this.iy + ")" + " scale(" + (this.controller.z) + ")");
         }
 
     } else {

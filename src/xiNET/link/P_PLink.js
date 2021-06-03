@@ -1,5 +1,5 @@
 xiNET.P_PLink = function (p_pId, crossLink, crosslinkViewer) {
-    this.isPPLink = true;
+    this.isAggregateLink = true;
     this.id = p_pId;
     this.controller = crosslinkViewer;
     this.crossLinks = []; //todo rename to crosslinks
@@ -14,6 +14,10 @@ xiNET.P_PLink = function (p_pId, crossLink, crosslinkViewer) {
 };
 
 xiNET.P_PLink.prototype = new xiNET.Link();
+
+xiNET.P_PLink.prototype.getCrosslinks = function () {
+    return this.crossLinks;
+}
 
 xiNET.P_PLink.prototype.initSVG = function () {
     if (this.crossLinks[0].isSelfLink() === false) {
@@ -152,6 +156,7 @@ xiNET.P_PLink.prototype.showHighlight = function (show) {
             }
         }
     }
+    this.isHighlighted = show;
 };
 
 xiNET.P_PLink.prototype.setSelected = function (select) {
@@ -250,7 +255,7 @@ xiNET.P_PLink.prototype.show = function () {
     this.shown = true;
     if (this.renderedFromProtein === this.renderedToProtein) {
         this.thickLine.setAttribute("transform", "translate(" +
-            this.renderedFromProtein.ix + " " + this.renderedFromProtein.iy + ")" // possibly not neccessary
+            this.renderedFromProtein.ix + " " + this.renderedFromProtein.iy + ")" // possibly not necessary
             +
             " scale(" + (this.controller.z) + ")");
         this.line.setAttribute("transform", "translate(" + this.renderedFromProtein.ix +
@@ -273,26 +278,30 @@ xiNET.P_PLink.prototype.show = function () {
         d3.select(this.thickLine).style("display", "none");
     } else {
         d3.select(this.thickLine).style("display", null);
-        const steps = this.controller.model.get("xinetPpiSteps");
-
-        let thickLineWidth;
-        if (this.filteredCrossLinkCount < steps[0]) {
-            thickLineWidth = 1;
-        } else if (this.filteredCrossLinkCount < steps[1]) {
-            thickLineWidth = 5;
-        } else {
-            thickLineWidth = 10;
-        }
-        if (this.renderedFromProtein === this.renderedToProtein) {
-            this.thickLine.setAttribute("stroke-width", thickLineWidth);
-        } else {
-            this.thickLine.setAttribute("stroke-width", this.controller.z * thickLineWidth);
-        }
+        this.updateThickLineWidth();
     }
 
     this.dashedLine(this.ambiguous);
     this.line.setAttribute("stroke", CLMSUI.compositeModelInst.get("linkColourAssignment").getColour(this));
     this.setSelected(this.isSelected);
+};
+
+xiNET.P_PLink.prototype.updateThickLineWidth = function () {
+    const steps = this.controller.model.get("xinetPpiSteps");
+
+    let thickLineWidth;
+    if (this.filteredCrossLinkCount < steps[0]) {
+        thickLineWidth = 1;
+    } else if (this.filteredCrossLinkCount < steps[1]) {
+        thickLineWidth = 5;
+    } else {
+        thickLineWidth = 10;
+    }
+    if (this.renderedFromProtein === this.renderedToProtein) {
+        this.thickLine.setAttribute("stroke-width", thickLineWidth);
+    } else {
+        this.thickLine.setAttribute("stroke-width", this.controller.z * thickLineWidth);
+    }
 };
 
 xiNET.P_PLink.prototype.hide = function () {
