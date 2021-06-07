@@ -427,7 +427,7 @@ xiNET.RenderedProtein.prototype.setScaleGroup = function () {
             const seqLabelGroup = document.createElementNS(this.controller.svgns, "g");
             seqLabelGroup.setAttribute("transform", "translate(" + this.getResXwithStickZoom(res) + " " + 0 + ")");
             const seqLabel = document.createElementNS(this.controller.svgns, "text");
-            seqLabel.setAttribute('font-family', "'Courier New', monospace");
+            seqLabel.setAttribute('font-family', "monospace");
             seqLabel.setAttribute('font-size', '10px');
             seqLabel.setAttribute("text-anchor", "middle");
             seqLabel.setAttribute("x", 0);
@@ -448,7 +448,7 @@ xiNET.RenderedProtein.prototype.setScaleGroup = function () {
         scaleLabelGroup.setAttribute("transform", "translate(" + tickX + " " + 0 + ")");
         const scaleLabel = document.createElementNS(self.controller.svgns, "text");
         scaleLabel.setAttribute("class", "xinetAxisLabel");
-        scaleLabel.setAttribute('font-family', "'Courier New', monospace");
+        scaleLabel.setAttribute('font-family', "monospace");
         scaleLabel.setAttribute('font-size', '14');
         scaleLabel.setAttribute("text-anchor", "middle");
         scaleLabel.setAttribute("x", 0);
