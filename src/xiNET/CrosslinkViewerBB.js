@@ -1106,6 +1106,7 @@ CLMSUI.CrosslinkViewer = Backbone.View.extend({
                     const linkId = fromId + "-" + toId;
                     if (!links.has(linkId)) {
                         const linkObj = {};
+                        // todo - maybe do use indexes, might avoid probs in cola
                         linkObj.source = source;
                         linkObj.target = target;
                         nodeSet.add(target);
