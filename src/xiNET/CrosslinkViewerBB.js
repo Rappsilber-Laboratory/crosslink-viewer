@@ -1,5 +1,13 @@
 var CLMSUI = CLMSUI || {};
 
+//temp
+//used by xiNET, todo - take out
+CLMS.removeDomElement = function(child) {
+    if (child && child.parentNode) {
+        child.parentNode.removeChild(child);
+    }
+};
+
 CLMSUI.CrosslinkViewer = Backbone.View.extend({
     events: {
         "click .collapse": "collapseParticipant",
