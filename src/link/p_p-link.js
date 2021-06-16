@@ -234,9 +234,9 @@ export class P_PLink extends Link {
                         let ggLink = this.controller.g_gLinks.get(ggId);
                         if (!ggLink) {
                             if (source.id < target.id) {
-                                ggLink = new xiNET.G_GLink(ggId, source, target, this.controller);
+                                ggLink = new G_GLink(ggId, source, target, this.controller);
                             } else {
-                                ggLink = new xiNET.G_GLink(ggId, target, source, this.controller);
+                                ggLink = new G_GLink(ggId, target, source, this.controller);
                             }
                             this.controller.g_gLinks.set(ggId, ggLink);
                         }

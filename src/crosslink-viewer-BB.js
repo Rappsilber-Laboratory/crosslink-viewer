@@ -6,8 +6,8 @@ import {P_PLink} from "./link/p_p-link";
 
 export class CrosslinkViewer extends Backbone.View{
 
-    constructor() {
-        super({
+    constructor(attributes, options) {
+        super(attributes, {
             events: {
                 "click .collapse": "collapseParticipant",
                 "click .collapse-group": "collapseParticipant",
@@ -878,7 +878,7 @@ export class CrosslinkViewer extends Backbone.View{
         //init
         for (let g of modelGroups.entries()) {
             if (!this.groupMap.has(g[0])) {
-                const group = new xiNET.Group(g[0], g[1], this);
+                const group = new Group(g[0], g[1], this);
                 group.init(); // z ordering... later
                 this.groupMap.set(group.id, group);
             }

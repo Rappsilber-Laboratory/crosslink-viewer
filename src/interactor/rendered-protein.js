@@ -596,7 +596,7 @@ export class RenderedProtein extends Interactor {
                     feature = anno.feature,
                     pieSlice = anno.pieSlice,
                     rectDomain = anno.colouredRect;
-                if (feature.type !== xiNET.disulfide) {
+                if (feature.type !== RenderedProtein.disulfide) {
                     d3.select(pieSlice).transition().attr("d", this.getAnnotationPieSliceApproximatePath(feature))
                         .duration(transitionTime).each("end",
                         function () {
@@ -945,7 +945,7 @@ export class RenderedProtein extends Interactor {
         // does all of the commented out above, and picks up user-defined annotations
         let featuresShown = this.controller.model.getFilteredFeatures(this.participant);
         const split = _.partition(featuresShown, function (f) {
-            return f.type === xiNET.disulfide;
+            return f.type === RenderedProtein.disulfide;
         });
         const disulfidBonds = split[0];
         featuresShown = split[1];
@@ -998,7 +998,7 @@ export class RenderedProtein extends Interactor {
                 if (withinAlignedRange) {
                     const pieSlice = document.createElementNS(CrosslinkViewer.svgns, "path");
                     const colouredRect = document.createElementNS(CrosslinkViewer.svgns, "path");
-                    if (anno.type !== xiNET.disulfide) {
+                    if (anno.type !== RenderedProtein.disulfide) {
                         //if (anno.type != "disulfide bond") {
                         if (!this.expanded) {
                             pieSlice.setAttribute("d", this.getAnnotationPieSliceArcPath(anno));
@@ -1092,8 +1092,8 @@ export class RenderedProtein extends Interactor {
         }
 
         const radius = this.getBlobRadius() - 2;
-        const arcStart = xiNET.Interactor.trig(radius, startAngle - 90);
-        const arcEnd = xiNET.Interactor.trig(radius, endAngle - 90);
+        const arcStart = Interactor.trig(radius, startAngle - 90);
+        const arcEnd = Interactor.trig(radius, endAngle - 90);
         return "M0,0 L" + arcStart.x + "," + arcStart.y + " A" + radius + "," +
             radius + " 0 " + largeArcFlag + " " + sweepFlag + " " + arcEnd.x + "," + arcEnd.y + " Z";
     }
