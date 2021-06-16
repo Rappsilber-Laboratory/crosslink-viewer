@@ -1,4 +1,10 @@
-class CrosslinkViewer extends Backbone.View{
+import Backbone from "backbone";
+
+import {RenderedProtein} from "./interactor/rendered-protein";
+import {RenderedCrosslink} from "./link/rendered-crosslink";
+import {P_PLink} from "./link/p_p-link";
+
+export class CrosslinkViewer extends Backbone.View{
 
     constructor(options, ) {
         super(options, {

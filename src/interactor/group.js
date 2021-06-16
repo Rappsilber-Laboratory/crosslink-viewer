@@ -1,4 +1,6 @@
-class Group extends Interactor {
+import {Interactor} from "./interactor";
+
+export class Group extends Interactor {
     constructor(id, participantIds, xlvController) {
         super();
 

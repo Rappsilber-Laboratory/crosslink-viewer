@@ -1,4 +1,8 @@
-class RenderedProtein extends Interactor {
+import {Interactor} from "./interactor";
+import {Rotator} from "./rotator";
+import {CrosslinkViewer} from "../crosslink-viewer-BB";
+
+export class RenderedProtein extends Interactor {
 
     constructor(participant, crosslinkViewer) {
         super();
@@ -1114,7 +1118,7 @@ class RenderedProtein extends Interactor {
         return approximatePiePath;
     }
 
-    getAnnotationRectPath = function (annotation) {
+    getAnnotationRectPath (annotation) {
         //domain as rectangular path
         const bottom = RenderedProtein.STICKHEIGHT / 2,
             top = -RenderedProtein.STICKHEIGHT / 2;

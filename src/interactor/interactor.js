@@ -1,4 +1,4 @@
-class Interactor {
+export class Interactor {
 
     constructor() {
     }

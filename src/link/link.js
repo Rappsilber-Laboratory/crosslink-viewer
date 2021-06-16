@@ -1,9 +1,9 @@
-class Link {
+export class Link {
 
     constructor() {
     }
 
-    mouseOut = function (evt) {
+    mouseOut (evt) {
         this.controller.model.setMarkedCrossLinks("highlights", []); // which pokes highlighted matches into changing too
         this.controller.model.get("tooltipModel").set("contents", null);
     }

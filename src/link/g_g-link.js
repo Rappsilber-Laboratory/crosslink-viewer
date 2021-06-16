@@ -1,4 +1,6 @@
-class G_GLink extends Link {
+import {Link} from "./link";
+
+export class G_GLink extends Link {
 
     constructor(id, group1, group2, crosslinkViewer) {
         super();

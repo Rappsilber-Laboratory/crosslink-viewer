@@ -1,4 +1,9 @@
-class RenderedCrosslink extends Link {
+import {Link} from "./link";
+import {CrosslinkViewer} from "../crosslink-viewer-BB";
+import {Interactor} from "../interactor/interactor";
+import {RenderedProtein} from "../interactor/rendered-protein";
+
+export class RenderedCrosslink extends Link {
     constructor(crossLink, crosslinkViewer) {
         super();
         this.crossLink = crossLink;

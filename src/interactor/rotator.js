@@ -1,4 +1,6 @@
-class Rotator {
+import {CrosslinkViewer} from "../crosslink-viewer-BB";
+
+export class Rotator {
     constructor(protein, upperOrLower, controller) {
         const self = this;
         this.controller = controller;

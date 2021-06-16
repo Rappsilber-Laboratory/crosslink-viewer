@@ -1,4 +1,7 @@
-class P_PLink extends Link {
+import {Link} from "./link";
+import {CrosslinkViewer} from "../crosslink-viewer-BB";
+
+export class P_PLink extends Link {
 
     constructor(p_pId, crossLink, crosslinkViewer) {
         super();
@@ -16,11 +19,11 @@ class P_PLink extends Link {
         this.isSelected = false;
     }
 
-    getCrosslinks = function () {
+    getCrosslinks () {
         return this.crossLinks;
     }
 
-    initSVG = function () {
+    initSVG () {
         if (this.crossLinks[0].isSelfLink() === false) {
             this.line = document.createElementNS(CrosslinkViewer.svgns, "line");
             this.highlightLine = document.createElementNS(CrosslinkViewer.svgns, "line");
@@ -136,7 +139,7 @@ class P_PLink extends Link {
         this.controller.dragStart = evt;
     }*/
 
-    initSelfLinkSVG = function () {
+    initSelfLinkSVG () {
         const path = this.renderedFromProtein.getAggregateSelfLinkPath();
         this.line.setAttribute('d', path);
         this.highlightLine.setAttribute('d', path);
