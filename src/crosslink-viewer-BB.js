@@ -6,8 +6,8 @@ import {P_PLink} from "./link/p_p-link";
 
 export class CrosslinkViewer extends Backbone.View{
 
-    constructor(options, ) {
-        super(options, {
+    constructor() {
+        super({
             events: {
                 "click .collapse": "collapseParticipant",
                 "click .collapse-group": "collapseParticipant",
