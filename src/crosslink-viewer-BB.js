@@ -242,21 +242,21 @@ export class CrosslinkViewer extends Backbone.View{
             }
         }
 
-        for (let crossLink of this.model.get("clmsModel").get("crossLinks").values()) {
-            if (!crossLink.isDecoyLink() && !crossLink.isLinearLink()) {
-                if (!this.renderedCrosslinks.has(crossLink.id)) {
-                    const renderedCrossLink = new RenderedCrosslink(crossLink, this);
-                    this.renderedCrosslinks.set(crossLink.id, renderedCrossLink);
-                    const toId = crossLink.toProtein ? crossLink.toProtein.id : "null";
-                    const p_pId = crossLink.fromProtein.id + "-" + toId;
+        for (let crosslink of this.model.get("clmsModel").get("crosslinks").values()) {
+            if (!crosslink.isDecoyLink() && !crosslink.isLinearLink()) {
+                if (!this.renderedCrosslinks.has(crosslink.id)) {
+                    const renderedCrossLink = new RenderedCrosslink(crosslink, this);
+                    this.renderedCrosslinks.set(crosslink.id, renderedCrossLink);
+                    const toId = crosslink.toProtein ? crosslink.toProtein.id : "null";
+                    const p_pId = crosslink.fromProtein.id + "-" + toId;
                     let p_pLink = this.renderedP_PLinks.get(p_pId);
                     if (typeof p_pLink == 'undefined') {
-                        p_pLink = new P_PLink(p_pId, crossLink, this);
+                        p_pLink = new P_PLink(p_pId, crosslink, this);
                         this.renderedP_PLinks.set(p_pId, p_pLink);
                     }
-                    p_pLink.crossLinks.push(crossLink);
+                    p_pLink.crosslinks.push(crosslink);
 
-                    crossLink.p_pLink = p_pLink;
+                    crosslink.p_pLink = p_pLink;
                 }
             }
         }
@@ -376,10 +376,10 @@ export class CrosslinkViewer extends Backbone.View{
                 prot.setAllLinkCoordinates();
         }
         for (let renderedCrossLink of this.renderedCrosslinks.values()) {
-            if (renderedCrossLink.shown && renderedCrossLink.crossLink.isSelfLink() === false && renderedCrossLink.crossLink.toProtein) {
+            if (renderedCrossLink.shown && renderedCrossLink.crosslink.isSelfLink() === false && renderedCrossLink.crosslink.toProtein) {
                 renderedCrossLink.line.setAttribute("stroke-width", this.z * CrosslinkViewer.linkWidth);
                 renderedCrossLink.highlightLine.setAttribute("stroke-width", this.z * 10);
-                if (renderedCrossLink.crossLink.ambiguous === true) {
+                if (renderedCrossLink.crosslink.ambiguous === true) {
                     renderedCrossLink.dashedLine(true); //rescale spacing of dashes
                 }
             }
@@ -1095,13 +1095,13 @@ export class CrosslinkViewer extends Backbone.View{
         // function makeLinks(){
             const links = new Map();
             const nodeSet = new Set();
-            for (let crossLink of self.model.getFilteredCrossLinks()) {
-                if (crossLink.toProtein) { //?
-                    const source = self.renderedProteins.get(crossLink.fromProtein.id).getRenderedParticipant();
-                    const target = self.renderedProteins.get(crossLink.toProtein.id).getRenderedParticipant();
+            for (let crosslink of self.model.getFilteredCrossLinks()) {
+                if (crosslink.toProtein) { //?
+                    const source = self.renderedProteins.get(crosslink.fromProtein.id).getRenderedParticipant();
+                    const target = self.renderedProteins.get(crosslink.toProtein.id).getRenderedParticipant();
                     nodeSet.add(source);
-                    const fromId = crossLink.fromProtein.id;
-                    const toId = crossLink.toProtein.id;
+                    const fromId = crosslink.fromProtein.id;
+                    const toId = crosslink.toProtein.id;
                     const linkId = fromId + "-" + toId;
                     if (!links.has(linkId)) {
                         const linkObj = {};
@@ -1283,7 +1283,7 @@ export class CrosslinkViewer extends Backbone.View{
         }
         const highlightedCrossLinks = this.model.getMarkedCrossLinks("highlights");
         for (let renderedCrossLink of this.renderedCrosslinks.values()) {
-            if (highlightedCrossLinks.indexOf(renderedCrossLink.crossLink) !== -1) {
+            if (highlightedCrossLinks.indexOf(renderedCrossLink.crosslink) !== -1) {
                 if (renderedCrossLink.renderedFromProtein.expanded ||
                     !renderedCrossLink.renderedToProtein || renderedCrossLink.renderedToProtein.expanded) {
                     renderedCrossLink.showHighlight(true);
@@ -1308,7 +1308,7 @@ export class CrosslinkViewer extends Backbone.View{
         }
         const selectedCrossLinks = this.model.getMarkedCrossLinks("selection");
         for (let renderedCrossLink of this.renderedCrosslinks.values()) {
-            if (selectedCrossLinks.indexOf(renderedCrossLink.crossLink) !== -1) {
+            if (selectedCrossLinks.indexOf(renderedCrossLink.crosslink) !== -1) {
                 renderedCrossLink.setSelected(true);
                 if (renderedCrossLink.renderedToProtein) {
                     const p_pLink = this.renderedP_PLinks.get(

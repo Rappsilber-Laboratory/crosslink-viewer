@@ -3,16 +3,16 @@ import {CrosslinkViewer} from "../crosslink-viewer-BB";
 
 export class P_PLink extends Link {
 
-    constructor(p_pId, crossLink, crosslinkViewer) {
+    constructor(p_pId, crosslink, crosslinkViewer) {
         super();
         this.isAggregateLink = true;
         this.id = p_pId;
         this.controller = crosslinkViewer;
-        this.crossLinks = []; //todo rename to crosslinks
-        this.renderedFromProtein = this.controller.renderedProteins.get(crossLink.fromProtein.id);
+        this.crosslinks = []; //todo rename to crosslinks
+        this.renderedFromProtein = this.controller.renderedProteins.get(crosslink.fromProtein.id);
         this.renderedFromProtein.renderedP_PLinks.push(this);
-        if (crossLink.toProtein) {
-            this.renderedToProtein = this.controller.renderedProteins.get(crossLink.toProtein.id);
+        if (crosslink.toProtein) {
+            this.renderedToProtein = this.controller.renderedProteins.get(crosslink.toProtein.id);
             this.renderedToProtein.renderedP_PLinks.push(this);
         }
         this.shown = false; //used to avoid some unnecessary manipulation of DOM
@@ -20,11 +20,11 @@ export class P_PLink extends Link {
     }
 
     getCrosslinks () {
-        return this.crossLinks;
+        return this.crosslinks;
     }
 
     initSVG () {
-        if (this.crossLinks[0].isSelfLink() === false) {
+        if (this.crosslinks[0].isSelfLink() === false) {
             this.line = document.createElementNS(CrosslinkViewer.svgns, "line");
             this.highlightLine = document.createElementNS(CrosslinkViewer.svgns, "line");
             this.thickLine = document.createElementNS(CrosslinkViewer.svgns, "line");
@@ -85,7 +85,7 @@ export class P_PLink extends Link {
 
     mouseOver(evt) {
         const p = this.controller.getEventPoint(evt);
-        const toHighlight = this.crossLinks.slice(0);
+        const toHighlight = this.crosslinks.slice(0);
         this.controller.model.setMarkedCrossLinks("highlights", toHighlight, true, false);
         this.controller.model.get("tooltipModel")
             .set("header", "Linked Protein Pair")
@@ -113,14 +113,14 @@ export class P_PLink extends Link {
             if (this.isSelected) {
                 const self = this;
                 selection = selection.filter(function (d) {
-                    return self.crossLinks.indexOf(d) === -1;
+                    return self.crosslinks.indexOf(d) === -1;
                 });
             } else {
-                selection = selection.concat(this.crossLinks);
+                selection = selection.concat(this.crosslinks);
             }
             this.controller.model.setMarkedCrossLinks("selection", selection);
         } else {
-            this.controller.model.setMarkedCrossLinks("selection", _.clone(this.crossLinks));
+            this.controller.model.setMarkedCrossLinks("selection", _.clone(this.crosslinks));
         }
 
         //store start location
@@ -133,7 +133,7 @@ export class P_PLink extends Link {
     /*xiNET.P_PLink.prototype.touchStart = function(evt) {
         this.controller.d3cola.stop();
         this.controller.dragElement = this;
-        this.controller.model.setMarkedCrossLinks("selection", this.crossLinks);
+        this.controller.model.setMarkedCrossLinks("selection", this.crosslinks);
         //store start location
         //var p = this.controller.getTouchEventPoint(evt);// oh dear, now broken
         this.controller.dragStart = evt;
@@ -184,7 +184,7 @@ export class P_PLink extends Link {
             this.renderedFromProtein.participant.hidden ||
             this.renderedToProtein.participant.hidden ||
             // or is self link in collapsed group
-            (this.crossLinks[0].isSelfLink() && this.renderedFromProtein.inCollapsedGroup()) ||
+            (this.crosslinks[0].isSelfLink() && this.renderedFromProtein.inCollapsedGroup()) ||
             // or either end is expanded to bar and not in collapsed group
             (this.renderedFromProtein.expanded && !this.renderedFromProtein.inCollapsedGroup()) ||
             (this.renderedToProtein.expanded && !this.renderedToProtein.inCollapsedGroup()) // ||
@@ -196,17 +196,17 @@ export class P_PLink extends Link {
             const filteredMatches = new Set();
             const altP_PLinks = new Set();
 
-            for (let crossLink of this.crossLinks) {
-                if (crossLink.filteredMatches_pp.length > 0) {
-                    filteredCrossLinks.add(crossLink.id);
-                    for (let m of crossLink.filteredMatches_pp) {
+            for (let crosslink of this.crosslinks) {
+                if (crosslink.filteredMatches_pp.length > 0) {
+                    filteredCrossLinks.add(crosslink.id);
+                    for (let m of crosslink.filteredMatches_pp) {
                         const match = m.match; // oh dear, this...
                         filteredMatches.add(match.id);
                         if (match.hd === true) {
                             this.hd = true;
                         }
-                        if (match.crossLinks.length > 1) {
-                            for (let matchCrossLink of match.crossLinks) {
+                        if (match.crosslinks.length > 1) {
+                            for (let matchCrossLink of match.crosslinks) {
                                 if (!matchCrossLink.isDecoyLink()) {
                                     altP_PLinks.add(matchCrossLink.p_pLink.id);
                                 }

@@ -186,7 +186,7 @@ export class RenderedProtein extends Interactor {
                 .attr("rx", r + 2.5).attr("ry", r + 2.5)
             this.labelSVG.setAttribute("transform", "translate(" + (-(r + 5)) + "," + "-5)");
             for (let ppLink of this.renderedP_PLinks) {
-                if (ppLink.crossLinks[0].isSelfLink() && ppLink.shown) {
+                if (ppLink.crosslinks[0].isSelfLink() && ppLink.shown) {
                     ppLink.initSelfLinkSVG();
                 }
             }
@@ -376,7 +376,7 @@ export class RenderedProtein extends Interactor {
             this.placeRotators();
 
             for (let residueLink of this.renderedCrosslinks) {
-                if (residueLink.crossLink.isSelfLink() || residueLink.crossLink.isMonoLink()) {
+                if (residueLink.crosslink.isSelfLink() || residueLink.crosslink.isMonoLink()) {
                     const path = this.getCrossLinkPath(residueLink);
                     d3.select(residueLink.line).attr("d", path);
                     d3.select(residueLink.highlightLine).attr("d", path);
@@ -569,7 +569,7 @@ export class RenderedProtein extends Interactor {
         for (let residueLink of this.renderedCrosslinks) {
             const crosslinkPath = this.getCrossLinkPath(residueLink);
             const lineSel = d3.select(residueLink.line);
-            if (residueLink.crossLink.isSelfLink()) {
+            if (residueLink.crosslink.isSelfLink()) {
                 lineSel.attr("d", crosslinkPath);
                 lineSel.transition().attr("d", aggSelfLinkPath)
                     .duration(transitionTime);
@@ -577,7 +577,7 @@ export class RenderedProtein extends Interactor {
                 highlightLineSel.attr("d", crosslinkPath);
                 highlightLineSel.transition().attr("d", aggSelfLinkPath)
                     .duration(transitionTime);
-            } else if (residueLink.crossLink.isMonoLink()) {
+            } else if (residueLink.crosslink.isMonoLink()) {
                 lineSel.attr("d", crosslinkPath);
                 lineSel.transition().attr("d", "M 0,0 L 0,0 L 0,0 L 0,0")
                     .duration(transitionTime);
@@ -727,14 +727,14 @@ export class RenderedProtein extends Interactor {
             const crosslinkPath = this.getCrossLinkPath(residueLink);
             const lineSel = d3.select(residueLink.line);
             const highlightLineSel = d3.select(residueLink.highlightLine);
-            if (residueLink.crossLink.isSelfLink()) {
+            if (residueLink.crosslink.isSelfLink()) {
                 lineSel.attr("d", aggSelfLinkPath);
                 lineSel.transition().attr("d", crosslinkPath)
                     .duration(transitionTime);
                 highlightLineSel.attr("d", aggSelfLinkPath);
                 highlightLineSel.transition().attr("d", crosslinkPath)
                     .duration(transitionTime);
-            } else if (residueLink.crossLink.isMonoLink()) {
+            } else if (residueLink.crosslink.isMonoLink()) {
                 lineSel.attr("d", "M 0,0 L 0,0 L 0,0 L 0,0");
                 lineSel.transition().attr("d", crosslinkPath)
                     .duration(RenderedProtein.transitionTime);
@@ -817,14 +817,14 @@ export class RenderedProtein extends Interactor {
     }
 
     getCrossLinkPath(renderedCrossLink) {
-        const x1 = this.getResXwithStickZoom(renderedCrossLink.crossLink.fromResidue);
+        const x1 = this.getResXwithStickZoom(renderedCrossLink.crosslink.fromResidue);
         let baseLine = 0;
         if (this.stickZoom >= 8) {
             baseLine = -5;
         }
 
         // following draws little flags
-        if (renderedCrossLink.crossLink.isMonoLink()) { //linker modified peptide
+        if (renderedCrossLink.crosslink.isMonoLink()) { //linker modified peptide
             // if (renderedCrossLink.ambig === false) {
             //     renderedCrossLink.line.setAttribute("fill", "red"); //xiNET.defaultSelfLinkColour.toRGB());
             // }
@@ -838,7 +838,7 @@ export class RenderedProtein extends Interactor {
                 " L " + p3[0] + "," + p3[1];
         } else {
 
-            const x2 = this.getResXwithStickZoom(renderedCrossLink.crossLink.toResidue);
+            const x2 = this.getResXwithStickZoom(renderedCrossLink.crosslink.toResidue);
             let height, cp1, cp2, arcStart, arcEnd, arcRadius;
             arcRadius = (Math.abs(x2 - x1)) / 2;
             height = -((RenderedProtein.STICKHEIGHT / 2) + 3);
@@ -862,7 +862,7 @@ export class RenderedProtein extends Interactor {
 
             //~ }
             //~ else
-            if (renderedCrossLink.crossLink.confirmedHomomultimer) {
+            if (renderedCrossLink.crosslink.confirmedHomomultimer) {
                 const curveMidX = x1 + ((x2 - x1) / 2);
                 arcStart = [curveMidX, height - arcRadius];
                 arcEnd = [curveMidX, height - arcRadius];

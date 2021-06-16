@@ -4,15 +4,15 @@ import {Interactor} from "../interactor/interactor";
 import {RenderedProtein} from "../interactor/rendered-protein";
 
 export class RenderedCrosslink extends Link {
-    constructor(crossLink, crosslinkViewer) {
+    constructor(crosslink, crosslinkViewer) {
         super();
-        this.crossLink = crossLink;
+        this.crosslink = crosslink;
         this.controller = crosslinkViewer;
 
-        this.renderedFromProtein = this.controller.renderedProteins.get(this.crossLink.fromProtein.id);
+        this.renderedFromProtein = this.controller.renderedProteins.get(this.crosslink.fromProtein.id);
         this.renderedFromProtein.renderedCrosslinks.push(this);
-        if (this.crossLink.toProtein) {
-            this.renderedToProtein = this.controller.renderedProteins.get(this.crossLink.toProtein.id);
+        if (this.crosslink.toProtein) {
+            this.renderedToProtein = this.controller.renderedProteins.get(this.crosslink.toProtein.id);
             this.renderedToProtein.renderedCrosslinks.push(this);
         }
 
@@ -25,7 +25,7 @@ export class RenderedCrosslink extends Link {
     }
 
     initSVG() {
-        if (this.crossLink.isSelfLink() || this.crossLink.isMonoLink()) {
+        if (this.crosslink.isSelfLink() || this.crosslink.isMonoLink()) {
             this.line = document.createElementNS(CrosslinkViewer.svgns, "path");
             this.line.setAttribute("stroke-width", CrosslinkViewer.linkWidth);
             this.highlightLine = document.createElementNS(CrosslinkViewer.svgns, "path");
@@ -74,13 +74,13 @@ export class RenderedCrosslink extends Link {
         if (this.renderedFromProtein.busy === false && (!this.renderedToProtein || this.renderedToProtein.busy === false)) {
             const p = this.controller.getEventPoint(evt);
 
-            const toHighlight = [this.crossLink];
+            const toHighlight = [this.crosslink];
 
             this.controller.model.setMarkedCrossLinks("highlights", toHighlight, true, false);
 
             this.controller.model.get("tooltipModel")
                 .set("header", CLMSUI.modelUtils.makeTooltipTitle.link())
-                .set("contents", CLMSUI.modelUtils.makeTooltipContents.link(this.crossLink))
+                .set("contents", CLMSUI.modelUtils.makeTooltipContents.link(this.crosslink))
                 .set("location", {
                     pageX: p.x,
                     pageY: p.y
@@ -95,11 +95,11 @@ export class RenderedCrosslink extends Link {
 
         let rightClick = (evt.button === 2);
 
-        if (rightClick && this.crossLink.isSelfLink()) {
+        if (rightClick && this.crosslink.isSelfLink()) {
             this.renderedFromProtein.toggleFlipped();
         } else {
             const add = evt.shiftKey || evt.ctrlKey;
-            this.controller.model.setMarkedCrossLinks("selection", [this.crossLink], false, add);
+            this.controller.model.setMarkedCrossLinks("selection", [this.crosslink], false, add);
         }
         //store start location
         this.controller.dragStart = evt;
@@ -112,7 +112,7 @@ export class RenderedCrosslink extends Link {
         this.controller.d3cola.stop();
         this.controller.dragElement = this;
         var add = evt.shiftKey || evt.ctrlKey;
-        this.controller.model.setMarkedCrossLinks("selection", [this.crossLink], false, add);
+        this.controller.model.setMarkedCrossLinks("selection", [this.crosslink], false, add);
         //store start location
         //var p = this.controller.getTouchEventPoint(evt);// broke
         this.controller.dragStart = evt; //this.controller.mouseToSVG(p.x, p.y);
@@ -128,11 +128,11 @@ export class RenderedCrosslink extends Link {
                 d3.select(this.highlightLine).classed("selectedLink", false);
                 d3.select(this.highlightLine).classed("highlightedLink", true);
                 this.highlightLine.setAttribute("stroke-opacity", "0.7");
-                if (this.crossLink.filteredMatches_pp[0].match.matchedPeptides[0].seq_mods) {
+                if (this.crosslink.filteredMatches_pp[0].match.matchedPeptides[0].seq_mods) {
                     const fromPeptides = [],
                         toPeptides = [];
                     //this is where we need the peptide positions
-                    const filteredMatchesAndPeptidePositions = this.crossLink.filteredMatches_pp;
+                    const filteredMatchesAndPeptidePositions = this.crosslink.filteredMatches_pp;
                     const fm_ppCount = filteredMatchesAndPeptidePositions.length;
                     for (let fm_pp = 0; fm_pp < fm_ppCount; fm_pp++) {
                         const matchAndPepPos = filteredMatchesAndPeptidePositions[fm_pp];
@@ -248,7 +248,7 @@ export class RenderedCrosslink extends Link {
         }
 
         // no crosslinks passed filter? then hide
-        if (this.crossLink.filteredMatches_pp.length > 0) {
+        if (this.crosslink.filteredMatches_pp.length > 0) {
             this.show();
             return true;
         } else {
@@ -268,12 +268,12 @@ export class RenderedCrosslink extends Link {
                 if (this.renderedFromProtein.expanded) {
                     path = this.renderedFromProtein.getCrossLinkPath(this);
                 } else {
-                    path = this.crossLink.isMonoLink() ? "M 0,0 L 0,0 L 0,0 L 0,0" : this.renderedFromProtein.getAggregateSelfLinkPath();
+                    path = this.crosslink.isMonoLink() ? "M 0,0 L 0,0 L 0,0 L 0,0" : this.renderedFromProtein.getAggregateSelfLinkPath();
                 }
                 this.highlightLine.setAttribute("d", path);
                 this.line.setAttribute("d", path);
             } else {
-                if (!this.crossLink.isSelfLink()) {
+                if (!this.crosslink.isSelfLink()) {
                     this.line.setAttribute("stroke-width", this.controller.z * CrosslinkViewer.linkWidth);
                     this.highlightLine.setAttribute("stroke-width", this.controller.z * 10);
                     this.setLineCoordinates(this.renderedFromProtein);
@@ -284,8 +284,8 @@ export class RenderedCrosslink extends Link {
             d3.select(this.line).style("display", null);
         }
 
-        if (this.crossLink.isSelfLink() && this.renderedToProtein) {
-            if (this.homomultimer !== this.crossLink.confirmedHomomultimer) {
+        if (this.crosslink.isSelfLink() && this.renderedToProtein) {
+            if (this.homomultimer !== this.crosslink.confirmedHomomultimer) {
                 let path;
                 if (this.renderedFromProtein.expanded) {
                     path = this.renderedFromProtein.getCrossLinkPath(this);
@@ -294,18 +294,18 @@ export class RenderedCrosslink extends Link {
                 }
                 this.highlightLine.setAttribute("d", path);
                 this.line.setAttribute("d", path);
-                this.homomultimer = this.crossLink.confirmedHomomultimer;
+                this.homomultimer = this.crosslink.confirmedHomomultimer;
             }
         }
 
-        this.dashedLine(this.crossLink.ambiguous && this.crossLink.isMonoLink() === false);
+        this.dashedLine(this.crosslink.ambiguous && this.crosslink.isMonoLink() === false);
 
-        if (this.crossLink.isMonoLink()) {
-            this.line.setAttribute("fill", this.crossLink.ambiguous ? "none" : this.controller.model.get("linkColourAssignment").getColour(this.crossLink));
+        if (this.crosslink.isMonoLink()) {
+            this.line.setAttribute("fill", this.crosslink.ambiguous ? "none" : this.controller.model.get("linkColourAssignment").getColour(this.crosslink));
         }
 
         this.line.setAttribute("stroke",
-            this.controller.model.get("linkColourAssignment").getColour(this.crossLink));
+            this.controller.model.get("linkColourAssignment").getColour(this.crosslink));
 
         this.setSelected(this.isSelected);
     }
@@ -324,7 +324,7 @@ export class RenderedCrosslink extends Link {
     setLineCoordinates() {
         if (this.shown) {
             //if not self link && not linker modified pep
-            if (!this.crossLink.isSelfLink() && this.crossLink.toProtein) {
+            if (!this.crosslink.isSelfLink() && this.crosslink.toProtein) {
                 let x, y;
                 const source = this.renderedFromProtein.getRenderedParticipant();
                 const target = this.renderedToProtein.getRenderedParticipant();
@@ -336,7 +336,7 @@ export class RenderedCrosslink extends Link {
                     x = source.ix;
                     y = source.iy;
                 } else {
-                    const coord = this.getResidueCoordinates(this.crossLink.fromResidue, this.renderedFromProtein);
+                    const coord = this.getResidueCoordinates(this.crosslink.fromResidue, this.renderedFromProtein);
                     x = coord[0];
                     y = coord[1];
                 }
@@ -350,7 +350,7 @@ export class RenderedCrosslink extends Link {
                     x = target.ix;
                     y = target.iy;
                 } else {
-                    const coord = this.getResidueCoordinates(this.crossLink.toResidue, this.renderedToProtein);
+                    const coord = this.getResidueCoordinates(this.crosslink.toResidue, this.renderedToProtein);
                     x = coord[0];
                     y = coord[1];
                 }

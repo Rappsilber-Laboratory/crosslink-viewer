@@ -12,10 +12,10 @@ export class G_GLink extends Link {
         this.p_pLinks = new Map();
         this.group1 = group1;
         this.group2 = group2;
-        // this.renderedFromProtein = this.controller.renderedProteins.get(crossLink.fromProtein.id);
+        // this.renderedFromProtein = this.controller.renderedProteins.get(crosslink.fromProtein.id);
         // this.renderedFromProtein.renderedP_PLinks.push(this);
-        // if (crossLink.toProtein) {
-        //     this.renderedToProtein = this.controller.renderedProteins.get(crossLink.toProtein.id);
+        // if (crosslink.toProtein) {
+        //     this.renderedToProtein = this.controller.renderedProteins.get(crosslink.toProtein.id);
         //     this.renderedToProtein.renderedP_PLinks.push(this);
         // }
         // this.shown = false; //used to avoid some unnecessary manipulation of DOM
@@ -25,7 +25,7 @@ export class G_GLink extends Link {
     getCrosslinks() {
         let allCrosslinks = [];
         for (let pp of this.p_pLinks.values()) {
-            allCrosslinks = allCrosslinks.concat(pp.crossLinks);
+            allCrosslinks = allCrosslinks.concat(pp.crosslinks);
         }
         return allCrosslinks;
     }
@@ -98,7 +98,7 @@ export class G_GLink extends Link {
         let ppiCount = 0;
         for (let pp of this.p_pLinks.values()) {
             if (pp.filteredCrossLinkCount > 0) {
-                allCrosslinks = allCrosslinks.concat(pp.crossLinks);
+                allCrosslinks = allCrosslinks.concat(pp.crosslinks);
                 ppiCount++;
                 this.filteredCrosslinkCount += pp.filteredCrossLinkCount;
                 filteredMatchCount += pp.filteredMatchCount;
@@ -127,7 +127,7 @@ export class G_GLink extends Link {
         this.controller.d3cola.stop();
         let allCrosslinks = [];
         for (let pp of this.p_pLinks.values()) {
-            allCrosslinks = allCrosslinks.concat(pp.crossLinks);
+            allCrosslinks = allCrosslinks.concat(pp.crosslinks);
         }
         this.controller.dragElement = this;
         if (evt.shiftKey || evt.ctrlKey) {
@@ -152,7 +152,7 @@ export class G_GLink extends Link {
     /*xiNET.P_PLink.prototype.touchStart = function(evt) {
         this.controller.d3cola.stop();
         this.controller.dragElement = this;
-        this.controller.model.setMarkedCrossLinks("selection", this.crossLinks);
+        this.controller.model.setMarkedCrossLinks("selection", this.crosslinks);
         //store start location
         //var p = this.controller.getTouchEventPoint(evt);// oh dear, now broken
         this.controller.dragStart = evt;
@@ -228,24 +228,24 @@ export class G_GLink extends Link {
 //
 //     // this.colours.clear();
 //
-//     for (let crossLink of this.crossLinks) {
+//     for (let crosslink of this.crosslinks) {
 //
-//         if (crossLink.filteredMatches_pp.length > 0) {
-//             filteredCrossLinks.add(crossLink.id);
-//             // this.colours.add(CLMSUI.compositeModelInst.get("linkColourAssignment").getColour(crossLink));
+//         if (crosslink.filteredMatches_pp.length > 0) {
+//             filteredCrossLinks.add(crosslink.id);
+//             // this.colours.add(CLMSUI.compositeModelInst.get("linkColourAssignment").getColour(crosslink));
 //         }
 //
-//         for (let m of crossLink.filteredMatches_pp) {
+//         for (let m of crosslink.filteredMatches_pp) {
 //             // i think there's a performance improvement to be had here
 //             const match = m.match; // oh dear, this...
 //             filteredMatches.add(match.id);
 //             if (match.hd === true) {
 //                 this.hd = true;
 //             }
-//             if (match.crossLinks.length === 1) {
+//             if (match.crosslinks.length === 1) {
 //                 // this.ambiguous = false; //yeah... whats this doing when this.ambiguous gets set later, just before end of function
 //             } else {
-//                 for (let matchCrossLink of match.crossLinks) {
+//                 for (let matchCrossLink of match.crosslinks) {
 //                     if (!matchCrossLink.isDecoyLink()) {
 //                         altP_PLinks.add(matchCrossLink.p_pLink.id);
 //                     }
@@ -273,7 +273,7 @@ export class G_GLink extends Link {
 //         // or no matches pass filter
 //         this.filteredCrossLinkCount === 0 ||
 //         // or is self link in collapsed group
-//         (this.crossLinks[0].isSelfLink() && this.renderedFromProtein.inCollapsedGroup())) {
+//         (this.crosslinks[0].isSelfLink() && this.renderedFromProtein.inCollapsedGroup())) {
 //         this.hide();
 //     } else {
 //
