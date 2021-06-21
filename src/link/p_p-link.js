@@ -286,7 +286,7 @@ export class P_PLink extends Link {
         }
 
         this.dashedLine(this.ambiguous);
-        this.line.setAttribute("stroke", CLMSUI.compositeModelInst.get("linkColourAssignment").getColour(this));
+        this.line.setAttribute("stroke", window.compositeModelInst.get("linkColourAssignment").getColour(this));
         this.setSelected(this.isSelected);
     }
 

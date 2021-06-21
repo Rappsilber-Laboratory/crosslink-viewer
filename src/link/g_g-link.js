@@ -232,7 +232,7 @@ export class G_GLink extends Link {
 //
 //         if (crosslink.filteredMatches_pp.length > 0) {
 //             filteredCrossLinks.add(crosslink.id);
-//             // this.colours.add(CLMSUI.compositeModelInst.get("linkColourAssignment").getColour(crosslink));
+//             // this.colours.add(window.compositeModelInst.get("linkColourAssignment").getColour(crosslink));
 //         }
 //
 //         for (let m of crosslink.filteredMatches_pp) {
@@ -320,7 +320,7 @@ export class G_GLink extends Link {
 
         // this.dashedLine(this.ambiguous);
 
-        this.line.setAttribute("stroke", CLMSUI.compositeModelInst.get("linkColourAssignment").getColour(this));
+        this.line.setAttribute("stroke", window.compositeModelInst.get("linkColourAssignment").getColour(this));
 
         this.setSelected(this.isSelected);
     }

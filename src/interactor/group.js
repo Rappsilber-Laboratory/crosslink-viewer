@@ -1,5 +1,7 @@
 import {Interactor} from "./interactor";
 
+import {modelUtils} from "../../../xi3/js/modelUtils";
+
 export class Group extends Interactor {
     constructor(id, participantIds, xlvController) {
         super();
@@ -173,8 +175,8 @@ export class Group extends Interactor {
         this.controller.model.setHighlightedProteins(toHighlight);
         const p = this.controller.getEventPoint(evt);
         this.controller.model.get("tooltipModel")
-            .set("header", CLMSUI.modelUtils.makeTooltipTitle.complex(this))
-            .set("contents", CLMSUI.modelUtils.makeTooltipContents.complex(this))
+            .set("header", modelUtils.makeTooltipTitle.complex(this))
+            .set("contents", modelUtils.makeTooltipContents.complex(this))
             .set("location", {
                 pageX: p.x,
                 pageY: p.y
