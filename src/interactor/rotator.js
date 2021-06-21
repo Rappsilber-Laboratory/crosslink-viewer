@@ -71,7 +71,7 @@ export class Rotator {
     }
 
     rotatorMouseDown() {
-        this.controller.state = this.controller.STATES.ROTATING;
+        this.controller.state = CrosslinkViewer.STATES.ROTATING;
         this.controller.dragElement = this.protein;
         this.controller.whichRotator = this.upperOrLower;
     }
