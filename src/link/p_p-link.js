@@ -1,3 +1,5 @@
+import * as _ from 'underscore';
+
 import {Link} from "./link";
 import {CrosslinkViewer} from "../crosslink-viewer-BB";
 

@@ -350,23 +350,23 @@ export class CrosslinkViewer extends Backbone.View{
     }
 
     zoomToFullExtent () {
-        // this.container.setAttribute("transform", "scale(1)");
-        const width = this.svgElement.parentNode.clientWidth;
-        const height = this.svgElement.parentNode.clientHeight;
-        const bbox = this.container.getBBox();
-        let xr = (width / bbox.width).toFixed(4);
-        let yr = (height / bbox.height).toFixed(4);
-        let scaleFactor;
-        if (yr < xr) {
-            scaleFactor = yr;
-        } else {
-            scaleFactor = xr;
-        }
-        // if (scaleFactor > 1) {
-        //     scaleFactor = scaleFactor / 0.8;
+        // // this.container.setAttribute("transform", "scale(1)");
+        // const width = this.svgElement.parentNode.clientWidth;
+        // const height = this.svgElement.parentNode.clientHeight;
+        // const bbox = this.container.getBBox();
+        // let xr = (width / bbox.width).toFixed(4);
+        // let yr = (height / bbox.height).toFixed(4);
+        // let scaleFactor;
+        // if (yr < xr) {
+        //     scaleFactor = yr;
+        // } else {
+        //     scaleFactor = xr;
         // }
-        this.container.setAttribute("transform", "scale(" + scaleFactor + ") translate(" + ((width / scaleFactor) - bbox.width - bbox.x) + " " + -bbox.y + ")");
-        this.scale();
+        // // if (scaleFactor > 1) {
+        // //     scaleFactor = scaleFactor / 0.8;
+        // // }
+        // this.container.setAttribute("transform", "scale(" + scaleFactor + ") translate(" + ((width / scaleFactor) - bbox.width - bbox.x) + " " + -bbox.y + ")");
+        // this.scale();
     }
 
     scale () {
