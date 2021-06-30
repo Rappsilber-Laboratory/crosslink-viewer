@@ -1,5 +1,6 @@
 import {Link} from "./link";
 import {CrosslinkViewer} from "../crosslink-viewer-BB";
+import {G_GLink} from "./g_g-link";
 
 export class P_PLink extends Link {
 

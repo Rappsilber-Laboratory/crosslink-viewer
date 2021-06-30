@@ -1,4 +1,5 @@
 import {Link} from "./link";
+import {CrosslinkViewer} from "../crosslink-viewer-BB";
 
 export class G_GLink extends Link {
 
@@ -158,7 +159,7 @@ export class G_GLink extends Link {
         this.controller.dragStart = evt;
     }*/
 
-    initSelfLinkSVG = function () {
+    initSelfLinkSVG () {
         const path = this.group1.getAggregateSelfLinkPath();
         this.line.setAttribute('d', path);
         this.highlightLine.setAttribute('d', path);

@@ -3,19 +3,19 @@ import Backbone from "backbone";
 import {RenderedProtein} from "./interactor/rendered-protein";
 import {RenderedCrosslink} from "./link/rendered-crosslink";
 import {P_PLink} from "./link/p_p-link";
+import {Group} from "./interactor/group";
 
 export class CrosslinkViewer extends Backbone.View{
 
     constructor(attributes, options) {
-        super(attributes, {
-            events: {
+        super(_.extend(attributes, {events : {
                 "click .collapse": "collapseParticipant",
                 "click .collapse-group": "collapseParticipant",
                 "click .cant-collapse-group": "cantCollapseGroup",
                 "click .ungroup": "ungroup"
-            }
-        });
+            }}), options);
     }
+
 
 
     initialize () {

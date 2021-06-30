@@ -1,4 +1,5 @@
 import {Interactor} from "./interactor";
+import {CrosslinkViewer} from "../crosslink-viewer-BB";
 
 export class Group extends Interactor {
     constructor(id, participantIds, xlvController) {
@@ -115,7 +116,7 @@ export class Group extends Interactor {
     }
 
 // result depends on whats hidden
-    isSubsetOf = function (anotherGroup) {
+    isSubsetOf (anotherGroup) {
         for (let renderedParticipant of this.renderedParticipants) {
             if (!renderedParticipant.participant.hidden && anotherGroup.renderedParticipants.indexOf(renderedParticipant) === -1) {
                 return false;
@@ -183,7 +184,7 @@ export class Group extends Interactor {
 
     mouseOut(evt) {
         this.showHighlight(false);
-        xiNET.Interactor.prototype.mouseOut.call(this, evt);
+        Interactor.prototype.mouseOut.call(this, evt);
     }
 
     getAverageParticipantPosition() {
@@ -446,7 +447,7 @@ export class Group extends Interactor {
     };
     */
 
-    dashedOutline = function (dash) {
+    dashedOutline (dash) {
         if (dash) {
             this.highlight.setAttribute("stroke-dasharray", (4 * this.controller.z) + ", " + (4 * this.controller.z));
         } else {
@@ -454,7 +455,7 @@ export class Group extends Interactor {
         }
     }
 
-    setExpanded = function (expanded) {
+    setExpanded (expanded) {
         this.expanded = !!expanded;
         const expandedGroupLabels = this.controller.model.get("xinetShowExpandedGroupLabels"); // todo - will need to look at this again (for anim)
         if (!expanded) { // is collapsing
