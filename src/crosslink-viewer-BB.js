@@ -3,7 +3,9 @@ import Backbone from "backbone";
 import {RenderedProtein} from "./interactor/rendered-protein";
 import {RenderedCrosslink} from "./link/rendered-crosslink";
 import {P_PLink} from "./link/p_p-link";
+
 import {Group} from "./interactor/group";
+
 
 export class CrosslinkViewer extends Backbone.View{
 
@@ -275,13 +277,13 @@ export class CrosslinkViewer extends Backbone.View{
         this.listenTo(this.model, "change:highlightedProteins", this.highlightedProteinsChanged);
         this.listenTo(this.model.get("clmsModel"), "change:matches", this.update);
 
-        this.listenTo(CLMSUI.vent, "proteinMetadataUpdated", this.proteinMetadataUpdated);
+        this.listenTo(window.vent, "proteinMetadataUpdated", this.proteinMetadataUpdated);
         this.listenTo(this.model, "change:groups", this.groupsChanged);
 
-        this.listenTo(CLMSUI.vent, "xinetSvgDownload", this.downloadSVG);
-        this.listenTo(CLMSUI.vent, "xinetAutoLayout", this.autoLayout);
-        this.listenTo(CLMSUI.vent, "xinetLoadLayout", this.loadLayout);
-        this.listenTo(CLMSUI.vent, "xinetSaveLayout", this.saveLayout);
+        this.listenTo(window.vent, "xinetSvgDownload", this.downloadSVG);
+        this.listenTo(window.vent, "xinetAutoLayout", this.autoLayout);
+        this.listenTo(window.vent, "xinetLoadLayout", this.loadLayout);
+        this.listenTo(window.vent, "xinetSaveLayout", this.saveLayout);
 
         this.listenTo(this.model, "change:xinetShowLabels", this.showLabels);
         this.listenTo(this.model, "change:xinetShowExpandedGroupLabels", this.showExpandedGroupLabels);
@@ -349,23 +351,23 @@ export class CrosslinkViewer extends Backbone.View{
     }
 
     zoomToFullExtent () {
-        // this.container.setAttribute("transform", "scale(1)");
-        const width = this.svgElement.parentNode.clientWidth;
-        const height = this.svgElement.parentNode.clientHeight;
-        const bbox = this.container.getBBox();
-        const xr = width / bbox.width;
-        const yr = height / bbox.height;
-        let scaleFactor;
-        if (yr < xr) {
-            scaleFactor = yr;
-        } else {
-            scaleFactor = xr;
-        }
-        // if (scaleFactor > 1) {
-        //     scaleFactor = scaleFactor / 0.8;
+        // // this.container.setAttribute("transform", "scale(1)");
+        // const width = this.svgElement.parentNode.clientWidth;
+        // const height = this.svgElement.parentNode.clientHeight;
+        // const bbox = this.container.getBBox();
+        // let xr = (width / bbox.width).toFixed(4);
+        // let yr = (height / bbox.height).toFixed(4);
+        // let scaleFactor;
+        // if (yr < xr) {
+        //     scaleFactor = yr;
+        // } else {
+        //     scaleFactor = xr;
         // }
-        this.container.setAttribute("transform", "scale(" + scaleFactor + ") translate(" + ((width / scaleFactor) - bbox.width - bbox.x) + " " + -bbox.y + ")");
-        this.scale();
+        // // if (scaleFactor > 1) {
+        // //     scaleFactor = scaleFactor / 0.8;
+        // // }
+        // this.container.setAttribute("transform", "scale(" + scaleFactor + ") translate(" + ((width / scaleFactor) - bbox.width - bbox.x) + " " + -bbox.y + ")");
+        // this.scale();
     }
 
     scale () {
@@ -738,8 +740,8 @@ export class CrosslinkViewer extends Backbone.View{
             left += element.offsetLeft || 0;
             element = element.offsetParent;
         } while (element);
-        p.x = evt.clientX - left; //CLMSUI.utils.crossBrowserElementX(evt);//, this.svgElement);
-        p.y = evt.clientY - top; //CLMSUI.utils.crossBrowserElementY(evt);//, this.svgElement);
+        p.x = evt.clientX - left; //utils.crossBrowserElementX(evt);//, this.svgElement);
+        p.y = evt.clientY - top; //utils.crossBrowserElementY(evt);//, this.svgElement);
         return p;
     }
 
@@ -841,7 +843,7 @@ export class CrosslinkViewer extends Backbone.View{
         }
 
         if (namesChanged) {
-            // CLMSUI.vent.trigger("proteinMetadataUpdated", {}); //aint gonna work
+            // vent.trigger("proteinMetadataUpdated", {}); //aint gonna work
             for (let renderedParticipant of this.renderedProteins.values()) {
                 renderedParticipant.updateName();
             }
@@ -1265,15 +1267,15 @@ export class CrosslinkViewer extends Backbone.View{
 
     downloadSVG () {
         const svgArr = [this.svgElement];
-        const svgStrings = CLMSUI.svgUtils.capture(svgArr);
-        let svgXML = CLMSUI.svgUtils.makeXMLStr(new XMLSerializer(), svgStrings[0]);
+        const svgStrings = svgUtils.capture(svgArr);
+        let svgXML = svgUtils.makeXMLStr(new XMLSerializer(), svgStrings[0]);
         //bit of a hack
         const bBox = this.svgElement.getBoundingClientRect();
         const width = Math.round(bBox.width);
         const height = Math.round(bBox.height);
         svgXML = svgXML.replace('width="100%"', 'width="' + width + 'px"');
         svgXML = svgXML.replace('height="100%"', 'height="' + height + 'px"');
-        const fileName = CLMSUI.utils.makeLegalFileName(CLMSUI.utils.searchesToString() + "--xiNET--" + CLMSUI.utils.filterStateToString());
+        const fileName = utils.makeLegalFileName(utils.searchesToString() + "--xiNET--" + utils.filterStateToString());
         download(svgXML, 'application/svg', fileName + ".svg");
     }
 
@@ -1374,7 +1376,7 @@ export class CrosslinkViewer extends Backbone.View{
 
     // updates protein names and colours
     proteinMetadataUpdated () {
-        const proteinColourModel = CLMSUI.compositeModelInst.get("proteinColourAssignment");
+        const proteinColourModel = window.compositeModelInst.get("proteinColourAssignment");
         for (let renderedParticipant of this.renderedProteins.values()) {
             renderedParticipant.updateName();
             if (proteinColourModel) {

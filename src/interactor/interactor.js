@@ -1,3 +1,5 @@
+import {modelUtils} from "../../../xi3/js/modelUtils";
+
 export class Interactor {
 
     constructor() {
@@ -18,8 +20,8 @@ export class Interactor {
     mouseOver(evt) {
         const p = this.controller.getEventPoint(evt);
         this.controller.model.get("tooltipModel")
-            .set("header", CLMSUI.modelUtils.makeTooltipTitle.interactor(this.participant))
-            .set("contents", CLMSUI.modelUtils.makeTooltipContents.interactor(this.participant))
+            .set("header", modelUtils.makeTooltipTitle.interactor(this.participant))
+            .set("contents", modelUtils.makeTooltipContents.interactor(this.participant))
             .set("location", {
                 pageX: p.x,
                 pageY: p.y

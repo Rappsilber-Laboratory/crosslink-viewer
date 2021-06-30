@@ -511,7 +511,7 @@ export class RenderedProtein extends Interactor {
 
         const protLength = this.participant.size * this.stickZoom;
         const r = this.getBlobRadius();
-        const protColourModel = CLMSUI.compositeModelInst.get("proteinColourAssignment");
+        const protColourModel = window.compositeModelInst.get("proteinColourAssignment");
 
         d3.select(this.outline).transition()
             .attr("fill-opacity", 1)
@@ -696,7 +696,7 @@ export class RenderedProtein extends Interactor {
         this.checkLinks();
         this.stickZoom = origStickZoom;
 
-        const protColourModel = CLMSUI.compositeModelInst.get("proteinColourAssignment");
+        const protColourModel = window.compositeModelInst.get("proteinColourAssignment");
 
         d3.select(this.circDomains).transition().attr("opacity", 0).duration(transitionTime);
         d3.select(this.rectDomains).transition().attr("opacity", 1).duration(transitionTime);
@@ -1012,7 +1012,7 @@ export class RenderedProtein extends Interactor {
                         colouredRect.setAttribute("stroke-width", 1);
                         colouredRect.setAttribute("fill-opacity", "0.5");
 
-                        const c = annotationTypes.getColour(anno.category, anno.type); // CLMSUI.domainColours(anno.category, anno.type);
+                        const c = annotationTypes.getColour(anno.category, anno.type); // domainColours(anno.category, anno.type);
                         pieSlice.setAttribute("fill", c);
                         pieSlice.setAttribute("stroke", c);
                         colouredRect.setAttribute("fill", c);
@@ -1029,7 +1029,7 @@ export class RenderedProtein extends Interactor {
                         pieSlice.setAttribute("stroke-width", 1);
                         colouredRect.setAttribute("stroke-width", 1);
 
-                        const c = annotationTypes.getColour(anno.category, anno.type); // CLMSUI.domainColours(anno.category, anno.type);
+                        const c = annotationTypes.getColour(anno.category, anno.type); // domainColours(anno.category, anno.type);
                         pieSlice.setAttribute("fill", "none");
                         pieSlice.setAttribute("stroke", c);
                         colouredRect.setAttribute("fill", "none");
@@ -1046,9 +1046,9 @@ export class RenderedProtein extends Interactor {
                         const feature = self.annotations.get(evt.target.getAttribute("data-feature")).feature;
                         self.controller.model.get("tooltipModel")
                             //.set("header", d.id.replace("_", " "))
-                            .set("header", CLMSUI.modelUtils.makeTooltipTitle.feature())
+                            .set("header", modelUtils.makeTooltipTitle.feature())
                             .set("contents",
-                                CLMSUI.modelUtils.makeTooltipContents.feature(feature)
+                                modelUtils.makeTooltipContents.feature(feature)
                             )
                             .set("location", {
                                 pageX: evt.pageX,
