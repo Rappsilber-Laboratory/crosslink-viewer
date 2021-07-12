@@ -3,6 +3,7 @@ import * as _ from 'underscore';
 import {Interactor} from "./interactor";
 import {Rotator} from "./rotator";
 import {CrosslinkViewer} from "../crosslink-viewer-BB";
+import {modelUtils} from "../../../xi3/js/modelUtils";
 
 export class RenderedProtein extends Interactor {
 
