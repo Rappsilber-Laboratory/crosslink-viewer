@@ -1,3 +1,4 @@
+import * as _ from 'underscore';
 import Backbone from "backbone";
 
 import {RenderedProtein} from "./interactor/rendered-protein";
@@ -789,7 +790,7 @@ export class CrosslinkViewer extends Backbone.View{
                 protein.ix = protLayout["x"];
                 protein.iy = protLayout["y"];
                 protein.newForm = protLayout["expanded"];
-                if (this.barScales.indexOf(+protLayout["stickZoom"]) > -1) {
+                if (CrosslinkViewer.barScales.indexOf(+protLayout["stickZoom"]) > -1) {
                     protein.stickZoom = protLayout["stickZoom"];
                 }
                 protein.rotation = protLayout["rot"] - 0;
@@ -861,7 +862,7 @@ export class CrosslinkViewer extends Backbone.View{
         const groupIdsToremove = [];
         for (let group of this.groupMap.values()) {
             if (!modelGroups.has(group.id)) {
-                group.parentGroups = []; //don't think necessary but just in case
+                group.parentGroups = new Set();//[]; //don't think necessary but just in case
                 group.subroups = [];
                 groupIdsToremove.push(group.id);
                 for (let rp of group.renderedParticipants) {

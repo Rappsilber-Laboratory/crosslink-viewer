@@ -1,3 +1,5 @@
+import * as _ from 'underscore';
+
 import {Interactor} from "./interactor";
 import {Rotator} from "./rotator";
 import {CrosslinkViewer} from "../crosslink-viewer-BB";
@@ -443,9 +445,9 @@ export class RenderedProtein extends Interactor {
         }
 
         function scaleLabelAt(self, text, tickX) {
-            const scaleLabelGroup = document.createElementNS(self.controller.svgns, "g");
+            const scaleLabelGroup = document.createElementNS(CrosslinkViewer.svgns, "g");
             scaleLabelGroup.setAttribute("transform", "translate(" + tickX + " " + 0 + ")");
-            const scaleLabel = document.createElementNS(self.controller.svgns, "text");
+            const scaleLabel = document.createElementNS(CrosslinkViewer.svgns, "text");
             scaleLabel.setAttribute("class", "xinetAxisLabel");
             scaleLabel.setAttribute('font-family', "monospace");
             scaleLabel.setAttribute('font-size', '14');
@@ -459,7 +461,7 @@ export class RenderedProtein extends Interactor {
         }
 
         function tickAt(self, tickX) {
-            const tick = document.createElementNS(self.controller.svgns, "line");
+            const tick = document.createElementNS(CrosslinkViewer.svgns, "line");
             tick.setAttribute("x1", tickX);
             tick.setAttribute("y1", 5);
             tick.setAttribute("x2", tickX);
