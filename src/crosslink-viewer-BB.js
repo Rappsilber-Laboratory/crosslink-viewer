@@ -7,7 +7,8 @@ import {P_PLink} from "./link/p_p-link";
 import {utils} from "../../xi3/js/utils";
 
 import {Group} from "./interactor/group";
-
+import {svgUtils} from "../../xi3/js/svgexp";
+import {download} from "../../xi3/js/downloads";
 
 export class CrosslinkViewer extends Backbone.View{
 
@@ -19,8 +20,6 @@ export class CrosslinkViewer extends Backbone.View{
                 "click .ungroup": "ungroup"
             }}), options);
     }
-
-
 
     initialize () {
         // this.debug = true;
