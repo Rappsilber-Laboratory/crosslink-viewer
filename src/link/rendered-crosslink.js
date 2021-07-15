@@ -6,9 +6,9 @@ import {modelUtils} from "../../../xi3/js/modelUtils";
 
 export class RenderedCrosslink extends Link {
     constructor(crosslink, crosslinkViewer) {
-        super();
+        super(crosslinkViewer);
+        this.isAggregateLink = false;
         this.crosslink = crosslink;
-        this.controller = crosslinkViewer;
 
         this.renderedFromProtein = this.controller.renderedProteins.get(this.crosslink.fromProtein.id);
         this.renderedFromProtein.renderedCrosslinks.push(this);
@@ -18,11 +18,6 @@ export class RenderedCrosslink extends Link {
         }
 
         this.pepSvgArr = [];
-
-        this.isSelected = false;
-        //~ this.isHighlighted = false;
-        //used to avoid some unnecessary manipulation of DOM
-        this.shown = false;
     }
 
     initSVG() {

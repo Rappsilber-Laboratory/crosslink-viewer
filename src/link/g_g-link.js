@@ -1,26 +1,18 @@
+import * as _ from 'underscore';
 import {Link} from "./link";
 import {CrosslinkViewer} from "../crosslink-viewer-BB";
 
 export class G_GLink extends Link {
 
     constructor(id, group1, group2, crosslinkViewer) {
-        super();
+        super(crosslinkViewer);
 
         this.id = id;
-        this.controller = crosslinkViewer;
         this.isAggregateLink = true;
 
         this.p_pLinks = new Map();
         this.group1 = group1;
         this.group2 = group2;
-        // this.renderedFromProtein = this.controller.renderedProteins.get(crosslink.fromProtein.id);
-        // this.renderedFromProtein.renderedP_PLinks.push(this);
-        // if (crosslink.toProtein) {
-        //     this.renderedToProtein = this.controller.renderedProteins.get(crosslink.toProtein.id);
-        //     this.renderedToProtein.renderedP_PLinks.push(this);
-        // }
-        // this.shown = false; //used to avoid some unnecessary manipulation of DOM
-        this.isSelected = false;
     }
 
     getCrosslinks() {
@@ -217,6 +209,15 @@ export class G_GLink extends Link {
             }
         }
         this.isSelected = select;
+    }
+
+    check (){
+        for (let pp of this.p_pLinks.values()) {
+            if (pp.filteredCrossLinkCount > 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
 // xiNET.P_PLink.prototype.check = function () {

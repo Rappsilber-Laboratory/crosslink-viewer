@@ -7,19 +7,16 @@ import {G_GLink} from "./g_g-link";
 export class P_PLink extends Link {
 
     constructor(p_pId, crosslink, crosslinkViewer) {
-        super();
+        super(crosslinkViewer);
         this.isAggregateLink = true;
         this.id = p_pId;
-        this.controller = crosslinkViewer;
-        this.crosslinks = []; //todo rename to crosslinks
+        this.crosslinks = [];
         this.renderedFromProtein = this.controller.renderedProteins.get(crosslink.fromProtein.id);
         this.renderedFromProtein.renderedP_PLinks.push(this);
         if (crosslink.toProtein) {
             this.renderedToProtein = this.controller.renderedProteins.get(crosslink.toProtein.id);
             this.renderedToProtein.renderedP_PLinks.push(this);
         }
-        this.shown = false; //used to avoid some unnecessary manipulation of DOM
-        this.isSelected = false;
     }
 
     getCrosslinks () {
@@ -225,6 +222,7 @@ export class P_PLink extends Link {
                     this.hide();
                 } else {
                     this.ambiguous = altP_PLinks.size > 1;
+
                     if (this.renderedFromProtein.inCollapsedGroup() && this.renderedToProtein.inCollapsedGroup()) {
                         const source = this.renderedFromProtein.getRenderedParticipant();
                         const target = this.renderedToProtein.getRenderedParticipant();
@@ -249,6 +247,7 @@ export class P_PLink extends Link {
                     } else {
                         this.show();
                     }
+
                 }
             }
         }

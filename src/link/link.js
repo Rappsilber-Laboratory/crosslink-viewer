@@ -1,9 +1,12 @@
 export class Link {
 
-    constructor() {
+    constructor(crosslinkViewer) {
+        this.controller = crosslinkViewer;
+        this.shown = false; //used to avoid some unnecessary manipulation of DOM
+        this.isSelected = false;
     }
 
-    mouseOut (evt) {
+    mouseOut () {
         this.controller.model.setMarkedCrossLinks("highlights", []); // which pokes highlighted matches into changing too
         this.controller.model.get("tooltipModel").set("contents", null);
     }

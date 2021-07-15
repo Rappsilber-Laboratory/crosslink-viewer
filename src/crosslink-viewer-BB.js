@@ -330,7 +330,15 @@ export class CrosslinkViewer extends Backbone.View{
                 this.autoLayout([]); //layout all
             }
         }
+
         //this is where the tidy up of the links code should probably start...
+
+        //for group
+        //      for group
+
+        //for p_p link
+        //      if not in group
+
         for (let ppLink of this.renderedP_PLinks.values()) {
             ppLink.update(); // protein-protein links initialise group-group links if needed
         }
@@ -339,7 +347,7 @@ export class CrosslinkViewer extends Backbone.View{
         }
         const ggLinkIdsToRemove = []
         for (let ggLink of this.g_gLinks.values()) {
-            if (ggLink.group1.expanded === false && ggLink.group2.expanded === false) {
+            if (ggLink.group1.expanded === false && ggLink.group2.expanded === false && ggLink.check()) {
                 ggLink.show();
                 //set line coord?
             } else {
