@@ -477,7 +477,7 @@ export class Group extends Interactor {
             const pPos = this.getAverageParticipantPosition(); // todo - use svgP?
             this.setPositionFromXinet(pPos[0], pPos[1]);
             for (let rp of this.renderedParticipants) {
-                 rp.setPositionFromXinet(pPos[0], pPos[1]);
+                 // rp.setPositionFromXinet(pPos[0], pPos[1]);
                  rp.setAllLinkCoordinates();
                  rp.setHidden(true);
                  //rp.checkLinks();
