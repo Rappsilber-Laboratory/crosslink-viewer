@@ -1,4 +1,5 @@
 import {modelUtils} from "../../../xi3/js/modelUtils";
+import d3 from "d3";
 
 export class Interactor {
 

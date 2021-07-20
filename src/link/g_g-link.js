@@ -1,6 +1,7 @@
 import * as _ from 'underscore';
 import {Link} from "./link";
 import {CrosslinkViewer} from "../crosslink-viewer-BB";
+import d3 from "d3";
 
 export class G_GLink extends Link {
 

@@ -3,6 +3,7 @@ import * as _ from 'underscore';
 import {Link} from "./link";
 import {CrosslinkViewer} from "../crosslink-viewer-BB";
 import {G_GLink} from "./g_g-link";
+import d3 from "d3";
 
 export class P_PLink extends Link {
 

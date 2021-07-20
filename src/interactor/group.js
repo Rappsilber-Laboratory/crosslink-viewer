@@ -2,6 +2,7 @@ import {Interactor} from "./interactor";
 import {CrosslinkViewer} from "../crosslink-viewer-BB";
 
 import {modelUtils} from "../../../xi3/js/modelUtils";
+import d3 from "d3";
 
 export class Group extends Interactor {
     constructor(id, participantIds, xlvController) {

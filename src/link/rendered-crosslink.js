@@ -3,6 +3,7 @@ import {CrosslinkViewer} from "../crosslink-viewer-BB";
 import {Interactor} from "../interactor/interactor";
 import {RenderedProtein} from "../interactor/rendered-protein";
 import {modelUtils} from "../../../xi3/js/modelUtils";
+import d3 from "d3";
 
 export class RenderedCrosslink extends Link {
     constructor(crosslink, crosslinkViewer) {

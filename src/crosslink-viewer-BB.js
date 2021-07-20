@@ -1,5 +1,6 @@
 import * as _ from 'underscore';
 import Backbone from "backbone";
+import d3 from "d3";
 
 import {RenderedProtein} from "./interactor/rendered-protein";
 import {RenderedCrosslink} from "./link/rendered-crosslink";
@@ -9,19 +10,22 @@ import {utils} from "../../xi3/js/utils";
 import {Group} from "./interactor/group";
 import {svgUtils} from "../../xi3/js/svgexp";
 import {download} from "../../xi3/js/downloads";
+import {G_GLink} from "./link/g_g-link";
 
-export class CrosslinkViewer extends Backbone.View{
+export class CrosslinkViewer extends Backbone.View {
 
     constructor(attributes, options) {
-        super(_.extend(attributes, {events : {
+        super(_.extend(attributes, {
+            events: {
                 "click .collapse": "collapseParticipant",
                 "click .collapse-group": "collapseParticipant",
                 "click .cant-collapse-group": "cantCollapseGroup",
                 "click .ungroup": "ungroup"
-            }}), options);
+            }
+        }), options);
     }
 
-    initialize () {
+    initialize() {
         // this.debug = true;
         this.fixedSize = this.model.get("xinetFixedSize");
         const self = this;
@@ -195,7 +199,7 @@ export class CrosslinkViewer extends Backbone.View{
         this.container.setAttribute("transform", "scale(1)");
         this.state = CrosslinkViewer.STATES.MOUSE_UP;
 
-        this.wasEmpty = true;//(this.renderedProteins.size === 0); // todo - tidy
+        this.firstRender = true;
 
         // calculate default bar scale
         let maxSeqLength = 0;
@@ -239,7 +243,7 @@ export class CrosslinkViewer extends Backbone.View{
                 rp.stickZoom = this.defaultBarScale;
             }
             rp.scale();
-           // rp.width;// cause it to store a constant value for unexpanded width?
+            // rp.width;// cause it to store a constant value for unexpanded width?
             if (expand) {
                 rp.toStickNoTransition()
             }
@@ -266,6 +270,8 @@ export class CrosslinkViewer extends Backbone.View{
 
         this.listenTo(this.model, "filteringDone", this.render);
         this.listenTo(this.model, "hiddenChanged", this.hiddenProteinsChanged);
+        this.listenTo(this.model, "change:groups", this.groupsChanged);
+
         this.listenTo(this.model, "change:highlights", this.highlightedLinksChanged);
         this.listenTo(this.model, "change:selection", this.selectedLinksChanged);
 
@@ -279,7 +285,6 @@ export class CrosslinkViewer extends Backbone.View{
         this.listenTo(this.model.get("clmsModel"), "change:matches", this.update);
 
         this.listenTo(window.vent, "proteinMetadataUpdated", this.proteinMetadataUpdated);
-        this.listenTo(this.model, "change:groups", this.groupsChanged);
 
         this.listenTo(window.vent, "xinetSvgDownload", this.downloadSVG);
         this.listenTo(window.vent, "xinetAutoLayout", this.autoLayout);
@@ -296,33 +301,193 @@ export class CrosslinkViewer extends Backbone.View{
 
     }
 
-    collapseParticipant (evt) {
-        d3.select(".custom-menu-margin").style("display", "none");
-        d3.select(".group-custom-menu-margin").style("display", "none");
-        this.contextMenuParticipant.setExpanded(false, this.contextMenuPoint);
-        if (this.contextMenuParticipant.type == "group") {
-            this.render();
-        }
-        this.hiddenProteinsChanged();
-        this.contextMenuParticipant = null;
-    }
-
-    cantCollapseGroup (evt) {
-        d3.select(".custom-menu-margin").style("display", "none");
-        d3.select(".group-custom-menu-margin").style("display", "none");
-    }
-
-    ungroup (evt) {
-        d3.select(".group-custom-menu-margin").style("display", "none");
-        this.model.get("groups").delete(this.contextMenuParticipant.id);
-        this.model.trigger("change:groups");
-        this.contextMenuParticipant = null;
-    }
-
-    render () {
+    groupsChanged() {
+        console.log("xiNET GROUPS CHANGED");
         this.d3cola.stop();
-        if (this.wasEmpty) { // first render
-            this.wasEmpty = false;
+
+        // a Map with group id as key and Set of protein ids to group as value
+        const modelGroups = this.model.get("groups");
+
+        //clear out old groups -- https://stackoverflow.com/questions/9882284/looping-through-array-and-removing-items-without-breaking-for-loop
+        const groupIdsToremove = [];
+        for (let group of this.groupMap.values()) {
+            if (!modelGroups.has(group.id)) {
+                groupIdsToremove.push(group.id);
+
+                group.parentGroups = new Set();//[]; //don't think necessary but just in case
+                group.subroups = [];
+                for (let rp of group.renderedParticipants) {
+                    rp.parentGroups.delete(group);
+                }
+
+                if (group.expanded) {
+                    this.groupsSVG.removeChild(group.upperGroup);
+                } else {
+                    this.proteinUpper.removeChild(group.upperGroup);
+                }
+            }
+        }
+        for (let rgId of groupIdsToremove) {
+            this.groupMap.delete(rgId);
+        }
+
+        //init
+        for (let g of modelGroups.entries()) {
+            if (!this.groupMap.has(g[0])) {
+                const group = new Group(g[0], g[1], this);
+                group.init(); // z ordering... later (todo), so is by count of visible participants
+                this.groupMap.set(group.id, group);
+            }
+        }
+        this.scale();//just to update groups selection highlights
+        this.hiddenProteinsChanged();
+        this.render();
+    }
+
+    // handle changes to manually hidden proteins,
+    // but also deal with stuff to do with groups / group hierarchy
+    // specifically subgroups could change as result of things being hidden so this is here
+    // (i.e overlapping group becomes subgroup)
+    hiddenProteinsChanged() {
+        console.log("xiNET HIDDEN PROTEINS CHANGED");
+        this.d3cola.stop();
+
+        // parent groups may change, so clear
+        for (let g of this.groupMap.values()) {
+            g.subgroups = []; // subgroups as xiNET.Groups
+            g.parentGroups = new Set();
+            g.leaves = []; // different from g.renderedParticipants coz only contains ungrouped RenderedProteins, used by cola.js
+            g.groups = []; // indexes of subgroups in resulting groupArr, used by cola.js // needed? prob not coz groups already refered to by index
+
+            for (let rp of g.renderedParticipants) {
+                rp.parentGroups.delete(g); // sometimes it won't have contained g as parentGroup
+            }
+        }
+
+        //sort it by count not hidden (not manually hidden and not filtered)
+        const sortedGroupMap = new Map([...this.groupMap.entries()].sort((a, b) => a[1].unhiddenParticipantCount() - b[1].unhiddenParticipantCount()));
+
+        // get maximal set of possible subgroups
+        const groups = Array.from(sortedGroupMap.values());
+        const gCount = groups.length; // contains xiNET.Groups
+        for (let gi = 0; gi < gCount - 1; gi++) {
+            const group1 = groups[gi];
+            if (group1.unhiddenParticipantCount() > 0) {
+                for (let gj = gi + 1; gj < gCount; gj++) {
+                    const group2 = groups[gj];
+                    if (group1.isSubsetOf(group2)) {
+                        group2.subgroups.push(group1);
+                        console.log(group1.name, "is SUBSET of", group2.name)
+                    }
+                }
+            }
+        }
+
+        //remove obselete subgroups
+        for (let gi = 0; gi < gCount; gi++) {
+            const group1 = groups[gi];
+            //if subgroup has parent also in group1.subgroups then remove it
+            const subgroupCount = group1.subgroups.length;
+            const subgroupsToRemove = [];
+            for (let gj = 0; gj < subgroupCount - 1; gj++) {
+                const subgroup1 = group1.subgroups[gj];
+                for (let gk = gj + 1; gk < subgroupCount; gk++) {
+                    const subgroup2 = group1.subgroups[gk];
+                    if (subgroup1.isSubsetOf(subgroup2)) {
+                        subgroupsToRemove.push(subgroup2);
+                    }
+                }
+            }
+            for (let sgToremove of subgroupsToRemove) {
+                const index = group1.subgroups.indexOf(sgToremove);
+                group1.subgroups = group1.subgroups.splice(index, 1);
+            }
+        }
+
+        for (let g of groups) {
+            g.leaves = [];
+            for (let rp of g.renderedParticipants) {
+                // if (!rp.hidden) {
+                let inSubGroup = false;
+                for (let subgroup of g.subgroups) {
+                    if (subgroup.contains(rp)) {
+                        inSubGroup = true;
+                        // break; ?
+                    }
+                }
+                if (!inSubGroup) {
+                    rp.parentGroups.add(g);
+                }
+            }
+        }
+
+        //sort out parentGroups
+        for (let group1 of groups.reverse()) {
+            if (!group1.hidden) {
+                //group1.init();
+                // console.log("!!!!!!!!!!!!!!!", group1.id);
+                if (group1.upperGroup.parentNode) {
+                    const pn = group1.upperGroup.parentNode;
+                    pn.removeChild(group1.upperGroup);
+                    pn.appendChild(group1.upperGroup);
+                }
+                for (let group2 of group1.subgroups) {
+                    group2.parentGroups.add(group1);
+                }
+            }
+        }
+
+        let manuallyHidden = 0;
+        for (let renderedParticipant of this.renderedProteins.values()) {
+            if (renderedParticipant.participant.manuallyHidden === true) {
+                manuallyHidden++;
+            }
+            if (renderedParticipant.inCollapsedGroup() === false) {
+                renderedParticipant.setHidden(renderedParticipant.participant.hidden);
+            } else {
+                renderedParticipant.setHidden(true);
+            }
+        }
+
+        if (manuallyHidden === 0) {
+            d3.select("#hiddenProteinsMessage").style("display", "none");
+        } else {
+            const pSel = d3.select("#hiddenProteinsText");
+            pSel.text((manuallyHidden > 1) ? (manuallyHidden + " Hidden Proteins") : (manuallyHidden + " Hidden Protein"));
+            const messgeSel = d3.select("#hiddenProteinsMessage");
+            messgeSel.style("display", "block");
+        }
+
+
+        for (let group of groups) {
+            if (!group.expanded && group.isOverlappingGroup()) {
+                group.setExpanded(true);
+            }
+        }
+        for (let group of groups) { // todo z-ordering
+            let hasVisible = false;
+            for (let p of group.renderedParticipants) {
+                if (p.participant.hidden === false) {
+                    hasVisible = true;
+                }
+            }
+            if (!hasVisible || group.inCollapsedGroup()) {
+                group.setHidden(true);
+            } else {
+                group.setHidden(false);
+                if (group.expanded) {
+                    group.updateExpandedGroup();
+                }
+            }
+        }
+        return this;
+    }
+
+    render() {
+        console.log("xiNET RENDER");
+        this.d3cola.stop();
+        if (this.firstRender) { // first render
+            this.firstRender = false;
             if (this.model.get("clmsModel").get("xiNETLayout")) {
                 this.loadLayout(this.model.get("clmsModel").get("xiNETLayout").layout);
             } else {
@@ -330,23 +495,94 @@ export class CrosslinkViewer extends Backbone.View{
             }
         }
 
-        //this is where the tidy up of the links code should probably start...
-
-        //for group
-        //      for group
-
-        //for p_p link
-        //      if not in group
-
         for (let ppLink of this.renderedP_PLinks.values()) {
-            ppLink.update(); // protein-protein links initialise group-group links if needed
+
+
+            ppLink.hd = false;
+            const filteredCrossLinks = new Set();
+            const filteredMatches = new Set();
+            const altP_PLinks = new Set();
+            for (let crosslink of ppLink.crosslinks) {
+                if (crosslink.filteredMatches_pp.length > 0) {
+                    filteredCrossLinks.add(crosslink.id);
+                    for (let m of crosslink.filteredMatches_pp) {
+                        const match = m.match; // oh dear, this...
+                        filteredMatches.add(match.id);
+                        if (match.hd === true) {
+                            ppLink.hd = true;
+                        }
+                        if (match.crosslinks.length > 1) {
+                            for (let matchCrossLink of match.crosslinks) {
+                                if (!matchCrossLink.isDecoyLink()) {
+                                    altP_PLinks.add(matchCrossLink.p_pLink.id);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            ppLink.filteredMatchCount = filteredMatches.size;
+            ppLink.filteredCrossLinkCount = filteredCrossLinks.size;
+            ppLink.ambiguous = altP_PLinks.size > 1;
+
+
+            if (!ppLink.renderedToProtein || // not linear
+                //or either end hidden hidden
+                ppLink.renderedFromProtein.participant.hidden ||
+                ppLink.renderedToProtein.participant.hidden) {
+                ppLink.hide();
+            } else {
+                const fromProtInCollapsedGroup = ppLink.renderedFromProtein.inCollapsedGroup();
+                const toProtInCollapsedGroup = ppLink.renderedToProtein.inCollapsedGroup();
+
+                if (// or is self link in collapsed group
+                    (ppLink.crosslinks[0].isSelfLink() && fromProtInCollapsedGroup) ||
+                    // or either end is expanded to bar and not in collapsed group
+                    (ppLink.renderedFromProtein.expanded && !fromProtInCollapsedGroup) ||
+                    (ppLink.renderedToProtein.expanded && !toProtInCollapsedGroup) // ||
+                ) {
+                    ppLink.hide();
+                } else {
+
+                        if (ppLink.filteredCrossLinkCount === 0) {
+                            ppLink.hide();
+                        } else {
+                            ppLink.ambiguous = altP_PLinks.size > 1;
+                            if (fromProtInCollapsedGroup && toProtInCollapsedGroup) {
+                                const source = ppLink.renderedFromProtein.getRenderedParticipant();
+                                const target = ppLink.renderedToProtein.getRenderedParticipant();
+                                let ggId;
+                                if (source.id < target.id) {
+                                    ggId = source.id + "_" + target.id;
+                                } else {
+                                    ggId = target.id + "_" + source.id;
+                                }
+                                let ggLink = ppLink.controller.g_gLinks.get(ggId);
+                                if (!ggLink) {
+                                    if (source.id < target.id) {
+                                        ggLink = new G_GLink(ggId, source, target, this);
+                                    } else {
+                                        ggLink = new G_GLink(ggId, target, source, this);
+                                    }
+                                    this.g_gLinks.set(ggId, ggLink);
+                                }
+                                ggLink.p_pLinks.set(ppLink.id, ppLink);
+                                ppLink.hide();
+                                //                ggLink.show();
+                            } else {
+                                ppLink.show();
+                            }
+                        }
+                    }
+            }
         }
         for (let cLink of this.renderedCrosslinks.values()) {
             cLink.check();
         }
         const ggLinkIdsToRemove = []
         for (let ggLink of this.g_gLinks.values()) {
-            if (ggLink.group1.expanded === false && ggLink.group2.expanded === false && ggLink.check()) {
+            if (ggLink.group1.expanded === false && ggLink.group2.expanded === false && ggLink.check()
+                && this.groupMap.has(ggLink.group1.id) && this.groupMap.has(ggLink.group2.id)) {
                 ggLink.show();
                 //set line coord?
             } else {
@@ -359,7 +595,463 @@ export class CrosslinkViewer extends Backbone.View{
         }
     }
 
-    zoomToFullExtent () {
+    autoLayout(fixedParticipants) {
+        console.log("xiNET AUTO LAYOUT");
+        this.d3cola.stop();
+        if (fixedParticipants.length === 0) {
+            this.container.setAttribute("transform", "scale(" + 1 + ")");// translate(" + ((width / scaleFactor) - bbox.width - bbox.x) + " " + -bbox.y + ")");
+            this.scale();
+        }
+
+        for (let renderedProtein of this.renderedProteins.values()) {
+            if (fixedParticipants.length === 0) {
+                delete renderedProtein.x;
+                delete renderedProtein.y;
+                delete renderedProtein.px; // todo - check if this is necessary
+                delete renderedProtein.py;
+            }
+            renderedProtein.fixed = fixedParticipants.indexOf(renderedProtein.participant) !== -1;
+            delete renderedProtein.index;
+        }
+        for (let g of this.groupMap.values()) {
+            if (fixedParticipants.length === 0) { // todo - some issues here (select a collpased group and select fixed selected)
+                delete g.x;
+                delete g.y;
+                delete g.px; // todo - check if this is necessary
+                delete g.py;
+            }
+            delete g.index;
+            delete g.parent;
+        }
+
+        const linkLength = (this.renderedProteins.size < 20) ? 40 : 20;
+        const width = this.svgElement.parentNode.clientWidth;
+        const height = this.svgElement.parentNode.clientHeight;
+        this.d3cola.size([height - 40, width - 40]).symmetricDiffLinkLengths(linkLength);
+
+        const self = this;
+
+        // function makeLinks(){
+        const links = new Map();
+        const nodeSet = new Set();
+        for (let crosslink of self.model.getFilteredCrossLinks()) {
+            if (crosslink.toProtein) { //?
+                const source = self.renderedProteins.get(crosslink.fromProtein.id).getRenderedParticipant();
+                const target = self.renderedProteins.get(crosslink.toProtein.id).getRenderedParticipant();
+                nodeSet.add(source);
+                const fromId = crosslink.fromProtein.id;
+                const toId = crosslink.toProtein.id;
+                const linkId = fromId + "-" + toId;
+                if (!links.has(linkId)) {
+                    const linkObj = {};
+                    // todo - maybe do use indexes, might avoid probs in cola
+                    linkObj.source = source;
+                    linkObj.target = target;
+                    nodeSet.add(target);
+                    linkObj.id = linkId;
+                    links.set(linkId, linkObj);
+                }
+            }
+        }
+        const nodeArr = Array.from(nodeSet);
+        const linkArr = Array.from(links.values());
+        //     return {nodeArr, linkArr};
+        // }
+        //
+        // const {nodeArr, linkArr} = makeLinks();
+        // doLayout(nodeArr, linkArr, true); // run it first without the groups, this had beneficial effects for layout in complexviewer
+        doLayout(nodeArr, linkArr, false);
+
+        function doLayout(nodes, links, preRun) {
+            //don't know how necessary these deletions are
+            delete self.d3cola._lastStress;
+            delete self.d3cola._alpha;
+            delete self.d3cola._descent;
+            delete self.d3cola._rootGroup;
+
+            // self.d3cola.nodes(nodes).links(links);
+
+
+            //
+            // if (preRun) {
+            //     self.d3cola.groups([]).start(23, 10, 0, 0, false);
+            // } else {
+            const groups = [];
+            if (self.groupMap) {
+                for (let g of self.groupMap.values()) {
+                    // delete g.index;
+                    if (!g.hidden && g.expanded) {
+                        g.groups = [];
+                        // put any rp not contained in a subgroup(recursive) in group1.leaves
+
+                        for (let rp of g.renderedParticipants) {
+                            if (!rp.hidden) {
+                                let inSubGroup = false;
+                                for (let subgroup of g.subgroups) {
+                                    // UR HERE
+                                    if (subgroup.contains(rp)) {
+                                        inSubGroup = true;
+                                        // break; ?
+                                    }
+                                }
+                                if (!inSubGroup) {
+                                    g.leaves.push(nodeArr.indexOf(rp)); /// URHERE - MOVE UP?
+                                }
+                            }
+                        }
+                        groups.push(g);
+                    }
+                }
+                //need to use indexes of groups
+                for (let g of groups) {
+                    for (let i = 0; i < g.subgroups.length; i++) {
+                        if (g.subgroups[i].expanded) {
+                            g.groups[i] = groups.indexOf(g.subgroups[i]);
+                        } else {
+                            g.leaves.push(g.subgroups[i]);
+                        }
+                    }
+                }
+            }
+            let participantDebugSel, groupDebugSel;
+            if (self.debug) {
+                participantDebugSel = d3.select(this.groupsSVG).selectAll('.node')
+                    .data(nodeArr);
+                participantDebugSel.enter().append('rect')
+                    .classed('node', true)
+                    .attr({
+                        rx: 5,
+                        ry: 5
+                    })
+                    .style('stroke', "red")
+                    .style('fill', "none");
+                groupDebugSel = d3.select(this.groupsSVG).selectAll('.group')
+                    .data(groups);
+                groupDebugSel.enter().append('rect')
+                    .classed('group', true)
+                    .attr({
+                        rx: 5,
+                        ry: 5
+                    })
+                    .style('stroke', "blue")
+                    .style('fill', "none");
+                groupDebugSel.exit().remove();
+                participantDebugSel.exit().remove();
+            }
+            self.d3cola.nodes(nodes).groups(groups).links(links).start(23, 10, 1, 0, true).on("tick", function () { //.start(23, 10, 1, 0, true)
+                for (let node of self.d3cola.nodes()) {
+                    node.setPositionFromCola(node.x, node.y);
+                    node.setAllLinkCoordinates();
+                }
+                for (let g of self.d3cola.groups()) { // todo -  seems a bit of a weird way to have done this?
+                    if (g.expanded) {
+                        g.updateExpandedGroup();
+                    }
+                }
+                if (fixedParticipants.length === 0) {
+                    self.zoomToFullExtent();
+                }
+
+                if (self.debug) {
+                    groupDebugSel.attr({
+                        x: function (d) {
+                            return d.bounds.x;
+                        },
+                        y: function (d) {
+                            return d.bounds.y;
+                        },
+                        width: function (d) {
+                            return d.bounds.width()
+                        },
+                        height: function (d) {
+                            return d.bounds.height()
+                        }
+                    });
+                    participantDebugSel.attr({
+                        x: function (d) {
+                            return d.bounds.x;
+                        },
+                        y: function (d) {
+                            return d.bounds.y;
+                        },
+                        width: function (d) {
+                            return d.bounds.width()
+                        },
+                        height: function (d) {
+                            return d.bounds.height()
+                        }
+                    });
+                }
+            });
+            //}
+        }
+    }
+
+    saveLayout(callback) {
+        const layout = {};
+        layout.groups = Array.from(this.groupMap.values());
+        layout.proteins = Array.from(this.renderedProteins.values());
+        const myJSONText = JSON.stringify(layout, null);
+        console.log("SAVING", layout);
+        callback(myJSONText.replace(/\\u0000/gi, ''));
+    }
+
+    //todo - this is becoming about config of all xiVIEw not just config of xiNET, should be moved
+    loadLayout(layout) {
+        console.log("xiNET LOAD LAYOUT", layout);
+        let proteinPositions, groups;
+        // for backwards compatibility (after groups added to layout)
+        if (layout.proteins) {
+            proteinPositions = layout.proteins;
+            groups = layout.groups;
+        } else {
+            proteinPositions = layout;
+        }
+        let layoutIsDodgy = false;
+        let namesChanged = false;
+        for (let protLayout of proteinPositions) {
+            const protein = this.renderedProteins.get(protLayout.id);
+            if (protein !== undefined) {
+                protein.setPositionFromXinet(protLayout["x"], protLayout["y"]);
+                if (typeof protLayout['rot'] !== 'undefined') {
+                    protein.rotation = protLayout["rot"] - 0;
+                }
+                protein.ix = protLayout["x"];
+                protein.iy = protLayout["y"];
+                protein.newForm = protLayout["expanded"];
+                if (CrosslinkViewer.barScales.indexOf(+protLayout["stickZoom"]) > -1) {
+                    protein.stickZoom = protLayout["stickZoom"];
+                }
+                protein.rotation = protLayout["rot"] - 0;
+                protein.flipped = protLayout["flipped"];
+                protein.participant.manuallyHidden = protLayout["manuallyHidden"];
+
+                if (protLayout["name"]) {
+                    protein.participant.name = protLayout["name"];
+                    namesChanged = true;
+                }
+
+            } else {
+                layoutIsDodgy = true;
+                console.log("! protein in layout but not search:" + protLayout.id);
+            }
+        }
+
+        for (let rp of this.renderedProteins.values()) {
+            rp.setEverything();
+        }
+
+        if (groups && typeof groups[Symbol.iterator] === 'function') {
+            const modelGroupMap = new Map();
+            for (const savedGroup of groups) {
+                //gonna need to check for proteins now missing from results
+                const presentProteins = new Set();
+                for (let pId of savedGroup.participantIds) {
+                    if (this.renderedProteins.get(pId)) {
+                        presentProteins.add(pId);
+                    }
+                }
+                modelGroupMap.set(savedGroup.id, presentProteins);
+            }
+            this.model.set("groups", modelGroupMap);
+            this.model.trigger("change:groups");
+
+            for (const savedGroup of groups) {
+                const xiNetGroup = this.groupMap.get(savedGroup.id);
+                if (savedGroup.expanded === false) {
+                    xiNetGroup.setExpanded(savedGroup.expanded);
+                    xiNetGroup.setPositionFromXinet(savedGroup.x, savedGroup.y);
+                }
+            }
+        }
+
+        this.model.get("filterModel").trigger("change", this.model.get("filterModel"));
+
+        this.zoomToFullExtent();
+
+        if (layoutIsDodgy) {
+            alert("Looks like something went wrong with the saved layout, if you can't see your proteins click Auto layout");
+        }
+
+        if (namesChanged) {
+            // vent.trigger("proteinMetadataUpdated", {}); //aint gonna work
+            for (let renderedParticipant of this.renderedProteins.values()) {
+                renderedParticipant.updateName();
+            }
+        }
+    }
+
+    downloadSVG() {
+        const svgArr = [this.svgElement];
+        const svgStrings = svgUtils.capture(svgArr);
+        let svgXML = svgUtils.makeXMLStr(new XMLSerializer(), svgStrings[0]);
+        //bit of a hack
+        const bBox = this.svgElement.getBoundingClientRect();
+        const width = Math.round(bBox.width);
+        const height = Math.round(bBox.height);
+        svgXML = svgXML.replace('width="100%"', 'width="' + width + 'px"');
+        svgXML = svgXML.replace('height="100%"', 'height="' + height + 'px"');
+        const fileName = utils.makeLegalFileName(utils.searchesToString() + "--xiNET--" + utils.filterStateToString());
+        download(svgXML, 'application/svg', fileName + ".svg");
+    }
+
+    highlightedLinksChanged() {
+        for (let p_pLink of this.renderedP_PLinks.values()) {
+            p_pLink.showHighlight(false);
+        }
+        const highlightedCrossLinks = this.model.getMarkedCrossLinks("highlights");
+        for (let renderedCrossLink of this.renderedCrosslinks.values()) {
+            if (highlightedCrossLinks.indexOf(renderedCrossLink.crosslink) !== -1) {
+                if (renderedCrossLink.renderedFromProtein.expanded ||
+                    !renderedCrossLink.renderedToProtein || renderedCrossLink.renderedToProtein.expanded) {
+                    renderedCrossLink.showHighlight(true);
+                } else if (renderedCrossLink.renderedToProtein) {
+                    const p_pLink = this.renderedP_PLinks.get(
+                        renderedCrossLink.renderedFromProtein.participant.id + "-" + renderedCrossLink.renderedToProtein.participant.id);
+                    p_pLink.showHighlight(true);
+                }
+            } else {
+                renderedCrossLink.showHighlight(false);
+            }
+        }
+        for (let gg of this.g_gLinks.values()) {
+            gg.checkHighlight();
+        }
+        return this;
+    }
+
+    selectedLinksChanged() {
+        for (let p_pLink of this.renderedP_PLinks.values()) {
+            p_pLink.setSelected(false);
+        }
+        const selectedCrossLinks = this.model.getMarkedCrossLinks("selection");
+        for (let renderedCrossLink of this.renderedCrosslinks.values()) {
+            if (selectedCrossLinks.indexOf(renderedCrossLink.crosslink) !== -1) {
+                renderedCrossLink.setSelected(true);
+                if (renderedCrossLink.renderedToProtein) {
+                    const p_pLink = this.renderedP_PLinks.get(
+                        renderedCrossLink.renderedFromProtein.participant.id + "-" + renderedCrossLink.renderedToProtein.participant.id);
+                    p_pLink.setSelected(true);
+                }
+            } else {
+                renderedCrossLink.setSelected(false);
+            }
+        }
+        for (let gg of this.g_gLinks.values()) {
+            gg.checkSelected();
+        }
+        return this;
+    }
+
+    selectedProteinsChanged() {
+        const selectedProteins = this.model.get("selectedProteins");
+        for (let renderedProtein of this.renderedProteins.values()) {
+            if (selectedProteins.indexOf(renderedProtein.participant) === -1 && renderedProtein.isSelected === true) {
+                renderedProtein.setSelected(false);
+            }
+        }
+        for (let selectedProtein of selectedProteins) {
+            if (selectedProtein.is_decoy !== true) {
+                const renderedProtein = this.renderedProteins.get(selectedProtein.id);
+                if (renderedProtein.isSelected === false) {
+                    renderedProtein.setSelected(true);
+                }
+            }
+        }
+        if (this.groupMap) {
+            for (let g of this.groupMap.values()) {
+                g.updateSelected();
+            }
+        }
+        return this;
+    }
+
+    highlightedProteinsChanged() {
+        const highlightedProteins = this.model.get("highlightedProteins");
+        for (let renderedProtein of this.renderedProteins.values()) {
+            if (highlightedProteins.indexOf(renderedProtein.participant) === -1 && renderedProtein.isHighlighted === true) {
+                renderedProtein.showHighlight(false);
+                renderedProtein.isHighlighted = false; // todo - this is a bit wierd
+            }
+        }
+        for (let highlightedProtein of highlightedProteins) {
+            if (highlightedProtein.is_decoy !== true) {
+                const renderedProtein = this.renderedProteins.get(highlightedProtein.id);
+                if (renderedProtein.isHighlighted === false) {
+                    renderedProtein.showHighlight(true);
+                }
+            }
+        }
+        if (this.groupMap) {
+            for (let g of this.groupMap.values()) {
+                g.updateHighlight();
+            }
+        }
+        return this;
+    }
+
+    // updates protein names and colours
+    proteinMetadataUpdated() {
+        const proteinColourModel = window.compositeModelInst.get("proteinColourAssignment");
+        for (let renderedParticipant of this.renderedProteins.values()) {
+            renderedParticipant.updateName();
+            if (proteinColourModel) {
+                d3.select(renderedParticipant.outline)
+                    .attr("fill", proteinColourModel.getColour(renderedParticipant.participant));
+                d3.select(renderedParticipant.background)
+                    .attr("fill", proteinColourModel.getColour(renderedParticipant.participant));
+            }
+        }
+        return this;
+    }
+
+    showLabels() {
+        const show = this.model.get("xinetShowLabels");
+        for (let renderedParticipant of this.renderedProteins.values()) {
+            renderedParticipant.showLabel(show);
+        }
+        return this;
+    }
+
+    showExpandedGroupLabels() {
+        for (let group of this.groupMap.values()) {
+            group.setExpanded(group.expanded);
+        }
+        return this;
+    }
+
+    setFixedSize() {
+        this.fixedSize = this.model.get("xinetFixedSize");
+        for (let renderedParticipant of this.renderedProteins.values()) {
+            renderedParticipant.resize();
+        }
+        return this;
+    }
+
+    collapseParticipant() {
+        d3.select(".custom-menu-margin").style("display", "none");
+        d3.select(".group-custom-menu-margin").style("display", "none");
+        this.contextMenuParticipant.setExpanded(false, this.contextMenuPoint);
+        if (this.contextMenuParticipant.type === "group") {
+            this.render();
+        }
+        this.hiddenProteinsChanged();
+        this.contextMenuParticipant = null;
+    }
+
+    cantCollapseGroup() {
+        d3.select(".custom-menu-margin").style("display", "none");
+        d3.select(".group-custom-menu-margin").style("display", "none");
+    }
+
+    ungroup() {
+        d3.select(".group-custom-menu-margin").style("display", "none");
+        this.model.get("groups").delete(this.contextMenuParticipant.id);
+        this.model.trigger("change:groups");
+        this.contextMenuParticipant = null;
+    }
+
+    zoomToFullExtent() {
         // this.container.setAttribute("transform", "scale(1)");
         const width = this.svgElement.parentNode.clientWidth;
         const height = this.svgElement.parentNode.clientHeight;
@@ -379,7 +1071,7 @@ export class CrosslinkViewer extends Backbone.View{
         this.scale();
     }
 
-    scale () {
+    scale() {
         this.z = this.container.getCTM().inverse().a;
         for (let prot of this.renderedProteins.values()) {
             prot.setPositionFromXinet(prot.ix, prot.iy); // this rescales the protein
@@ -409,14 +1101,14 @@ export class CrosslinkViewer extends Backbone.View{
             }
         }
         for (let gg of this.g_gLinks.values()) {
-            if (gg.group1 !== gg.group2){
-            //     if (p_pLink.line) {
-                    gg.line.setAttribute("stroke-width", this.z * CrosslinkViewer.linkWidth);
-                    gg.highlightLine.setAttribute("stroke-width", this.z * 10);
-                    gg.updateThickLineWidth();
-                    // if (p_pLink.ambiguous) {
-                    //     p_pLink.dashedLine(true); //rescale spacing of dashes
-                    // }
+            if (gg.group1 !== gg.group2) {
+                //     if (p_pLink.line) {
+                gg.line.setAttribute("stroke-width", this.z * CrosslinkViewer.linkWidth);
+                gg.highlightLine.setAttribute("stroke-width", this.z * 10);
+                gg.updateThickLineWidth();
+                // if (p_pLink.ambiguous) {
+                //     p_pLink.dashedLine(true); //rescale spacing of dashes
+                // }
                 // }
             }
         }
@@ -434,18 +1126,18 @@ export class CrosslinkViewer extends Backbone.View{
         }
     }
 
-    setAnnotations () {
+    setAnnotations() {
         for (let renderedProtein of this.renderedProteins.values()) {
             renderedProtein.setPositionalFeatures();
         }
     }
 
-    setCTM (element, matrix) {
+    setCTM(element, matrix) {
         const s = "matrix(" + matrix.a + "," + matrix.b + "," + matrix.c + "," + matrix.d + "," + matrix.e + "," + matrix.f + ")";
         element.setAttribute("transform", s);
     }
 
-    mouseDown (evt) {
+    mouseDown(evt) {
         //prevent default, but allow propogation
         evt.preventDefault();
         //stop layout
@@ -459,7 +1151,7 @@ export class CrosslinkViewer extends Backbone.View{
     }
 
     // dragging/rotation/panning/selecting
-    mouseMove (evt) {
+    mouseMove(evt) {
         if (this.dragStart) {
             const p = this.getEventPoint(evt); // seems to be correct, see below
             const c = p.matrixTransform(this.container.getCTM().inverse());
@@ -607,7 +1299,7 @@ export class CrosslinkViewer extends Backbone.View{
     }
 
     // this ends all dragging and rotating
-    mouseUp (evt) {
+    mouseUp(evt) {
         this.preventDefaultsAndStopPropagation(evt);
         //remove selection rect, may not be shown but just do this now
         this.selectionRectSel.attr("display", "none");
@@ -639,15 +1331,15 @@ export class CrosslinkViewer extends Backbone.View{
                                 if (this.dragElement.type === "group") {
                                     this.hiddenProteinsChanged();
                                     this.render();
-/*
-                                    const fixed = [];
-                                    for (let rp of this.renderedProteins.values()) {
-                                        if (this.dragElement.renderedParticipants.indexOf(rp) == -1) {
-                                            fixed.push(rp.participant)
-                                        }
-                                    }
-                                    this.autoLayout(fixed); //pass in those NOT to autolayout
-*/
+                                    /*
+                                                                        const fixed = [];
+                                                                        for (let rp of this.renderedProteins.values()) {
+                                                                            if (this.dragElement.renderedParticipants.indexOf(rp) == -1) {
+                                                                                fixed.push(rp.participant)
+                                                                            }
+                                                                        }
+                                                                        this.autoLayout(fixed); //pass in those NOT to autolayout
+                                    */
                                 }
                             } else {
                                 //give context menu that allows collapsing the expanded...
@@ -713,7 +1405,7 @@ export class CrosslinkViewer extends Backbone.View{
         return false;
     }
 
-    mouseWheel (evt) {
+    mouseWheel(evt) {
         this.preventDefaultsAndStopPropagation(evt);
         this.d3cola.stop();
         let delta;
@@ -733,13 +1425,13 @@ export class CrosslinkViewer extends Backbone.View{
         return false;
     }
 
-    mouseOut (evt) { //todo
+    mouseOut(evt) { //todo
         // don't, causes prob's - RenderedInteractor mouseOut getting propogated?
         // d3.select(".custom-menu-margin").style("display", "none");
         // d3.select(".group-custom-menu-margin").style("display", "none");
     }
 
-    getEventPoint (evt) {
+    getEventPoint(evt) {
         const p = this.svgElement.createSVGPoint();
         let element = this.svgElement.parentNode;
         let top = 0,
@@ -755,7 +1447,7 @@ export class CrosslinkViewer extends Backbone.View{
     }
 
     //stop event propogation and defaults; only do what we ask
-    preventDefaultsAndStopPropagation (evt) {
+    preventDefaultsAndStopPropagation(evt) {
         if (evt.stopPropagation)
             evt.stopPropagation();
         if (evt.cancelBubble != null)
@@ -764,666 +1456,9 @@ export class CrosslinkViewer extends Backbone.View{
             evt.preventDefault();
         // evt.returnValue = false;
     }
-
-    saveLayout (callback) {
-        const layout = {};
-        layout.groups = Array.from(this.groupMap.values());
-        layout.proteins = Array.from(this.renderedProteins.values());
-        const myJSONText = JSON.stringify(layout, null);
-        console.log("SAVING", layout);
-        callback(myJSONText.replace(/\\u0000/gi, ''));
-    }
-
-    //todo - this is becoming about config of all xiVIEw not just config of xiNET, should be moved
-    loadLayout (layout) {
-        console.log("LOADING", layout);
-        let proteinPositions, groups;
-        // for backwards compatibility (after groups added to layout)
-        if (layout.proteins) {
-            proteinPositions = layout.proteins;
-            groups = layout.groups;
-        } else {
-            proteinPositions = layout;
-        }
-        let layoutIsDodgy = false;
-        let namesChanged = false;
-        for (let protLayout of proteinPositions) {
-            const protein = this.renderedProteins.get(protLayout.id);
-            if (protein !== undefined) {
-                protein.setPositionFromXinet(protLayout["x"], protLayout["y"]);
-                if (typeof protLayout['rot'] !== 'undefined') {
-                    protein.rotation = protLayout["rot"] - 0;
-                }
-                protein.ix = protLayout["x"];
-                protein.iy = protLayout["y"];
-                protein.newForm = protLayout["expanded"];
-                if (CrosslinkViewer.barScales.indexOf(+protLayout["stickZoom"]) > -1) {
-                    protein.stickZoom = protLayout["stickZoom"];
-                }
-                protein.rotation = protLayout["rot"] - 0;
-                protein.flipped = protLayout["flipped"];
-                protein.participant.manuallyHidden = protLayout["manuallyHidden"];
-
-                if (protLayout["name"]) {
-                    protein.participant.name = protLayout["name"];
-                    namesChanged = true;
-                }
-
-            } else {
-                layoutIsDodgy = true;
-                console.log("! protein in layout but not search:" + protLayout.id);
-            }
-        }
-
-        for (let rp of this.renderedProteins.values()) {
-            rp.setEverything();
-        }
-
-        if (groups && typeof groups[Symbol.iterator] === 'function') {
-            const modelGroupMap = new Map();
-            for (const savedGroup of groups) {
-                //gonna need to check for proteins now missing from results
-                const presentProteins = new Set();
-                for (let pId of savedGroup.participantIds){
-                     if (this.renderedProteins.get(pId)) {
-                         presentProteins.add(pId);
-                     }
-                }
-                modelGroupMap.set(savedGroup.id, presentProteins);
-            }
-            this.model.set("groups", modelGroupMap);
-            this.model.trigger("change:groups");
-
-            for (const savedGroup of groups) {
-                const xiNetGroup = this.groupMap.get(savedGroup.id);
-                if (savedGroup.expanded === false) {
-                    xiNetGroup.setExpanded(savedGroup.expanded);
-                    xiNetGroup.setPositionFromXinet(savedGroup.x, savedGroup.y);
-                }
-            }
-        }
-
-        this.model.get("filterModel").trigger("change", this.model.get("filterModel"));
-
-        this.zoomToFullExtent();
-
-        if (layoutIsDodgy) {
-            alert("Looks like something went wrong with the saved layout, if you can't see your proteins click Auto layout");
-        }
-
-        if (namesChanged) {
-            // vent.trigger("proteinMetadataUpdated", {}); //aint gonna work
-            for (let renderedParticipant of this.renderedProteins.values()) {
-                renderedParticipant.updateName();
-            }
-        }
-    }
-
-    groupsChanged () {
-        this.d3cola.stop();
-
-        // a Map with group id as key and Set of protein ids to group as value
-        const modelGroups = this.model.get("groups");
-
-        //clear out old groups (can u remove while iterating)
-        const groupIdsToremove = [];
-        for (let group of this.groupMap.values()) {
-            if (!modelGroups.has(group.id)) {
-                group.parentGroups = new Set();//[]; //don't think necessary but just in case
-                group.subroups = [];
-                groupIdsToremove.push(group.id);
-                for (let rp of group.renderedParticipants) {
-                    rp.parentGroups.delete(group);
-                }
-                if (group.expanded) {
-                    this.groupsSVG.removeChild(group.upperGroup);
-                } else {
-                    this.proteinUpper.removeChild(group.upperGroup);
-                }
-            }
-        }
-        for (let rgId of groupIdsToremove) {
-            this.groupMap.delete(rgId);
-        }
-
-        //init
-        for (let g of modelGroups.entries()) {
-            if (!this.groupMap.has(g[0])) {
-                const group = new Group(g[0], g[1], this);
-                group.init(); // z ordering... later
-                this.groupMap.set(group.id, group);
-            }
-        }
-        this.scale();//just to update groups selection highlights
-        this.hiddenProteinsChanged();
-        this.render();
-    }
-
-    // handle changes to manually hidden proteins,
-    // but also deal with stuff to do with groups / group hierarchy
-    // specifically subgroups could change as result of things being hidden so this is here
-    // (i.e overlapping group becomes subgroup)
-    hiddenProteinsChanged () {
-        this.d3cola.stop();
-
-        // parent groups may change, so clear
-        for (let g of this.groupMap.values()) {
-            g.subgroups = []; // subgroups as xiNET.Groups
-            g.parentGroups = new Set();
-            g.leaves = []; // different from g.renderedParticipants coz only contains ungrouped RenderedProteins, used by cola.js
-            g.groups = []; // indexes of subgroups in resulting groupArr, used by cola.js // needed? prob not coz groups already refered to by index
-
-            for (let rp of g.renderedParticipants) {
-                rp.parentGroups.delete(g); // sometimes it won't have contained g as parentGroup
-            }
-        }
-
-        //sort it by count not hidden (not manually hidden and not filtered)
-        const sortedGroupMap = new Map([...this.groupMap.entries()].sort((a, b) => a[1].unhiddenParticipantCount() - b[1].unhiddenParticipantCount()));
-
-        // get maximal set of possible subgroups
-        const groups = Array.from(sortedGroupMap.values());
-        const gCount = groups.length; // contains xiNET.Groups
-        for (let gi = 0; gi < gCount - 1; gi++) {
-            const group1 = groups[gi];
-            if (group1.unhiddenParticipantCount() > 0) {
-                for (let gj = gi + 1; gj < gCount; gj++) {
-                    const group2 = groups[gj];
-                    if (group1.isSubsetOf(group2)) {
-                        group2.subgroups.push(group1);
-                        console.log(group1.name, "is SUBSET of", group2.name)
-                    }
-                }
-            }
-        }
-
-        //remove obselete subgroups
-        for (let gi = 0; gi < gCount; gi++) {
-            const group1 = groups[gi];
-            //if subgroup has parent also in group1.subgroups then remove it
-            const subgroupCount = group1.subgroups.length;
-            const subgroupsToRemove = [];
-            for (let gj = 0; gj < subgroupCount - 1; gj++) {
-                const subgroup1 = group1.subgroups[gj];
-                for (let gk = gj + 1; gk < subgroupCount; gk++) {
-                    const subgroup2 = group1.subgroups[gk];
-                    if (subgroup1.isSubsetOf(subgroup2)) {
-                        subgroupsToRemove.push(subgroup2);
-                    }
-                }
-            }
-            for (let sgToremove of subgroupsToRemove) {
-                const index = group1.subgroups.indexOf(sgToremove);
-                group1.subgroups = group1.subgroups.splice(index, 1);
-            }
-        }
-
-        for (let g of groups) {
-            // delete g.index;
-            // if (!g.hidden && g.expanded) {
-            // if (g.expanded) { // if it contains visible participants it must be
-            g.leaves = [];
-
-            // g.groups = [];
-            // for (var rp of g.renderedParticipants) {
-            //     var i = nodeArr.indexOf(rp);
-            //     if (i != -1) {
-            //         g.leaves.push(i);
-            //     }
-            // }
-            // if (g.leaves.length > 0) {
-            //     groups.push(g);
-            // }
-
-            // put any rp not contained in a subgroup(recursive) in group1.leaves
-
-            for (let rp of g.renderedParticipants) {
-                // if (!rp.hidden) {
-                let inSubGroup = false;
-                for (let subgroup of g.subgroups) {
-                    // UR HERE
-                    if (subgroup.contains(rp)) {
-                        inSubGroup = true;
-                        // break; ?
-                    }
-                }
-                if (!inSubGroup) {
-                    //g.leaves.push(nodeArr.indexOf(rp)); /// URHERE - MOVE UP
-                    rp.parentGroups.add(g); /// URHERE - MOVE UP
-                }
-                // }
-            }
-            // if (groupSet.has(g)) { //shouldn't need this? (coz g not hidden)
-            // groups.push(g);
-            // }
-            // }
-            // } // end expanded check
-        }
-
-        //sort out parentGroups
-        for (let group1 of groups.reverse()) {
-            if (!group1.hidden) {
-                //group1.init();
-                // console.log("!!!!!!!!!!!!!!!", group1.id);
-                if (group1.upperGroup.parentNode) {
-                    const pn = group1.upperGroup.parentNode;
-                    pn.removeChild(group1.upperGroup);
-                    pn.appendChild(group1.upperGroup);
-                }
-                for (let group2 of group1.subgroups) {
-                    group2.parentGroups.add(group1);
-                }
-            }
-        }
-
-
-        let manuallyHidden = 0;
-        for (let renderedParticipant of this.renderedProteins.values()) {
-            if (renderedParticipant.participant.manuallyHidden === true) {
-                manuallyHidden++;
-            }
-            if (renderedParticipant.inCollapsedGroup() === false) {
-                renderedParticipant.setHidden(renderedParticipant.participant.hidden);
-            } else {
-                renderedParticipant.setHidden(true);
-            }
-        }
-
-        if (manuallyHidden === 0) {
-            d3.select("#hiddenProteinsMessage").style("display", "none");
-        } else {
-            const pSel = d3.select("#hiddenProteinsText");
-            pSel.text((manuallyHidden > 1) ? (manuallyHidden + " Hidden Proteins") : (manuallyHidden + " Hidden Protein"));
-            const messgeSel = d3.select("#hiddenProteinsMessage");
-            messgeSel.style("display", "block");
-        }
-
-
-        for (let group of groups) {
-            if (!group.expanded && group.isOverlappingGroup()) {
-                group.setExpanded(true);
-            }
-        }
-        for (let group of groups) { // todo z-ordering, do earlier?
-            let hasVisible = false;
-            for (let p of group.renderedParticipants) {
-                if (p.participant.hidden === false) {
-                    hasVisible = true;
-                }
-            }
-            if (!hasVisible || group.inCollapsedGroup()) {
-                group.setHidden(true);
-            } else {
-                group.setHidden(false);
-                if (group.expanded) {
-                    group.updateExpandedGroup();
-                }
-            }
-        }
-        return this;
-    }
-
-    autoLayout (fixedParticipants) {
-        this.d3cola.stop();
-        if (fixedParticipants.length == 0) {
-            this.container.setAttribute("transform", "scale(" + 1 + ")");// translate(" + ((width / scaleFactor) - bbox.width - bbox.x) + " " + -bbox.y + ")");
-            this.scale();
-        }
-
-        for (let renderedProtein of this.renderedProteins.values()) {
-            if (fixedParticipants.length == 0){
-                delete renderedProtein.x;
-                delete renderedProtein.y;
-                delete renderedProtein.px; // todo - check if this is necessary
-                delete renderedProtein.py;
-            }
-            if (fixedParticipants.indexOf(renderedProtein.participant) == -1) {
-                renderedProtein.fixed = false;
-            }
-            else {
-                renderedProtein.fixed = true;
-            }
-            delete renderedProtein.index;
-        }
-        for (let g of this.groupMap.values()) {
-            if (fixedParticipants.length == 0) { // todo - some issues here (select a collpased group and select fixed selected)
-                delete g.x;
-                delete g.y;
-                delete g.px; // todo - check if this is necessary
-                delete g.py;
-            }
-            delete g.index;
-            delete g.parent;
-        }
-
-        const linkLength = (this.renderedProteins.size < 20) ? 40 : 20;
-        const width = this.svgElement.parentNode.clientWidth;
-        const height = this.svgElement.parentNode.clientHeight;
-        this.d3cola.size([height - 40, width - 40]).symmetricDiffLinkLengths(linkLength);
-
-        const self = this;
-
-        // function makeLinks(){
-            const links = new Map();
-            const nodeSet = new Set();
-            for (let crosslink of self.model.getFilteredCrossLinks()) {
-                if (crosslink.toProtein) { //?
-                    const source = self.renderedProteins.get(crosslink.fromProtein.id).getRenderedParticipant();
-                    const target = self.renderedProteins.get(crosslink.toProtein.id).getRenderedParticipant();
-                    nodeSet.add(source);
-                    const fromId = crosslink.fromProtein.id;
-                    const toId = crosslink.toProtein.id;
-                    const linkId = fromId + "-" + toId;
-                    if (!links.has(linkId)) {
-                        const linkObj = {};
-                        // todo - maybe do use indexes, might avoid probs in cola
-                        linkObj.source = source;
-                        linkObj.target = target;
-                        nodeSet.add(target);
-                        linkObj.id = linkId;
-                        links.set(linkId, linkObj);
-                    }
-                }
-            }
-            const nodeArr = Array.from(nodeSet);
-            const linkArr = Array.from(links.values());
-        //     return {nodeArr, linkArr};
-        // }
-        //
-        // const {nodeArr, linkArr} = makeLinks();
-        // doLayout(nodeArr, linkArr, true); // run it first without the groups, this had beneficial effects for layout in complexviewer
-        doLayout(nodeArr, linkArr, false);
-
-        function doLayout(nodes, links, preRun) {
-            //don't know how necessary these deletions are
-            delete self.d3cola._lastStress;
-            delete self.d3cola._alpha;
-            delete self.d3cola._descent;
-            delete self.d3cola._rootGroup;
-
-           // self.d3cola.nodes(nodes).links(links);
-
-
-            //
-            // if (preRun) {
-            //     self.d3cola.groups([]).start(23, 10, 0, 0, false);
-            // } else {
-                const groups = [];
-                if (self.groupMap) {
-                    for (let g of self.groupMap.values()) {
-                        // delete g.index;
-                        if (!g.hidden && g.expanded) {
-                            // if (g.expanded) { // if it contains visible participants it must be
-//                    g.leaves = []; //see above
-                            g.groups = [];
-                            // for (var rp of g.renderedParticipants) {
-                            //     var i = nodeArr.indexOf(rp);
-                            //     if (i != -1) {
-                            //         g.leaves.push(i);
-                            //     }
-                            // }
-                            // if (g.leaves.length > 0) {
-                            //     groups.push(g);
-                            // }
-
-                            // put any rp not contained in a subgroup(recursive) in group1.leaves
-
-                            for (let rp of g.renderedParticipants) {
-                                if (!rp.hidden) {
-                                    let inSubGroup = false;
-                                    for (let subgroup of g.subgroups) {
-                                        // UR HERE
-                                        if (subgroup.contains(rp)) {
-                                            inSubGroup = true;
-                                            // break; ?
-                                        }
-                                    }
-                                    if (!inSubGroup) {
-                                        g.leaves.push(nodeArr.indexOf(rp)); /// URHERE - MOVE UP
-                                    }
-                                }
-                            }
-                            // if (groupSet.has(g)) { //shouldn't need this? (coz g not hidden)
-                            groups.push(g);
-                            // }
-                        }
-                        // } // end expanded check
-                    }
-                    //need to use indexes of groups
-                    for (let g of groups) {
-                        for (let i = 0; i < g.subgroups.length; i++) {
-                            if (g.subgroups[i].expanded) {
-                                g.groups[i] = groups.indexOf(g.subgroups[i]);
-                            } else {
-                                g.leaves.push(g.subgroups[i]);
-                            }
-                        }
-                    }
-                }
-                let participantDebugSel, groupDebugSel;
-                if (self.debug) {
-                    participantDebugSel = d3.select(this.groupsSVG).selectAll('.node')
-                        .data(nodeArr);
-                    participantDebugSel.enter().append('rect')
-                        .classed('node', true)
-                        .attr({
-                            rx: 5,
-                            ry: 5
-                        })
-                        .style('stroke', "red")
-                        .style('fill', "none");
-                    groupDebugSel = d3.select(this.groupsSVG).selectAll('.group')
-                        .data(groups);
-                    groupDebugSel.enter().append('rect')
-                        .classed('group', true)
-                        .attr({
-                            rx: 5,
-                            ry: 5
-                        })
-                        .style('stroke', "blue")
-                        .style('fill', "none");
-                    groupDebugSel.exit().remove();
-                    participantDebugSel.exit().remove();
-                }
-                self.d3cola.nodes(nodes).groups(groups).links(links).start(23, 10, 1, 0, true).on("tick", function () { //.start(23, 10, 1, 0, true)
-                    for (let node of self.d3cola.nodes()) {
-                        node.setPositionFromCola(node.x, node.y);
-                        node.setAllLinkCoordinates();
-                    }
-                    for (let g of self.d3cola.groups()) { // todo -  seems a bit of a weird way to have done this?
-                        if (g.expanded) {
-                            g.updateExpandedGroup();
-                        }
-                    }
-                    if (fixedParticipants.length == 0){
-                        self.zoomToFullExtent();
-                    }
-
-                    if (self.debug) {
-                        groupDebugSel.attr({
-                            x: function (d) {
-                                return d.bounds.x;
-                            },
-                            y: function (d) {
-                                return d.bounds.y;
-                            },
-                            width: function (d) {
-                                return d.bounds.width()
-                            },
-                            height: function (d) {
-                                return d.bounds.height()
-                            }
-                        });
-                        participantDebugSel.attr({
-                            x: function (d) {
-                                return d.bounds.x;
-                            },
-                            y: function (d) {
-                                return d.bounds.y;
-                            },
-                            width: function (d) {
-                                return d.bounds.width()
-                            },
-                            height: function (d) {
-                                return d.bounds.height()
-                            }
-                        });
-                    }
-                });
-            //}
-        }
-    }
-
-    downloadSVG () {
-        const svgArr = [this.svgElement];
-        const svgStrings = svgUtils.capture(svgArr);
-        let svgXML = svgUtils.makeXMLStr(new XMLSerializer(), svgStrings[0]);
-        //bit of a hack
-        const bBox = this.svgElement.getBoundingClientRect();
-        const width = Math.round(bBox.width);
-        const height = Math.round(bBox.height);
-        svgXML = svgXML.replace('width="100%"', 'width="' + width + 'px"');
-        svgXML = svgXML.replace('height="100%"', 'height="' + height + 'px"');
-        const fileName = utils.makeLegalFileName(utils.searchesToString() + "--xiNET--" + utils.filterStateToString());
-        download(svgXML, 'application/svg', fileName + ".svg");
-    }
-
-    highlightedLinksChanged () {
-        for (let p_pLink of this.renderedP_PLinks.values()) {
-            p_pLink.showHighlight(false);
-        }
-        const highlightedCrossLinks = this.model.getMarkedCrossLinks("highlights");
-        for (let renderedCrossLink of this.renderedCrosslinks.values()) {
-            if (highlightedCrossLinks.indexOf(renderedCrossLink.crosslink) !== -1) {
-                if (renderedCrossLink.renderedFromProtein.expanded ||
-                    !renderedCrossLink.renderedToProtein || renderedCrossLink.renderedToProtein.expanded) {
-                    renderedCrossLink.showHighlight(true);
-                } else if (renderedCrossLink.renderedToProtein) {
-                    const p_pLink = this.renderedP_PLinks.get(
-                        renderedCrossLink.renderedFromProtein.participant.id + "-" + renderedCrossLink.renderedToProtein.participant.id);
-                    p_pLink.showHighlight(true);
-                }
-            } else {
-                renderedCrossLink.showHighlight(false);
-            }
-        }
-        for (let gg of this.g_gLinks.values()) {
-            gg.checkHighlight();
-        }
-        return this;
-    }
-
-    selectedLinksChanged () {
-        for (let p_pLink of this.renderedP_PLinks.values()) {
-            p_pLink.setSelected(false);
-        }
-        const selectedCrossLinks = this.model.getMarkedCrossLinks("selection");
-        for (let renderedCrossLink of this.renderedCrosslinks.values()) {
-            if (selectedCrossLinks.indexOf(renderedCrossLink.crosslink) !== -1) {
-                renderedCrossLink.setSelected(true);
-                if (renderedCrossLink.renderedToProtein) {
-                    const p_pLink = this.renderedP_PLinks.get(
-                        renderedCrossLink.renderedFromProtein.participant.id + "-" + renderedCrossLink.renderedToProtein.participant.id);
-                    p_pLink.setSelected(true);
-                }
-            } else {
-                renderedCrossLink.setSelected(false);
-            }
-        }
-        for (let gg of this.g_gLinks.values()) {
-            gg.checkSelected();
-        }
-        return this;
-    }
-
-    selectedProteinsChanged () {
-        const selectedProteins = this.model.get("selectedProteins");
-        for (let renderedProtein of this.renderedProteins.values()) {
-            if (selectedProteins.indexOf(renderedProtein.participant) === -1 && renderedProtein.isSelected === true) {
-                renderedProtein.setSelected(false);
-            }
-        }
-        for (let selectedProtein of selectedProteins) {
-            if (selectedProtein.is_decoy !== true) {
-                const renderedProtein = this.renderedProteins.get(selectedProtein.id);
-                if (renderedProtein.isSelected === false) {
-                    renderedProtein.setSelected(true);
-                }
-            }
-        }
-        if (this.groupMap) {
-            for (let g of this.groupMap.values()) {
-                g.updateSelected();
-            }
-        }
-        return this;
-    }
-
-    highlightedProteinsChanged () {
-        const highlightedProteins = this.model.get("highlightedProteins");
-        for (let renderedProtein of this.renderedProteins.values()) {
-            if (highlightedProteins.indexOf(renderedProtein.participant) === -1 && renderedProtein.isHighlighted === true) {
-                renderedProtein.showHighlight(false);
-                renderedProtein.isHighlighted = false; // todo - this is a bit wierd
-            }
-        }
-        for (let highlightedProtein of highlightedProteins) {
-            if (highlightedProtein.is_decoy !== true) {
-                const renderedProtein = this.renderedProteins.get(highlightedProtein.id);
-                if (renderedProtein.isHighlighted === false) {
-                    renderedProtein.showHighlight(true);
-                }
-            }
-        }
-        if (this.groupMap) {
-            for (let g of this.groupMap.values()) {
-                g.updateHighlight();
-            }
-        }
-        return this;
-    }
-
-    // updates protein names and colours
-    proteinMetadataUpdated () {
-        const proteinColourModel = window.compositeModelInst.get("proteinColourAssignment");
-        for (let renderedParticipant of this.renderedProteins.values()) {
-            renderedParticipant.updateName();
-            if (proteinColourModel) {
-                d3.select(renderedParticipant.outline)
-                    .attr("fill", proteinColourModel.getColour(renderedParticipant.participant));
-                d3.select(renderedParticipant.background)
-                    .attr("fill", proteinColourModel.getColour(renderedParticipant.participant));
-            }
-        }
-        return this;
-    }
-
-    showLabels () {
-        const show = this.model.get("xinetShowLabels");
-        for (let renderedParticipant of this.renderedProteins.values()) {
-            renderedParticipant.showLabel(show);
-        }
-        return this;
-    }
-
-    showExpandedGroupLabels () {
-        for (let group of this.groupMap.values()) {
-            group.setExpanded(group.expanded);
-        }
-        return this;
-    }
-
-    setFixedSize () {
-        this.fixedSize = this.model.get("xinetFixedSize");
-        for (let renderedParticipant of this.renderedProteins.values()) {
-            renderedParticipant.resize();
-        }
-        return this;
-    }
-
 }
 
-CrosslinkViewer.removeDomElement = function(child) {
+CrosslinkViewer.removeDomElement = function (child) {
     if (child && child.parentNode) {
         child.parentNode.removeChild(child);
     }
