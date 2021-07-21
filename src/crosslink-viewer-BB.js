@@ -1054,7 +1054,7 @@ export class CrosslinkViewer extends Backbone.View {
 
     collapseGroups(){
         for (let group of this.groupMap.values()) {
-            if (!group.isOverlappingGroup()){
+            if (group.expanded === true && !group.isOverlappingGroup()){
                 group.setExpanded(false);
             }
         }
@@ -1063,7 +1063,9 @@ export class CrosslinkViewer extends Backbone.View {
 
     expandGroups(){
         for (let group of this.groupMap.values()) {
-            group.setExpanded(true);
+            if (group.expanded === false) {
+                group.setExpanded(true);
+            }
         }
         this.render();
     }
