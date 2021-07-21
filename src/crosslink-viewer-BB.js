@@ -282,7 +282,6 @@ export class CrosslinkViewer extends Backbone.View {
         this.listenTo(this.model.get("alignColl"), "bulkAlignChange", this.setAnnotations);
         this.listenTo(this.model, "change:selectedProteins", this.selectedProteinsChanged);
         this.listenTo(this.model, "change:highlightedProteins", this.highlightedProteinsChanged);
-        this.listenTo(this.model.get("clmsModel"), "change:matches", this.update);
 
         this.listenTo(window.vent, "proteinMetadataUpdated", this.proteinMetadataUpdated);
 
@@ -291,14 +290,16 @@ export class CrosslinkViewer extends Backbone.View {
         this.listenTo(window.vent, "xinetLoadLayout", this.loadLayout);
         this.listenTo(window.vent, "xinetSaveLayout", this.saveLayout);
 
+        this.listenTo(window.vent, "collapseGroups", this.collapseGroups);
+        this.listenTo(window.vent, "expandGroups", this.expandGroups);
+
         this.listenTo(this.model, "change:xinetShowLabels", this.showLabels);
         this.listenTo(this.model, "change:xinetShowExpandedGroupLabels", this.showExpandedGroupLabels);
         this.listenTo(this.model, "change:xinetFixedSize", this.setFixedSize);
         this.listenTo(this.model, "change:xinetThickLinks", this.render);
         this.listenTo(this.model, "change:xinetPpiSteps", this.render);
+
         return this;
-
-
     }
 
     groupsChanged() {
@@ -1049,6 +1050,22 @@ export class CrosslinkViewer extends Backbone.View {
         this.model.get("groups").delete(this.contextMenuParticipant.id);
         this.model.trigger("change:groups");
         this.contextMenuParticipant = null;
+    }
+
+    collapseGroups(){
+        for (let group of this.groupMap.values()) {
+            if (!group.isOverlappingGroup()){
+                group.setExpanded(false);
+            }
+        }
+        this.render();
+    }
+
+    expandGroups(){
+        for (let group of this.groupMap.values()) {
+            group.setExpanded(true);
+        }
+        this.render();
     }
 
     zoomToFullExtent() {
