@@ -1,16 +1,25 @@
+// eslint-disable-next-line no-unused-vars
+//import * as css from "../css/xinet.css";
+
+import * as d3 from "d3";
 import * as _ from 'underscore';
 import Backbone from "backbone";
-import d3 from "d3";
+import * as cola from "./cola";
+
+
+import {svgUtils} from "../../xi3/js/svgexp";
+import {utils} from "../../xi3/js/utils";
+import {download} from "../../xi3/js/downloads";
 
 import {RenderedProtein} from "./interactor/rendered-protein";
 import {RenderedCrosslink} from "./link/rendered-crosslink";
-import {P_PLink} from "./link/p_p-link";
-import {utils} from "../../xi3/js/utils";
-
 import {Group} from "./interactor/group";
-import {svgUtils} from "../../xi3/js/svgexp";
-import {download} from "../../xi3/js/downloads";
+import {P_PLink} from "./link/p_p-link";
 import {G_GLink} from "./link/g_g-link";
+
+
+// import * as $ from "jquery";
+
 
 export class CrosslinkViewer extends Backbone.View {
 
@@ -1250,7 +1259,7 @@ export class CrosslinkViewer extends Backbone.View {
                     this.dragElement.setAllLinkCoordinates();
                 } else { //not dragging or rotating yet, maybe we should start
                     // don't start dragging just on a click - we need to move the mouse a bit first
-                    if (Math.sqrt(dx * dx + dy * dy) > (5 * this.z)) {
+                    if (Math.sqrt(dx * dx + dy * dy) > (5 * this.z)) { //this.mouseMoved?
                         this.state = CrosslinkViewer.STATES.DRAGGING;
 
                     }
@@ -1322,7 +1331,7 @@ export class CrosslinkViewer extends Backbone.View {
         this.preventDefaultsAndStopPropagation(evt);
         //remove selection rect, may not be shown but just do this now
         this.selectionRectSel.attr("display", "none");
-        //eliminate some spurious mouse up events
+        //eliminate some spurious mouse up events - a simple version of debouncing but it seems to work better than for e.g. _.debounce
         const time = new Date().getTime();
         if ((time - this.lastMouseUp) > 150) {
             const rightClick = (evt.button === 2);
@@ -1473,7 +1482,6 @@ export class CrosslinkViewer extends Backbone.View {
             evt.cancelBubble = true;
         if (evt.preventDefault)
             evt.preventDefault();
-        // evt.returnValue = false;
     }
 }
 
@@ -1485,7 +1493,7 @@ CrosslinkViewer.removeDomElement = function (child) {
 
 CrosslinkViewer.svgns = "http://www.w3.org/2000/svg"; // namespace for svg elements
 CrosslinkViewer.linkWidth = 1.7; // default line width
-//static var's signifying Controller's status
+//static values signifying Controller's status
 CrosslinkViewer.STATES = {
     MOUSE_UP: 0,
     SELECT_PAN: 1,
