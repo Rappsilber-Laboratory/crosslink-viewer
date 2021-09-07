@@ -8,7 +8,7 @@ import * as cola from "../../xi3/vendor/cola";
 
 
 import {svgUtils} from "../../xi3/js/svgexp";
-import {utils} from "../../xi3/js/utils";
+import {makeLegalFileName, searchesToString, utils} from "../../xi3/js/utils";
 import {download} from "../../xi3/js/downloads";
 
 import {RenderedProtein} from "./interactor/rendered-protein";
@@ -901,7 +901,7 @@ export class CrosslinkViewer extends Backbone.View {
         const height = Math.round(bBox.height);
         svgXML = svgXML.replace('width="100%"', 'width="' + width + 'px"');
         svgXML = svgXML.replace('height="100%"', 'height="' + height + 'px"');
-        const fileName = utils.makeLegalFileName(utils.searchesToString() + "--xiNET--" + utils.filterStateToString());
+        const fileName = makeLegalFileName(searchesToString() + "--xiNET--" + utils.filterStateToString());
         download(svgXML, 'application/svg', fileName + ".svg");
     }
 
