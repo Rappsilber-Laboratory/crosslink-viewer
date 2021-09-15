@@ -4,7 +4,7 @@
 import * as d3 from "d3";
 import * as _ from 'underscore';
 import Backbone from "backbone";
-import * as cola from "../../xi3/vendor/cola";
+import * as cola from "../vendor/cola";
 
 
 import {svgUtils} from "../../xi3/js/svgexp";
