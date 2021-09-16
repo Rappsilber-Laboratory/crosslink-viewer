@@ -1,5 +1,5 @@
 // eslint-disable-next-line no-unused-vars
-//import * as css from "../css/xinet.css";
+import "../css/xiNET.css";
 
 import * as d3 from "d3";
 import * as _ from 'underscore';
@@ -16,10 +16,6 @@ import {RenderedCrosslink} from "./link/rendered-crosslink";
 import {Group} from "./interactor/group";
 import {P_PLink} from "./link/p_p-link";
 import {G_GLink} from "./link/g_g-link";
-
-
-// import * as $ from "jquery";
-
 
 export class CrosslinkViewer extends Backbone.View {
 
