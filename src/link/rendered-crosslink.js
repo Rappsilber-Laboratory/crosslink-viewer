@@ -2,8 +2,8 @@ import {Link} from "./link";
 import {CrosslinkViewer} from "../crosslink-viewer-BB";
 import {Interactor} from "../interactor/interactor";
 import {RenderedProtein} from "../interactor/rendered-protein";
-import {modelUtils} from "../../../xi3/js/modelUtils";
 import d3 from "d3";
+import {makeTooltipContents, makeTooltipTitle} from "../../../xi3/js/make-tooltip";
 
 export class RenderedCrosslink extends Link {
     constructor(crosslink, crosslinkViewer) {
@@ -76,8 +76,8 @@ export class RenderedCrosslink extends Link {
             this.controller.model.setMarkedCrossLinks("highlights", toHighlight, true, false);
 
             this.controller.model.get("tooltipModel")
-                .set("header", modelUtils.makeTooltipTitle.link())
-                .set("contents", modelUtils.makeTooltipContents.link(this.crosslink))
+                .set("header", makeTooltipTitle.link())
+                .set("contents", makeTooltipContents.link(this.crosslink))
                 .set("location", {
                     pageX: p.x,
                     pageY: p.y

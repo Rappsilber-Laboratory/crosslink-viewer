@@ -7,8 +7,8 @@ import Backbone from "backbone";
 import * as cola from "../vendor/cola";
 
 
-import {svgUtils} from "../../xi3/js/svgexp";
-import {makeLegalFileName, searchesToString, utils} from "../../xi3/js/utils";
+import {svgUtils} from "../../xi3/vendor/svgexp";
+import {filterStateToString, makeLegalFileName, searchesToString} from "../../xi3/js/utils";
 import {download} from "../../xi3/js/downloads";
 
 import {RenderedProtein} from "./interactor/rendered-protein";
@@ -897,7 +897,7 @@ export class CrosslinkViewer extends Backbone.View {
         const height = Math.round(bBox.height);
         svgXML = svgXML.replace('width="100%"', 'width="' + width + 'px"');
         svgXML = svgXML.replace('height="100%"', 'height="' + height + 'px"');
-        const fileName = makeLegalFileName(searchesToString() + "--xiNET--" + utils.filterStateToString());
+        const fileName = makeLegalFileName(searchesToString() + "--xiNET--" + filterStateToString());
         download(svgXML, 'application/svg', fileName + ".svg");
     }
 
@@ -1465,8 +1465,8 @@ export class CrosslinkViewer extends Backbone.View {
             left += element.offsetLeft || 0;
             element = element.offsetParent;
         } while (element);
-        p.x = evt.clientX - left; //utils.crossBrowserElementX(evt);//, this.svgElement);
-        p.y = evt.clientY - top; //utils.crossBrowserElementY(evt);//, this.svgElement);
+        p.x = evt.clientX - left; //crossBrowserElementX(evt);//, this.svgElement);
+        p.y = evt.clientY - top; //crossBrowserElementY(evt);//, this.svgElement);
         return p;
     }
 

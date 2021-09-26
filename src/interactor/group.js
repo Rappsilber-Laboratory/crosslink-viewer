@@ -1,8 +1,7 @@
+import d3 from "d3";
 import {Interactor} from "./interactor";
 import {CrosslinkViewer} from "../crosslink-viewer-BB";
-
-import {modelUtils} from "../../../xi3/js/modelUtils";
-import d3 from "d3";
+import {makeTooltipContents, makeTooltipTitle} from "../../../xi3/js/make-tooltip";
 
 export class Group extends Interactor {
     constructor(id, participantIds, xlvController) {
@@ -177,8 +176,8 @@ export class Group extends Interactor {
         this.controller.model.setHighlightedProteins(toHighlight);
         const p = this.controller.getEventPoint(evt);
         this.controller.model.get("tooltipModel")
-            .set("header", modelUtils.makeTooltipTitle.complex(this))
-            .set("contents", modelUtils.makeTooltipContents.complex(this))
+            .set("header", makeTooltipTitle.complex(this))
+            .set("contents", makeTooltipContents.complex(this))
             .set("location", {
                 pageX: p.x,
                 pageY: p.y

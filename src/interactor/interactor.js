@@ -1,5 +1,5 @@
-import {modelUtils} from "../../../xi3/js/modelUtils";
 import d3 from "d3";
+import {makeTooltipContents, makeTooltipTitle} from "../../../xi3/js/make-tooltip";
 
 export class Interactor {
 
@@ -21,8 +21,8 @@ export class Interactor {
     mouseOver(evt) {
         const p = this.controller.getEventPoint(evt);
         this.controller.model.get("tooltipModel")
-            .set("header", modelUtils.makeTooltipTitle.interactor(this.participant))
-            .set("contents", modelUtils.makeTooltipContents.interactor(this.participant))
+            .set("header", makeTooltipTitle.interactor(this.participant))
+            .set("contents", makeTooltipContents.interactor(this.participant))
             .set("location", {
                 pageX: p.x,
                 pageY: p.y

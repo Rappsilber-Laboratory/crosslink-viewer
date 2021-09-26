@@ -3,8 +3,8 @@ import * as _ from 'underscore';
 import {Interactor} from "./interactor";
 import {Rotator} from "./rotator";
 import {CrosslinkViewer} from "../crosslink-viewer-BB";
-import {modelUtils} from "../../../xi3/js/modelUtils";
 import d3 from "d3";
+import {makeTooltipContents, makeTooltipTitle} from "../../../xi3/js/make-tooltip";
 
 export class RenderedProtein extends Interactor {
 
@@ -1050,9 +1050,9 @@ export class RenderedProtein extends Interactor {
                         const feature = self.annotations.get(evt.target.getAttribute("data-feature")).feature;
                         self.controller.model.get("tooltipModel")
                             //.set("header", d.id.replace("_", " "))
-                            .set("header", modelUtils.makeTooltipTitle.feature())
+                            .set("header", makeTooltipTitle.feature())
                             .set("contents",
-                                modelUtils.makeTooltipContents.feature(feature)
+                                makeTooltipContents.feature(feature)
                             )
                             .set("location", {
                                 pageX: evt.pageX,
