@@ -1,9 +1,14 @@
 import d3 from "d3";
-import {makeTooltipContents, makeTooltipTitle} from "../../../xi3/js/make-tooltip";
+import {trig} from "../trig";
 
 export class Interactor {
 
-    constructor() {
+    constructor(controller) {
+        this.controller = controller;
+    }
+
+    getSymbolRadius() {
+        return 25;
     }
 
     mouseDown(evt) {
@@ -12,21 +17,7 @@ export class Interactor {
         this.controller.dragElement = this;
         this.controller.dragStart = evt;
         this.controller.mouseMoved = false;
-
-        //d3.select(".custom-menu-margin").style("display", "none");
-        //d3.select(".group-custom-menu-margin").style("display", "none");
         return false;
-    }
-
-    mouseOver(evt) {
-        const p = this.controller.getEventPoint(evt);
-        this.controller.model.get("tooltipModel")
-            .set("header", makeTooltipTitle.interactor(this.participant))
-            .set("contents", makeTooltipContents.interactor(this.participant))
-            .set("location", {
-                pageX: p.x,
-                pageY: p.y
-            });
     }
 
     mouseOut(evt) {
@@ -70,12 +61,12 @@ export class Interactor {
     }
 
     getAggregateSelfLinkPath() {
-        const intraR = this.getBlobRadius() + 7;
+        const intraR = this.getSymbolRadius() + 7;
         const sectorSize = 45;
-        const arcStart = Interactor.trig(intraR, 25 + sectorSize);
-        const arcEnd = Interactor.trig(intraR, -25 + sectorSize);
-        const cp1 = Interactor.trig(intraR, 40 + sectorSize);
-        const cp2 = Interactor.trig(intraR, -40 + sectorSize);
+        const arcStart = trig(intraR, 25 + sectorSize);
+        const arcEnd = trig(intraR, -25 + sectorSize);
+        const cp1 = trig(intraR, 40 + sectorSize);
+        const cp2 = trig(intraR, -40 + sectorSize);
         return 'M 0,0 ' +
             'Q ' + cp1.x + ',' + -cp1.y + ' ' + arcStart.x + ',' + -arcStart.y +
             ' A ' + intraR + ' ' + intraR + ' 0 0 1 ' + arcEnd.x + ',' + -arcEnd.y +
@@ -120,64 +111,53 @@ export class Interactor {
 //     return this.iy;
 // }
 
-    updateName() {
-        this.labelTextNode.textContent = this.participant.name;
-    }
 
     showLabel(show) {
         d3.select(this.labelSVG).attr("display", show ? null : "none");
     }
 
-    getRenderedParticipant() {
-        if (this.inCollapsedGroup()) {
-            const groupIt = this.parentGroups.values();
-            const firstGroup = groupIt.next().value;
-            return firstGroup.getRenderedParticipant();
-        } else {
-            return this;
+    getRenderedParticipant(caller) {
+        caller = caller? caller: this;
+        //get highest collapsed group
+        const groupIt = this.parentGroups.values();
+        const firstGroup = groupIt.next().value;
+        if (firstGroup) {
+            if (!firstGroup.expanded) {
+                caller = firstGroup
+            }
+            return firstGroup.getRenderedParticipant(caller);
         }
+        else return caller;
     }
 
     inCollapsedGroup() {
-        // todo - sanity check, if firstgroup.expanded then parentGroups.size == 1
-        // console.log("**", this.participant? this.participant.name : "group", this.parentGroups.size);
-        if (this.parentGroups.size > 0) {
-            // const groupIt = this.parentGroups.values();
-            // const firstGroup = groupIt.next().value;
-            // if (firstGroup.expanded) {
-            //     return firstGroup.inCollapsedGroup();
-            // } else {
-            //     return true;
-            // }
-            for (let pg of this.parentGroups.values()) {
-                if (!pg.expanded) {
-                    // if (this.parentGroups.size > 1) {alert("somethings gone wrong");}
-                    return true;
-                } else {
-                    return pg.inCollapsedGroup();
-                }
+        // //
+        // // caller = caller? caller: false;
+        // // // if (this.inCollapsedGroup()) {
+        // const groupIt = this.parentGroups.values();
+        // const firstGroup = groupIt.next().value;
+        // // // return firstGroup.getRenderedParticipant();
+        // //
+        // if (firstGroup) {
+        //     if (!firstGroup.expanded) {
+        //         caller = true;
+        //     }
+        //     return firstGroup.getRenderedParticipant(caller);
+        // }
+        // else return false;
+
+
+        for (let pg of this.parentGroups.values()) {
+            if (!pg.expanded) {
+                return true;
+            } else {
+                return pg.inCollapsedGroup();
             }
         }
         return false;
     }
 }
 
-
-Interactor.trig = function (radius, angleDegrees) { //TODO: change theta arg to radians not degrees
-    //x = rx + radius * cos(theta) and y = ry + radius * sin(theta)
-    const radians = (angleDegrees / 360) * Math.PI * 2;
-    return {
-        x: (radius * Math.cos(radians)),
-        y: (radius * Math.sin(radians))
-    };
-}
-
-Interactor.rotatePointAboutPoint = function (p, o, theta) {
-    theta = (theta / 360) * Math.PI * 2; //TODO: change theta arg to radians not degrees
-    const rx = Math.cos(theta) * (p[0] - o[0]) - Math.sin(theta) * (p[1] - o[1]) + o[0];
-    const ry = Math.sin(theta) * (p[0] - o[0]) + Math.cos(theta) * (p[1] - o[1]) + o[1];
-    return [rx, ry];
-}
 //
 // xiNET.Interactor.prototype.getTopParentGroups = function(results) {
 //     if (!results) {

@@ -5,13 +5,13 @@ import {Rotator} from "./rotator";
 import {CrosslinkViewer} from "../crosslink-viewer-BB";
 import d3 from "d3";
 import {makeTooltipContents, makeTooltipTitle} from "../../../xi3/js/make-tooltip";
+import {trig} from "../trig";
 
 export class RenderedProtein extends Interactor {
 
-    constructor(participant, crosslinkViewer) {
-        super();
+    constructor(participant, controller) {
+        super(controller);
         this.participant = participant;
-        this.controller = crosslinkViewer;
         this.busy = false;
         this.renderedP_PLinks = [];
         this.renderedCrosslinks = [];
@@ -90,7 +90,7 @@ export class RenderedProtein extends Interactor {
         this.upperGroup.appendChild(this.ticks);
         //domains as pie slices - shown on top of everything
         this.circDomains = document.createElementNS(CrosslinkViewer.svgns, "g");
-        this.circDomains.setAttribute("opacity", 1);
+        this.circDomains.setAttribute("opacity", "1");
         this.upperGroup.appendChild(this.circDomains);
         this.upperGroup.appendChild(this.labelSVG);
 
@@ -115,9 +115,9 @@ export class RenderedProtein extends Interactor {
             if (evt.preventDefault) {
                 evt.preventDefault();
             }
-            if (evt.stopPropogation) {
-                evt.stopPropagation();
-            }
+            // if (evt.stopPropogation) {
+            //     evt.stopPropagation();
+            // }
             evt.returnValue = false;
             return false;
         };
@@ -160,12 +160,23 @@ export class RenderedProtein extends Interactor {
 
     }
 
-    mouseOver(evt) {
-        this.controller.model.setHighlightedProteins([this.participant]);
-        Interactor.prototype.mouseOver.call(this, evt);
+    updateName() {
+        this.labelTextNode.textContent = this.participant.name;
     }
 
-    getBlobRadius() {
+    mouseOver(evt) {
+        this.controller.model.setHighlightedProteins([this.participant]);
+        const p = this.controller.getEventPoint(evt);
+        this.controller.model.get("tooltipModel")
+            .set("header", makeTooltipTitle.interactor(this.participant))
+            .set("contents", makeTooltipContents.interactor(this.participant))
+            .set("location", {
+                pageX: p.x,
+                pageY: p.y
+            });
+    }
+
+    getSymbolRadius() {
         if (this.controller.fixedSize) {
             return 12;
         } else {
@@ -175,7 +186,7 @@ export class RenderedProtein extends Interactor {
 
     resize() {
         if (!this.expanded) {
-            const r = this.getBlobRadius();
+            const r = this.getSymbolRadius();
             d3.select(this.outline)
                 .attr("x", -r).attr("y", -r)
                 .attr("width", r * 2).attr("height", r * 2)
@@ -257,13 +268,13 @@ export class RenderedProtein extends Interactor {
     setPositionFromCola() {
         this.px = this.x;
         this.py = this.y;
-        let xOffset = 0;
-        if (!this.hidden) { // todo - hacky
-            xOffset = (this.width / 2 - (this.getBlobRadius()) + 5)
+        // let xOffset = 0;
+        // if (!this.hidden) { // todo - hacky
+        //     xOffset = (this.width / 2 - (this.getBlobRadius()) + 5)
             // if (this.expanded) {
             //   xOffset = xOffset + (this.participant.size / 2 * this.stickZoom );
             // }
-        }
+        // }
         this.setPosition(this.x /*- xOffset*/, this.y);
     }
 
@@ -276,7 +287,7 @@ export class RenderedProtein extends Interactor {
         this.py = this.y;
         let xOffset = 0;
         if (!this.hidden) { // todo - hacky
-            xOffset = (this.width / 2 - (this.getBlobRadius()) + 5)
+            xOffset = (this.width / 2 - (this.getSymbolRadius()) + 5)
             // if (this.expanded) {
             //   xOffset = xOffset + (this.participant.size / 2 * this.stickZoom );
             // }
@@ -404,7 +415,7 @@ export class RenderedProtein extends Interactor {
         d3.select(this.ticks).selectAll("*").remove();
 
         this.scaleLabels = [];
-        const ScaleMajTick = 100;
+        // const ScaleMajTick = 100;
         const ScaleTicksPerLabel = 2; // varies with scale?
         let tick = -1;
         const lastTickX = this.getResXwithStickZoom(this.participant.size);
@@ -433,8 +444,8 @@ export class RenderedProtein extends Interactor {
                 seqLabel.setAttribute('font-family', "monospace");
                 seqLabel.setAttribute('font-size', '10px');
                 seqLabel.setAttribute("text-anchor", "middle");
-                seqLabel.setAttribute("x", 0);
-                seqLabel.setAttribute("y", 3);
+                seqLabel.setAttribute("x", "0");
+                seqLabel.setAttribute("y", "3");
                 seqLabel.appendChild(document.createTextNode(this.participant.sequence[res - 1]));
                 seqLabelGroup.appendChild(seqLabel);
                 this.scaleLabels.push(seqLabel);
@@ -454,8 +465,8 @@ export class RenderedProtein extends Interactor {
             scaleLabel.setAttribute('font-family', "monospace");
             scaleLabel.setAttribute('font-size', '14');
             scaleLabel.setAttribute("text-anchor", "middle");
-            scaleLabel.setAttribute("x", 0);
-            scaleLabel.setAttribute("y", RenderedProtein.STICKHEIGHT + 4);
+            scaleLabel.setAttribute("x", "0");
+            scaleLabel.setAttribute("y", (RenderedProtein.STICKHEIGHT + 4).toString());
             scaleLabel.appendChild(document.createTextNode(text));
             scaleLabelGroup.appendChild(scaleLabel);
             self.scaleLabels.push(scaleLabel);
@@ -465,9 +476,9 @@ export class RenderedProtein extends Interactor {
         function tickAt(self, tickX) {
             const tick = document.createElementNS(CrosslinkViewer.svgns, "line");
             tick.setAttribute("x1", tickX);
-            tick.setAttribute("y1", 5);
+            tick.setAttribute("y1", "5");
             tick.setAttribute("x2", tickX);
-            tick.setAttribute("y2", 10);
+            tick.setAttribute("y2", "10");
             tick.setAttribute("stroke", "black");
             self.ticks.appendChild(tick);
         }
@@ -513,8 +524,8 @@ export class RenderedProtein extends Interactor {
         CrosslinkViewer.removeDomElement(this.lowerRotator.svg);
         CrosslinkViewer.removeDomElement(this.upperRotator.svg);
 
-        const protLength = this.participant.size * this.stickZoom;
-        const r = this.getBlobRadius();
+        // const protLength = this.participant.size * this.stickZoom;
+        const r = this.getSymbolRadius();
         const protColourModel = window.compositeModelInst.get("proteinColourAssignment");
 
         d3.select(this.outline).transition()
@@ -687,7 +698,7 @@ export class RenderedProtein extends Interactor {
         this.placeRotators();
 
         const protLength = this.participant.size * this.stickZoom;
-        const r = this.getBlobRadius();
+        const r = this.getSymbolRadius();
 
         const lengthInterpol = d3.interpolate((2 * r), protLength);
         const stickZoomInterpol = d3.interpolate(0, this.stickZoom);
@@ -834,7 +845,7 @@ export class RenderedProtein extends Interactor {
             // }
             const p1 = [x1, 26];
             const p3 = [x1, 18];
-            const p2 = Interactor.rotatePointAboutPoint(p1, p3, 60);
+            const p2 = rotatePointAboutPoint(p1, p3, 60);
             baseLine = baseLine * -1;
             return "M " + x1 + "," + baseLine +
                 " L " + p1[0] + "," + p1[1] +
@@ -853,8 +864,6 @@ export class RenderedProtein extends Interactor {
             const start = [x1, baseLine];
             const end = [x2, baseLine];
 
-            let angle;
-
             //~ // draws a a little triangle for *truly* intraMolecular - e.g. internally linked peptides
             //~ // not in use
             //~ if (renderedCrossLink.intraMolecular === true){
@@ -870,8 +879,8 @@ export class RenderedProtein extends Interactor {
                 const curveMidX = x1 + ((x2 - x1) / 2);
                 arcStart = [curveMidX, height - arcRadius];
                 arcEnd = [curveMidX, height - arcRadius];
-                cp1 = Interactor.rotatePointAboutPoint([x1, height - arcRadius], start, -20);
-                cp2 = Interactor.rotatePointAboutPoint([x2, height - arcRadius], end, 20);
+                cp1 = rotatePointAboutPoint([x1, height - arcRadius], start, -20);
+                cp2 = rotatePointAboutPoint([x2, height - arcRadius], end, 20);
 
                 //flip
                 start[1] = start[1] * -1;
@@ -935,7 +944,7 @@ export class RenderedProtein extends Interactor {
         }
     }
 
-    clearPositionalFeatures(posFeats) {
+    clearPositionalFeatures() {
         this.annotations = new Map();
         if (this.circDomains) d3.select(this.circDomains).selectAll("*").remove();
         if (this.rectDomains) d3.select(this.rectDomains).selectAll("*").remove();
@@ -1011,9 +1020,9 @@ export class RenderedProtein extends Interactor {
                             pieSlice.setAttribute("d", this.getAnnotationRectPath(anno));
                             colouredRect.setAttribute("d", this.getAnnotationRectPath(anno));
                         }
-                        pieSlice.setAttribute("stroke-width", 1);
+                        pieSlice.setAttribute("stroke-width", "1");
                         pieSlice.setAttribute("fill-opacity", "0.5");
-                        colouredRect.setAttribute("stroke-width", 1);
+                        colouredRect.setAttribute("stroke-width", "1");
                         colouredRect.setAttribute("fill-opacity", "0.5");
 
                         const c = annotationTypes.getColour(anno.category, anno.type); // domainColours(anno.category, anno.type);
@@ -1030,8 +1039,8 @@ export class RenderedProtein extends Interactor {
                             pieSlice.setAttribute("d", this.getDisulfidAnnotationRectPath(anno, f));
                             colouredRect.setAttribute("d", this.getDisulfidAnnotationRectPath(anno, f));
                         }
-                        pieSlice.setAttribute("stroke-width", 1);
-                        colouredRect.setAttribute("stroke-width", 1);
+                        pieSlice.setAttribute("stroke-width", "1");
+                        colouredRect.setAttribute("stroke-width", "1");
 
                         const c = annotationTypes.getColour(anno.category, anno.type); // domainColours(anno.category, anno.type);
                         pieSlice.setAttribute("fill", "none");
@@ -1095,9 +1104,9 @@ export class RenderedProtein extends Interactor {
             sweepFlag = 1;
         }
 
-        const radius = this.getBlobRadius() - 2;
-        const arcStart = Interactor.trig(radius, startAngle - 90);
-        const arcEnd = Interactor.trig(radius, endAngle - 90);
+        const radius = this.getSymbolRadius() - 2;
+        const arcStart = trig(radius, startAngle - 90);
+        const arcEnd = trig(radius, endAngle - 90);
         return "M0,0 L" + arcStart.x + "," + arcStart.y + " A" + radius + "," +
             radius + " 0 " + largeArcFlag + " " + sweepFlag + " " + arcEnd.x + "," + arcEnd.y + " Z";
     }
@@ -1106,19 +1115,16 @@ export class RenderedProtein extends Interactor {
         //approximate pie slice
         const startAngle = ((annotation.fstart - 1) / this.participant.size) * 360;
         const endAngle = ((annotation.fend) / this.participant.size) * 360;
-        const pieRadius = this.getBlobRadius() - 2;
-        const arcStart = Interactor.trig(pieRadius, startAngle - 90);
-        const arcEnd = Interactor.trig(pieRadius, endAngle - 90);
+        const pieRadius = this.getSymbolRadius() - 2;
         let approximatePiePath = "M 0,0";
         const stepsInArc = 5;
         for (let sia = 0; sia <= RenderedProtein.stepsInArc; sia++) {
             const angle = startAngle + ((endAngle - startAngle) * (sia / stepsInArc));
-            const siaCoord = Interactor.trig(pieRadius, angle - 90);
+            const siaCoord = trig(pieRadius, angle - 90);
             approximatePiePath += " L " + siaCoord.x + "," + siaCoord.y;
         }
         approximatePiePath += " L " + 0 + "," + 0;
         approximatePiePath += "  Z";
-        //console.log(approximatePiePath);
         return approximatePiePath;
     }
 
@@ -1139,7 +1145,7 @@ export class RenderedProtein extends Interactor {
         return rectPath;
     }
 
-    getDisulfidAnnotationRectPath(annotation, index) {
+    getDisulfidAnnotationRectPath(annotation/*, index*/) {
         let bottom = RenderedProtein.STICKHEIGHT / 2,
             top = 1.5 * bottom;
         bottom = bottom - 5;
@@ -1147,7 +1153,7 @@ export class RenderedProtein extends Interactor {
         const annotX = this.getResXwithStickZoom(annotation.fstart - 0.5);
         const annotSize = (1 + (annotation.fend - annotation.fstart));
 
-        const level = annotSize / 20;
+        // const level = annotSize / 20;
         top += annotSize * bottom / 30;
 
 
@@ -1159,7 +1165,7 @@ export class RenderedProtein extends Interactor {
         return rectPath;
     }
 
-    getDisulfidAnnotationCircPath(annotation) {
+    getDisulfidAnnotationCircPath(/*annotation*/) {
         return "M 0,0 L 0,0 L 0,0 L 0,0 ";
     }
 }

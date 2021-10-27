@@ -271,8 +271,8 @@ export class P_PLink extends Link {
                 " " + this.renderedFromProtein.iy + ")" + " scale(" + (this.controller.z) + ")");
 
         } else {
-            this.line.setAttribute("stroke-width", this.controller.z * CrosslinkViewer.linkWidth);
-            this.highlightLine.setAttribute("stroke-width", this.controller.z * 10);
+            this.line.setAttribute("stroke-width", (this.controller.z * CrosslinkViewer.linkWidth).toString());
+            this.highlightLine.setAttribute("stroke-width", (this.controller.z * 10).toString());
             this.setLineCoordinates(this.renderedFromProtein);
             this.setLineCoordinates(this.renderedToProtein);
         }
@@ -307,7 +307,7 @@ export class P_PLink extends Link {
         if (this.renderedFromProtein === this.renderedToProtein) {
             this.thickLine.setAttribute("stroke-width", thickLineWidth);
         } else {
-            this.thickLine.setAttribute("stroke-width", this.controller.z * thickLineWidth);
+            this.thickLine.setAttribute("stroke-width", (this.controller.z * thickLineWidth).toString());
         }
     }
 

@@ -1,4 +1,3 @@
-// eslint-disable-next-line no-unused-vars
 import "../css/xiNET.css";
 
 import * as d3 from "d3";
@@ -114,23 +113,23 @@ export class CrosslinkViewer extends Backbone.View {
             if (evt.preventDefault) { // necessary for addEventListener, works with traditional
                 evt.preventDefault();
             }
-            if (evt.stopPropogation) {
-                evt.stopPropagation();
-            }
+            // if (evt.stopPropogation) {
+            //     evt.stopPropagation();
+            // }
             evt.returnValue = false; // necessary for attachEvent, works with traditional
             return false; // works with traditional, not with attachEvent or addEventListener
         };
 
         const mouseWheelEvt = (/Firefox/i.test(navigator.userAgent)) ? "DOMMouseScroll" : "mousewheel"; //FF doesn't recognize mousewheel as of FF3.x
-        if (document.attachEvent) { //if IE (and Opera depending on user setting)
-            this.svgElement.attachEvent("on" + mouseWheelEvt, function (evt) {
-                self.mouseWheel(evt);
-            });
-        } else if (document.addEventListener) { //WC3 browsers
+        // if (document.attachEvent) { //if IE (and Opera depending on user setting)
+        //     this.svgElement.attachEvent("on" + mouseWheelEvt, function (evt) {
+        //         self.mouseWheel(evt);
+        //     });
+        // } else if (document.addEventListener) { //WC3 browsers
             this.svgElement.addEventListener(mouseWheelEvt, function (evt) {
                 self.mouseWheel(evt);
             }, false);
-        }
+        // }
 
         this.lastMouseUp = new Date().getTime();
 
@@ -239,7 +238,7 @@ export class CrosslinkViewer extends Backbone.View {
 
         this.defaultBarScale = takeClosest(CrosslinkViewer.barScales, defaultPixPerRes);
 
-        const expand = this.renderedProteins.values().size < 5;
+        const expand = this.renderedProteins.size < 5;
         for (let rp of this.renderedProteins.values()) {
             //to do - should this really be here
             this.proteinLower.appendChild(rp.lowerGroup);
@@ -411,14 +410,13 @@ export class CrosslinkViewer extends Backbone.View {
         }
 
         for (let g of groups) {
-            g.leaves = [];
+            g.leaves = []; // clear this, its used by cola, gets filled by auto
             for (let rp of g.renderedParticipants) {
-                // if (!rp.hidden) {
                 let inSubGroup = false;
                 for (let subgroup of g.subgroups) {
                     if (subgroup.contains(rp)) {
                         inSubGroup = true;
-                        // break; ?
+                        break;
                     }
                 }
                 if (!inSubGroup) {
@@ -429,17 +427,13 @@ export class CrosslinkViewer extends Backbone.View {
 
         //sort out parentGroups
         for (let group1 of groups.reverse()) {
-            if (!group1.hidden) {
-                //group1.init();
-                // console.log("!!!!!!!!!!!!!!!", group1.id);
-                if (group1.upperGroup.parentNode) {
-                    const pn = group1.upperGroup.parentNode;
-                    pn.removeChild(group1.upperGroup);
-                    pn.appendChild(group1.upperGroup);
-                }
-                for (let group2 of group1.subgroups) {
-                    group2.parentGroups.add(group1);
-                }
+            if (group1.upperGroup.parentNode) {
+                const pn = group1.upperGroup.parentNode;
+                pn.removeChild(group1.upperGroup);
+                pn.appendChild(group1.upperGroup);
+            }
+            for (let group2 of group1.subgroups) {
+                group2.parentGroups.add(group1);
             }
         }
 
@@ -545,11 +539,11 @@ export class CrosslinkViewer extends Backbone.View {
                     (ppLink.crosslinks[0].isSelfLink() && fromProtInCollapsedGroup) ||
                     // or either end is expanded to bar and not in collapsed group
                     (ppLink.renderedFromProtein.expanded && !fromProtInCollapsedGroup) ||
-                    (ppLink.renderedToProtein.expanded && !toProtInCollapsedGroup) // ||
+                    (ppLink.renderedToProtein.expanded && !toProtInCollapsedGroup) ||
+                    (fromProtInCollapsedGroup && toProtInCollapsedGroup)
                 ) {
                     ppLink.hide();
                 } else {
-
                         if (ppLink.filteredCrossLinkCount === 0) {
                             ppLink.hide();
                         } else {
@@ -574,7 +568,6 @@ export class CrosslinkViewer extends Backbone.View {
                                 }
                                 ggLink.p_pLinks.set(ppLink.id, ppLink);
                                 ppLink.hide();
-                                //                ggLink.show();
                             } else {
                                 ppLink.show();
                             }
@@ -588,7 +581,8 @@ export class CrosslinkViewer extends Backbone.View {
         const ggLinkIdsToRemove = []
         for (let ggLink of this.g_gLinks.values()) {
             if (ggLink.group1.expanded === false && ggLink.group2.expanded === false && ggLink.check()
-                && this.groupMap.has(ggLink.group1.id) && this.groupMap.has(ggLink.group2.id)) {
+                && this.groupMap.has(ggLink.group1.id) && this.groupMap.has(ggLink.group2.id)
+                && !(ggLink.group1.inCollapsedGroup() || ggLink.group2.inCollapsedGroup)) {
                 ggLink.show();
                 //set line coord?
             } else {
@@ -628,6 +622,7 @@ export class CrosslinkViewer extends Backbone.View {
             }
             delete g.index;
             delete g.parent;
+            g.leaves = []; // clear this, its used by cola, gets filled by auto
         }
 
         const linkLength = (this.renderedProteins.size < 20) ? 40 : 20;
@@ -701,7 +696,7 @@ export class CrosslinkViewer extends Backbone.View {
                                     }
                                 }
                                 if (!inSubGroup) {
-                                    g.leaves.push(nodeArr.indexOf(rp)); /// URHERE - MOVE UP?
+                                    g.leaves.push(nodeArr.indexOf(rp)); /// URHERE - MOVE UP? **** leaves ends up with way to many things in
                                 }
                             }
                         }
@@ -1042,6 +1037,7 @@ export class CrosslinkViewer extends Backbone.View {
             this.render();
         }
         this.hiddenProteinsChanged();
+        this.render();
         this.contextMenuParticipant = null;
     }
 

@@ -4,6 +4,7 @@ import {Interactor} from "../interactor/interactor";
 import {RenderedProtein} from "../interactor/rendered-protein";
 import d3 from "d3";
 import {makeTooltipContents, makeTooltipTitle} from "../../../xi3/js/make-tooltip";
+import {rotatePointAboutPoint} from "../trig";
 
 export class RenderedCrosslink extends Link {
     constructor(crosslink, crosslinkViewer) {
@@ -174,10 +175,10 @@ export class RenderedCrosslink extends Link {
             const annoSize = pep[1] - 0.2;
             let annoX = ((pep[0] + 0.6) - (renderedProtein.participant.size / 2));
             let annoLength = annoSize;
-            annoColouredRect.setAttribute("x", annoX);
-            annoColouredRect.setAttribute("y", y);
-            annoColouredRect.setAttribute("width", annoLength);
-            annoColouredRect.setAttribute("height", yIncrement);
+            annoColouredRect.setAttribute("x", annoX.toString());
+            annoColouredRect.setAttribute("y", y.toString());
+            annoColouredRect.setAttribute("width", annoLength.toString());
+            annoColouredRect.setAttribute("height", yIncrement.toString());
             //style 'em
             d3.select(annoColouredRect).classed("highlightedPeptide", true);
             //annotColouredRect.setAttribute("fill-opacity", "0.7");
@@ -189,10 +190,10 @@ export class RenderedCrosslink extends Link {
                 annoColouredRect.setAttribute("class", "protein");
                 annoX = ((pep[2] + 0.5) - (renderedProtein.participant.size / 2));
                 annoLength = (pep[3] - pep[2]);
-                annoColouredRect.setAttribute("x", annoX);
-                annoColouredRect.setAttribute("y", y);
-                annoColouredRect.setAttribute("width", annoLength);
-                annoColouredRect.setAttribute("height", yIncrement);
+                annoColouredRect.setAttribute("x", annoX.toString());
+                annoColouredRect.setAttribute("y", y.toString());
+                annoColouredRect.setAttribute("width", annoLength.toString());
+                annoColouredRect.setAttribute("height", yIncrement.toString());
 
                 //style 'em
                 d3.select(annoColouredRect).classed("peptideOverlap", true);
@@ -271,8 +272,8 @@ export class RenderedCrosslink extends Link {
                 this.line.setAttribute("d", path);
             } else {
                 if (!this.crosslink.isSelfLink()) {
-                    this.line.setAttribute("stroke-width", this.controller.z * CrosslinkViewer.linkWidth);
-                    this.highlightLine.setAttribute("stroke-width", this.controller.z * 10);
+                    this.line.setAttribute("stroke-width", (this.controller.z * CrosslinkViewer.linkWidth).toString());
+                    this.highlightLine.setAttribute("stroke-width", (this.controller.z * 10).toString());
                     this.setLineCoordinates(this.renderedFromProtein);
                     this.setLineCoordinates(this.renderedToProtein);
                 }
@@ -429,7 +430,7 @@ export class RenderedCrosslink extends Link {
             }
         }
 
-        const rotated = Interactor.rotatePointAboutPoint([x, y], [0, 0], renderedInteractor.rotation);
+        const rotated = rotatePointAboutPoint([x, y], [0, 0], renderedInteractor.rotation);
 
         x = rotated[0] + renderedInteractor.ix;
         y = rotated[1] + renderedInteractor.iy;

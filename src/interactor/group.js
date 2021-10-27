@@ -4,12 +4,11 @@ import {CrosslinkViewer} from "../crosslink-viewer-BB";
 import {makeTooltipContents, makeTooltipTitle} from "../../../xi3/js/make-tooltip";
 
 export class Group extends Interactor {
-    constructor(id, participantIds, xlvController) {
-        super();
+    constructor(id, participantIds, controller) {
+        super(controller);
 
         this.id = id;
         this.name = id;
-        this.controller = xlvController;
 
         this.renderedParticipants = [];
         for (let pId of participantIds) {
@@ -88,10 +87,6 @@ export class Group extends Interactor {
     }
 
 
-    getBlobRadius() {
-        return 25;
-    }
-
 //only output the info needed to reproduce the layout, used by save layout function
     toJSON() {
         const participantIds = [];
@@ -148,7 +143,11 @@ export class Group extends Interactor {
     isOverlappingGroup() {
         for (let renderedParticipant of this.renderedParticipants) {
             if (!renderedParticipant.participant.hidden && renderedParticipant.parentGroups.size > 1) {
-                return true;
+                for (let parentGroup of renderedParticipant.parentGroups){
+                    if (!parentGroup.isSubsetOf(this)){
+                        return true;
+                    }
+                }
             }
         }
         return false;
@@ -344,7 +343,7 @@ export class Group extends Interactor {
         // this.highlight.setAttribute("stroke-width", 9 * this.controller.z);
 
         //move label
-        this.labelSVG.setAttribute("transform", "translate(" + (x1 - (1 * pad)) + " " + (y1 - (1 * pad)) + ")" +
+        this.labelSVG.setAttribute("transform", "translate(" + (x1 - pad) + " " + (y1 - pad) + ")" +
             " scale(" + (this.controller.z) + ")");
 
         for (let group of this.parentGroups) {

@@ -305,8 +305,8 @@ export class G_GLink extends Link {
                 " " + this.group1.iy + ")" + " scale(" + (this.controller.z) + ")");
 
         } else {
-            this.line.setAttribute("stroke-width", this.controller.z * CrosslinkViewer.linkWidth);
-            this.highlightLine.setAttribute("stroke-width", this.controller.z * 10);
+            this.line.setAttribute("stroke-width", (this.controller.z * CrosslinkViewer.linkWidth).toString());
+            this.highlightLine.setAttribute("stroke-width", (this.controller.z * 10).toString());
             this.setLineCoordinates();
         }
         d3.select(this.thickLine).style("display", null);
@@ -342,7 +342,7 @@ export class G_GLink extends Link {
         if (this.group1 === this.group2) {
             this.thickLine.setAttribute("stroke-width", thickLineWidth);
         } else {
-            this.thickLine.setAttribute("stroke-width", this.controller.z * thickLineWidth);
+            this.thickLine.setAttribute("stroke-width", (this.controller.z * thickLineWidth).toString());
         }
     }
 
