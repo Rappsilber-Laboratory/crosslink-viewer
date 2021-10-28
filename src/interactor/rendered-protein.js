@@ -5,7 +5,7 @@ import {Rotator} from "./rotator";
 import {CrosslinkViewer} from "../crosslink-viewer-BB";
 import d3 from "d3";
 import {makeTooltipContents, makeTooltipTitle} from "../../../xi3/js/make-tooltip";
-import {trig} from "../trig";
+import {rotatePointAboutPoint, trig} from "../trig";
 
 export class RenderedProtein extends Interactor {
 
