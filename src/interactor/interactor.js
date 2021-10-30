@@ -20,7 +20,7 @@ export class Interactor {
         return false;
     }
 
-    mouseOut(evt) {
+    mouseOut() {
         //this.controller.preventDefaultsAndStopPropagation(evt); // isn't stopping mouseOut in controller getting called
         this.controller.model.setHighlightedProteins([]);
         this.controller.model.get("tooltipModel").set("contents", null);

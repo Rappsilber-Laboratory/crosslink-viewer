@@ -105,9 +105,6 @@ export class CrosslinkViewer extends Backbone.View {
         this.svgElement.onmouseup = function (evt) {
             self.mouseUp(evt);
         };
-        this.svgElement.onmouseout = function (evt) {
-            self.mouseOut(evt);
-        };
 
         this.el.oncontextmenu = function (evt) {
             if (evt.preventDefault) { // necessary for addEventListener, works with traditional
@@ -631,7 +628,6 @@ export class CrosslinkViewer extends Backbone.View {
 
         const self = this;
 
-        // function makeLinks(){
         const links = new Map();
         const nodeSet = new Set();
         for (let crosslink of self.model.getFilteredCrossLinks()) {
@@ -655,27 +651,15 @@ export class CrosslinkViewer extends Backbone.View {
         }
         const nodeArr = Array.from(nodeSet);
         const linkArr = Array.from(links.values());
-        //     return {nodeArr, linkArr};
-        // }
-        //
-        // const {nodeArr, linkArr} = makeLinks();
-        // doLayout(nodeArr, linkArr, true); // run it first without the groups, this had beneficial effects for layout in complexviewer
         doLayout(nodeArr, linkArr, false);
 
-        function doLayout(nodes, links, preRun) {
+        function doLayout(nodes, links) {
             //don't know how necessary these deletions are
             delete self.d3cola._lastStress;
             delete self.d3cola._alpha;
             delete self.d3cola._descent;
             delete self.d3cola._rootGroup;
 
-            // self.d3cola.nodes(nodes).links(links);
-
-
-            //
-            // if (preRun) {
-            //     self.d3cola.groups([]).start(23, 10, 0, 0, false);
-            // } else {
             const groups = [];
             if (self.groupMap) {
                 for (let g of self.groupMap.values()) {
@@ -1446,7 +1430,7 @@ export class CrosslinkViewer extends Backbone.View {
         return false;
     }
 
-    mouseOut(evt) { //todo
+    mouseOut() { //todo
         // don't, causes prob's - RenderedInteractor mouseOut getting propogated?
         // d3.select(".custom-menu-margin").style("display", "none");
         // d3.select(".group-custom-menu-margin").style("display", "none");

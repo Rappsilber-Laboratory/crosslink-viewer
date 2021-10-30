@@ -290,7 +290,7 @@ export class Group extends Interactor {
 
     updateExpandedGroup() {
         let x1 = 0, y1 = 0, x2 = 0, y2 = 0;
-        const z = this.controller.z, pad = 5 * z, self = this;
+        const z = this.controller.z, pad = 5 * z;
 
         for (let rp of this.renderedParticipants) {
             if (!rp.hidden && !this.containsInSubgroup(rp)) {
