@@ -166,14 +166,16 @@ export class RenderedProtein extends Interactor {
 
     mouseOver(evt) {
         this.controller.model.setHighlightedProteins([this.participant]);
-        const p = this.controller.getEventPoint(evt);
-        this.controller.model.get("tooltipModel")
-            .set("header", makeTooltipTitle.interactor(this.participant))
-            .set("contents", makeTooltipContents.interactor(this.participant))
-            .set("location", {
-                pageX: p.x,
-                pageY: p.y
-            });
+        if (!this.controller.dragElement) {
+            const p = this.controller.getEventPoint(evt);
+            this.controller.model.get("tooltipModel")
+                .set("header", makeTooltipTitle.interactor(this.participant))
+                .set("contents", makeTooltipContents.interactor(this.participant))
+                .set("location", {
+                    pageX: p.x,
+                    pageY: p.y
+                });
+        }
     }
 
     getSymbolRadius() {

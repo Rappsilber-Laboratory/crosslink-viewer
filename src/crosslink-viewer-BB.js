@@ -1182,6 +1182,8 @@ export class CrosslinkViewer extends Backbone.View {
                 this.mouseMoved = true;
             }
             if (this.dragElement != null && evt.which !== 3) { //dragging or rotating / not right click mouse down
+                //remove tooltip
+                this.model.get("tooltipModel").set("contents", null);
                 if (this.state === CrosslinkViewer.STATES.DRAGGING) {
                     // we are currently dragging things around
                     let ox, oy, nx, ny;
