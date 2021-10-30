@@ -1,4 +1,4 @@
-import * as _ from 'underscore';
+import * as _ from "underscore";
 import {Link} from "./link";
 import {CrosslinkViewer} from "../crosslink-viewer-BB";
 import d3 from "d3";
@@ -33,8 +33,8 @@ export class G_GLink extends Link {
             this.group1.selfLink = this;
 
             this.line = document.createElementNS(CrosslinkViewer.svgns, "path");
-            this.highlightLine = document.createElementNS(CrosslinkViewer.svgns, 'path');
-            this.thickLine = document.createElementNS(CrosslinkViewer.svgns, 'path');
+            this.highlightLine = document.createElementNS(CrosslinkViewer.svgns, "path");
+            this.thickLine = document.createElementNS(CrosslinkViewer.svgns, "path");
 
             this.initSelfLinkSVG();
         }
@@ -116,7 +116,7 @@ export class G_GLink extends Link {
             });
     }
 
-// event handler for starting dragging or rotation (or flipping internal links)
+    // event handler for starting dragging or rotation (or flipping internal links)
     mouseDown(evt) {
         this.controller.d3cola.stop();
         let allCrosslinks = [];
@@ -154,9 +154,9 @@ export class G_GLink extends Link {
 
     initSelfLinkSVG () {
         const path = this.group1.getAggregateSelfLinkPath();
-        this.line.setAttribute('d', path);
-        this.highlightLine.setAttribute('d', path);
-        this.thickLine.setAttribute('d', path);
+        this.line.setAttribute("d", path);
+        this.highlightLine.setAttribute("d", path);
+        this.thickLine.setAttribute("d", path);
     }
 
     checkHighlight() {
@@ -221,76 +221,76 @@ export class G_GLink extends Link {
         return false;
     }
 
-// xiNET.P_PLink.prototype.check = function () {
-//     // this.ambiguous = true; // todo - looks like this could be removed
-//     this.hd = false;
-//
-//     const filteredCrossLinks = new Set();
-//     const filteredMatches = new Set();
-//     const altP_PLinks = new Set();
-//
-//     // this.colours.clear();
-//
-//     for (let crosslink of this.crosslinks) {
-//
-//         if (crosslink.filteredMatches_pp.length > 0) {
-//             filteredCrossLinks.add(crosslink.id);
-//             // this.colours.add(window.compositeModelInst.get("linkColourAssignment").getColour(crosslink));
-//         }
-//
-//         for (let m of crosslink.filteredMatches_pp) {
-//             // i think there's a performance improvement to be had here
-//             const match = m.match; // oh dear, this...
-//             filteredMatches.add(match.id);
-//             if (match.hd === true) {
-//                 this.hd = true;
-//             }
-//             if (match.crosslinks.length === 1) {
-//                 // this.ambiguous = false; //yeah... whats this doing when this.ambiguous gets set later, just before end of function
-//             } else {
-//                 for (let matchCrossLink of match.crosslinks) {
-//                     if (!matchCrossLink.isDecoyLink()) {
-//                         altP_PLinks.add(matchCrossLink.p_pLink.id);
-//                     }
-//                 }
-//             }
-//         }
-//     }
-//
-//     this.filteredMatchCount = filteredMatches.size;
-//     this.filteredCrossLinkCount = filteredCrossLinks.size;
-//     if (this.filteredCrossLinkCount > 0) {
-//         this.ambiguous = altP_PLinks.size > 1;
-//     }
-//     return this.filteredCrossLinkCount;
-// };
+    // xiNET.P_PLink.prototype.check = function () {
+    //     // this.ambiguous = true; // todo - looks like this could be removed
+    //     this.hd = false;
+    //
+    //     const filteredCrossLinks = new Set();
+    //     const filteredMatches = new Set();
+    //     const altP_PLinks = new Set();
+    //
+    //     // this.colours.clear();
+    //
+    //     for (let crosslink of this.crosslinks) {
+    //
+    //         if (crosslink.filteredMatches_pp.length > 0) {
+    //             filteredCrossLinks.add(crosslink.id);
+    //             // this.colours.add(window.compositeModelInst.get("linkColourAssignment").getColour(crosslink));
+    //         }
+    //
+    //         for (let m of crosslink.filteredMatches_pp) {
+    //             // i think there's a performance improvement to be had here
+    //             const match = m.match; // oh dear, this...
+    //             filteredMatches.add(match.id);
+    //             if (match.hd === true) {
+    //                 this.hd = true;
+    //             }
+    //             if (match.crosslinks.length === 1) {
+    //                 // this.ambiguous = false; //yeah... whats this doing when this.ambiguous gets set later, just before end of function
+    //             } else {
+    //                 for (let matchCrossLink of match.crosslinks) {
+    //                     if (!matchCrossLink.isDecoyLink()) {
+    //                         altP_PLinks.add(matchCrossLink.p_pLink.id);
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
+    //
+    //     this.filteredMatchCount = filteredMatches.size;
+    //     this.filteredCrossLinkCount = filteredCrossLinks.size;
+    //     if (this.filteredCrossLinkCount > 0) {
+    //         this.ambiguous = altP_PLinks.size > 1;
+    //     }
+    //     return this.filteredCrossLinkCount;
+    // };
 
-// xiNET.P_PLink.prototype.update = function () {
-//     if (!this.renderedToProtein || // todo - ok... check why this is here
-//         //hide if prot either end is hidden
-//         this.renderedFromProtein.participant.hidden ||
-//         this.renderedToProtein.participant.hidden ||
-//         // or either end is expanded to bar and not in collapsed group
-//         (this.renderedFromProtein.expanded && !this.renderedFromProtein.inCollapsedGroup()) ||
-//         (this.renderedToProtein.expanded && !this.renderedToProtein.inCollapsedGroup()) ||
-//         // or no matches pass filter
-//         this.filteredCrossLinkCount === 0 ||
-//         // or is self link in collapsed group
-//         (this.crosslinks[0].isSelfLink() && this.renderedFromProtein.inCollapsedGroup())) {
-//         this.hide();
-//     } else {
-//
-//         // if (both ends in collapsed groups) {
-//         //
-//         // }
-//         //
-//         this.show();
-//     }
-// }
+    // xiNET.P_PLink.prototype.update = function () {
+    //     if (!this.renderedToProtein || // todo - ok... check why this is here
+    //         //hide if prot either end is hidden
+    //         this.renderedFromProtein.participant.hidden ||
+    //         this.renderedToProtein.participant.hidden ||
+    //         // or either end is expanded to bar and not in collapsed group
+    //         (this.renderedFromProtein.expanded && !this.renderedFromProtein.inCollapsedGroup()) ||
+    //         (this.renderedToProtein.expanded && !this.renderedToProtein.inCollapsedGroup()) ||
+    //         // or no matches pass filter
+    //         this.filteredCrossLinkCount === 0 ||
+    //         // or is self link in collapsed group
+    //         (this.crosslinks[0].isSelfLink() && this.renderedFromProtein.inCollapsedGroup())) {
+    //         this.hide();
+    //     } else {
+    //
+    //         // if (both ends in collapsed groups) {
+    //         //
+    //         // }
+    //         //
+    //         this.show();
+    //     }
+    // }
 
     show() {
         //if (!this.shown) { - causing problems with load layout, TODO - look at again
-        if (typeof this.line === 'undefined') {
+        if (typeof this.line === "undefined") {
             this.initSVG();
         }
         this.shown = true;

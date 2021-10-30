@@ -19,7 +19,7 @@ export class Group extends Interactor {
 
         this.expanded = true;
         this.hidden = false;
-        this.type = 'group';
+        this.type = "group";
 
         this.padding = 45; // used by cola.js
 
@@ -36,7 +36,7 @@ export class Group extends Interactor {
 
         //create label - we will move this svg element around when expand / collapse
         this.labelSVG = document.createElementNS(CrosslinkViewer.svgns, "text");
-        this.labelSVG.setAttribute("fill", "black")
+        this.labelSVG.setAttribute("fill", "black");
         this.labelSVG.setAttribute("x", "0");
         this.labelSVG.setAttribute("y", "0");
         this.labelSVG.setAttribute("class", "xlv_text proteinLabel");
@@ -87,7 +87,7 @@ export class Group extends Interactor {
     }
 
 
-//only output the info needed to reproduce the layout, used by save layout function
+    //only output the info needed to reproduce the layout, used by save layout function
     toJSON() {
         const participantIds = [];
         for (let rp of this.renderedParticipants) {
@@ -112,7 +112,7 @@ export class Group extends Interactor {
         return count;
     }
 
-// result depends on whats hidden
+    // result depends on whats hidden
     isSubsetOf (anotherGroup) {
         for (let renderedParticipant of this.renderedParticipants) {
             if (!renderedParticipant.participant.hidden && anotherGroup.renderedParticipants.indexOf(renderedParticipant) === -1) {
@@ -235,7 +235,7 @@ export class Group extends Interactor {
         this.setPosition(ix, iy);
     }
 
-//also setting size of collapsed group symbol; scaling line widths, corner radii
+    //also setting size of collapsed group symbol; scaling line widths, corner radii
     setPosition(ix, iy) { //todo - array for coordinate param?
         if (!this.expanded) {
             this.ix = ix;
@@ -273,7 +273,7 @@ export class Group extends Interactor {
                 ggLink.setLineCoordinates();
             }
             if (this.selfLink != null) {
-                if (typeof this.selfLink.thickLine !== 'undefined') {
+                if (typeof this.selfLink.thickLine !== "undefined") {
                     this.selfLink.thickLine.setAttribute("transform", "translate(" + this.ix +
                         " " + this.iy + ")" + " scale(" + (this.controller.z) + ")");
                 }
@@ -334,7 +334,7 @@ export class Group extends Interactor {
             svgElement.setAttribute("height", y2 - y1 + (2 * pad));
             svgElement.setAttribute("rx", pad);
             svgElement.setAttribute("ry", pad);
-        }
+        };
 
         updateOutline(this.outline);
         // this.outline.setAttribute("stroke-width", 3 * this.controller.z);
@@ -475,11 +475,11 @@ export class Group extends Interactor {
             const pPos = this.getAverageParticipantPosition(); // todo - use svgP?
             this.setPositionFromXinet(pPos[0], pPos[1]);
             for (let rp of this.renderedParticipants) {
-                 // rp.setPositionFromXinet(pPos[0], pPos[1]);
-                 rp.setAllLinkCoordinates();
-                 rp.setHidden(true);
-                 //rp.checkLinks();
-             }
+                // rp.setPositionFromXinet(pPos[0], pPos[1]);
+                rp.setAllLinkCoordinates();
+                rp.setHidden(true);
+                //rp.checkLinks();
+            }
 
         } else { // is expanding
             this.labelSVG.setAttribute("dominant-baseline", null);
@@ -527,7 +527,7 @@ export class Group extends Interactor {
         }
     }
 
-// update all lines (e.g after a move)
+    // update all lines (e.g after a move)
     setAllLinkCoordinates() {
         for (let rp of this.renderedParticipants) {
             rp.setAllLinkCoordinates();

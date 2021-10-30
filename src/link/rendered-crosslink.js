@@ -1,6 +1,5 @@
 import {Link} from "./link";
 import {CrosslinkViewer} from "../crosslink-viewer-BB";
-import {Interactor} from "../interactor/interactor";
 import {RenderedProtein} from "../interactor/rendered-protein";
 import d3 from "d3";
 import {makeTooltipContents, makeTooltipTitle} from "../../../xi3/js/make-tooltip";
@@ -43,7 +42,7 @@ export class RenderedCrosslink extends Link {
         this.highlightLine.setAttribute("fill", "none");
         //this.highlightLine.setAttribute("stroke", CLMS.xiNET.highlightColour.toRGB());
         this.highlightLine.setAttribute("stroke-width", "10");
-        this.highlightLine.setAttribute("stroke-opacity", "0")
+        this.highlightLine.setAttribute("stroke-opacity", "0");
         //set the events for it
         const self = this;
         const setMouseEvents = function (svgElement) {
@@ -116,8 +115,8 @@ export class RenderedCrosslink extends Link {
         this.controller.dragStart = evt; //this.controller.mouseToSVG(p.x, p.y);
     }*/
 
-// andAlternatives means highlight alternative links in case of site ambiguity,
-// need to be able to switch this on and off to avoid infinite loop
+    // andAlternatives means highlight alternative links in case of site ambiguity,
+    // need to be able to switch this on and off to avoid infinite loop
     showHighlight(show) {
         //~ if (!this.renderedFromProtein.busy && (!this.renderedToProtein || !this.renderedToProtein.busy)) {
         if (this.shown) {
@@ -229,7 +228,7 @@ export class RenderedCrosslink extends Link {
     }
 
 
-//used when filter changed
+    //used when filter changed
     check() {
         // neither end is a bar which isn't in a collapsed group? then hide
         if ((!this.renderedFromProtein.expanded || (this.renderedFromProtein.inCollapsedGroup())) &&
@@ -258,7 +257,7 @@ export class RenderedCrosslink extends Link {
     show() {
         if (!this.shown) {
             this.shown = true;
-            if (typeof this.line === 'undefined') {
+            if (typeof this.line === "undefined") {
                 this.initSVG();
             }
             if (!this.renderedToProtein) {
@@ -317,8 +316,8 @@ export class RenderedCrosslink extends Link {
         }
     }
 
-// there's an efficiency saving possible by passing in the renderedInteractor that's moved,
-// then only need to change that end
+    // there's an efficiency saving possible by passing in the renderedInteractor that's moved,
+    // then only need to change that end
     setLineCoordinates() {
         if (this.shown) {
             //if not self link && not linker modified pep
@@ -389,7 +388,7 @@ export class RenderedCrosslink extends Link {
 
     }
 
-//calculate the  coordinates of a residue (relative to this.controller.container)
+    //calculate the  coordinates of a residue (relative to this.controller.container)
     getResidueCoordinates(r, renderedInteractor) {
         let x = renderedInteractor.getResXwithStickZoom(r) * this.controller.z;
         let y = 0;

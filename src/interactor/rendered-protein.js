@@ -1,4 +1,4 @@
-import * as _ from 'underscore';
+import * as _ from "underscore";
 
 import {Interactor} from "./interactor";
 import {Rotator} from "./rotator";
@@ -140,10 +140,10 @@ export class RenderedProtein extends Interactor {
                 }
             }
         });
-    };
+    }
 
-//when we get here all prot's have been created and defaultBarScale will have value
-//this is called by loadLayout function
+    //when we get here all prot's have been created and defaultBarScale will have value
+    //this is called by loadLayout function
     setEverything() {
         this.busy = false;
         if (!this.stickZoom) {
@@ -200,7 +200,7 @@ export class RenderedProtein extends Interactor {
             d3.select(this.highlight)
                 .attr("width", (r * 2) + 5).attr("height", (r * 2) + 5)
                 .attr("x", -r - 2.5).attr("y", -r - 2.5)
-                .attr("rx", r + 2.5).attr("ry", r + 2.5)
+                .attr("rx", r + 2.5).attr("ry", r + 2.5);
             this.labelSVG.setAttribute("transform", "translate(" + (-(r + 5)) + "," + "-5)");
             for (let ppLink of this.renderedP_PLinks) {
                 if (ppLink.crosslinks[0].isSelfLink() && ppLink.shown) {
@@ -210,7 +210,7 @@ export class RenderedProtein extends Interactor {
         }
     }
 
-//only output the info needed to reproduce the layout, used by save layout function
+    //only output the info needed to reproduce the layout, used by save layout function
     toJSON() {
         return {
             id: this.participant.id,
@@ -273,9 +273,9 @@ export class RenderedProtein extends Interactor {
         // let xOffset = 0;
         // if (!this.hidden) { // todo - hacky
         //     xOffset = (this.width / 2 - (this.getBlobRadius()) + 5)
-            // if (this.expanded) {
-            //   xOffset = xOffset + (this.participant.size / 2 * this.stickZoom );
-            // }
+        // if (this.expanded) {
+        //   xOffset = xOffset + (this.participant.size / 2 * this.stickZoom );
+        // }
         // }
         this.setPosition(this.x /*- xOffset*/, this.y);
     }
@@ -289,7 +289,7 @@ export class RenderedProtein extends Interactor {
         this.py = this.y;
         let xOffset = 0;
         if (!this.hidden) { // todo - hacky
-            xOffset = (this.width / 2 - (this.getSymbolRadius()) + 5)
+            xOffset = (this.width / 2 - (this.getSymbolRadius()) + 5);
             // if (this.expanded) {
             //   xOffset = xOffset + (this.participant.size / 2 * this.stickZoom );
             // }
@@ -299,7 +299,7 @@ export class RenderedProtein extends Interactor {
         this.setPosition(ix, iy);
     }
 
-// more accurately described as setting transform for top svg elements (sets scale also)
+    // more accurately described as setting transform for top svg elements (sets scale also)
     setPosition(ix, iy) {
         this.ix = ix;
         this.iy = iy;
@@ -314,7 +314,7 @@ export class RenderedProtein extends Interactor {
             this.lowerGroup.setAttribute("transform", "translate(" + this.ix + " " + this.iy + ")" +
                 " scale(" + (this.controller.z) + ") ");
             if (this.selfLink != null) {
-                if (typeof this.selfLink.thickLine !== 'undefined') {
+                if (typeof this.selfLink.thickLine !== "undefined") {
                     this.selfLink.thickLine.setAttribute("transform", "translate(" + this.ix +
                         " " + this.iy + ")" + " scale(" + (this.controller.z) + ")");
                 }
@@ -358,7 +358,7 @@ export class RenderedProtein extends Interactor {
 
         this.stickZoom = scale;
         this.scale();
-        this.setPositionFromXinet(x, y)
+        this.setPositionFromXinet(x, y);
         this.setAllLinkCoordinates();
     }
 
@@ -443,8 +443,8 @@ export class RenderedProtein extends Interactor {
                 const seqLabelGroup = document.createElementNS(CrosslinkViewer.svgns, "g");
                 seqLabelGroup.setAttribute("transform", "translate(" + this.getResXwithStickZoom(res) + " " + 0 + ")");
                 const seqLabel = document.createElementNS(CrosslinkViewer.svgns, "text");
-                seqLabel.setAttribute('font-family', "monospace");
-                seqLabel.setAttribute('font-size', '10px');
+                seqLabel.setAttribute("font-family", "monospace");
+                seqLabel.setAttribute("font-size", "10px");
                 seqLabel.setAttribute("text-anchor", "middle");
                 seqLabel.setAttribute("x", "0");
                 seqLabel.setAttribute("y", "3");
@@ -464,8 +464,8 @@ export class RenderedProtein extends Interactor {
             scaleLabelGroup.setAttribute("transform", "translate(" + tickX + " " + 0 + ")");
             const scaleLabel = document.createElementNS(CrosslinkViewer.svgns, "text");
             scaleLabel.setAttribute("class", "xinetAxisLabel");
-            scaleLabel.setAttribute('font-family', "monospace");
-            scaleLabel.setAttribute('font-size', '14');
+            scaleLabel.setAttribute("font-family", "monospace");
+            scaleLabel.setAttribute("font-size", "14");
             scaleLabel.setAttribute("text-anchor", "middle");
             scaleLabel.setAttribute("x", "0");
             scaleLabel.setAttribute("y", (RenderedProtein.STICKHEIGHT + 4).toString());
@@ -484,7 +484,7 @@ export class RenderedProtein extends Interactor {
             tick.setAttribute("stroke", "black");
             self.ticks.appendChild(tick);
         }
-    };
+    }
 
     toggleFlipped() {
         this.isFlipped = !this.isFlipped;
@@ -563,7 +563,7 @@ export class RenderedProtein extends Interactor {
 
         let xInterpol = null,
             yInterpol = null;
-        if (typeof svgP !== 'undefined' && svgP !== null) {
+        if (typeof svgP !== "undefined" && svgP !== null) {
             xInterpol = d3.interpolate(this.ix, svgP.x);
             yInterpol = d3.interpolate(this.iy, svgP.y);
         }
@@ -616,15 +616,15 @@ export class RenderedProtein extends Interactor {
                 if (feature.type !== RenderedProtein.disulfide) {
                     d3.select(pieSlice).transition().attr("d", this.getAnnotationPieSliceApproximatePath(feature))
                         .duration(transitionTime).each("end",
-                        function () {
-                            for (let b = 0; b < annotationCount; b++) {
-                                const annoB = annotArr[b];
-                                if (this === annoB.pieSlice) {
-                                    d3.select(this).attr("d", self.getAnnotationPieSliceArcPath(annoB.feature));
+                            function () {
+                                for (let b = 0; b < annotationCount; b++) {
+                                    const annoB = annotArr[b];
+                                    if (this === annoB.pieSlice) {
+                                        d3.select(this).attr("d", self.getAnnotationPieSliceArcPath(annoB.feature));
+                                    }
                                 }
                             }
-                        }
-                    );
+                        );
 
                     d3.select(rectDomain).transition().attr("d", self.getAnnotationPieSliceApproximatePath(feature))
                         .duration(transitionTime);
@@ -639,7 +639,7 @@ export class RenderedProtein extends Interactor {
 
         const originalStickZoom = this.stickZoom;
         const originalRotation = this.rotation;
-        const cubicInOut = d3.ease('cubic-in-out');
+        const cubicInOut = d3.ease("cubic-in-out");
         if (transition) {
             d3.timer(function (elapsed) {
                 return update(elapsed / transitionTime);
@@ -784,7 +784,7 @@ export class RenderedProtein extends Interactor {
         }
 
         const self = this;
-        const cubicInOut = d3.ease('cubic-in-out');
+        const cubicInOut = d3.ease("cubic-in-out");
         if (transition) {
             d3.timer(function (elapsed) {
                 return update(elapsed / transitionTime);
@@ -806,7 +806,7 @@ export class RenderedProtein extends Interactor {
             const currentLength = lengthInterpol(cubicInOut(interp));
             d3.select(self.outline).attr("width", currentLength).attr("x", -(currentLength / 2) + (0.5 * self.stickZoom));
             d3.select(self.background).attr("width", currentLength).attr("x", -(currentLength / 2) + (0.5 * self.stickZoom));
-            self.stickZoom = stickZoomInterpol(cubicInOut(interp))
+            self.stickZoom = stickZoomInterpol(cubicInOut(interp));
             self.setAllLinkCoordinates();
 
             for (let group of self.parentGroups) {
@@ -900,9 +900,9 @@ export class RenderedProtein extends Interactor {
             }
 
             return " M " + start[0] + "," + start[1] +
-                " Q " + cp1[0] + ',' + cp1[1] + ' ' + arcStart[0] + "," + arcStart[1] +
+                " Q " + cp1[0] + "," + cp1[1] + " " + arcStart[0] + "," + arcStart[1] +
                 " A " + arcRadius + "," + arcRadius + "  0 0 1 " + arcEnd[0] + "," + arcEnd[1] +
-                " Q " + cp2[0] + ',' + cp2[1] + " " + end[0] + "," + end[1];
+                " Q " + cp2[0] + "," + cp2[1] + " " + end[0] + "," + end[1];
 
         }
     }
@@ -911,30 +911,30 @@ export class RenderedProtein extends Interactor {
         return (r - (this.participant.size / 2)) * this.stickZoom;
     }
 
-//calculate the  coordinates of a residue (relative to this.controller.container)
-// xiNET.RenderedProtein.prototype.getResidueCoordinates = function (r, yOff) {
-//     if (typeof r === "undefined") {
-//         alert("Error: residue number is undefined");
-//     }
-//     let x = this.getResXwithStickZoom(r * 1) * this.controller.z;
-//     let y = 0;
-//     if (x !== 0) {
-//         const l = Math.abs(x);
-//         const a = Math.acos(x / l);
-//         const rotRad = (this.rotation / 360) * Math.PI * 2;
-//         x = l * Math.cos(rotRad + a);
-//         y = l * Math.sin(rotRad + a);
-//         if (typeof yOff !== 'undefined') {
-//             x += yOff * this.controller.z * Math.cos(rotRad + (Math.PI / 2));
-//             y += yOff * this.controller.z * Math.sin(rotRad + (Math.PI / 2));
-//         }
-//     } else {
-//         y = yOff;
-//     }
-//     x = x + this.ix;
-//     y = y + this.iy;
-//     return [x, y];
-// };
+    //calculate the  coordinates of a residue (relative to this.controller.container)
+    // xiNET.RenderedProtein.prototype.getResidueCoordinates = function (r, yOff) {
+    //     if (typeof r === "undefined") {
+    //         alert("Error: residue number is undefined");
+    //     }
+    //     let x = this.getResXwithStickZoom(r * 1) * this.controller.z;
+    //     let y = 0;
+    //     if (x !== 0) {
+    //         const l = Math.abs(x);
+    //         const a = Math.acos(x / l);
+    //         const rotRad = (this.rotation / 360) * Math.PI * 2;
+    //         x = l * Math.cos(rotRad + a);
+    //         y = l * Math.sin(rotRad + a);
+    //         if (typeof yOff !== 'undefined') {
+    //             x += yOff * this.controller.z * Math.cos(rotRad + (Math.PI / 2));
+    //             y += yOff * this.controller.z * Math.sin(rotRad + (Math.PI / 2));
+    //         }
+    //     } else {
+    //         y = yOff;
+    //     }
+    //     x = x + this.ix;
+    //     y = y + this.iy;
+    //     return [x, y];
+    // };
 
     checkLinks() {
         for (let p_pLink of this.renderedP_PLinks) {

@@ -1,7 +1,7 @@
 import "../css/xiNET.css";
 
 import * as d3 from "d3";
-import * as _ from 'underscore';
+import * as _ from "underscore";
 import Backbone from "backbone";
 import * as cola from "../vendor/cola";
 
@@ -126,9 +126,9 @@ export class CrosslinkViewer extends Backbone.View {
         //         self.mouseWheel(evt);
         //     });
         // } else if (document.addEventListener) { //WC3 browsers
-            this.svgElement.addEventListener(mouseWheelEvt, function (evt) {
-                self.mouseWheel(evt);
-            }, false);
+        this.svgElement.addEventListener(mouseWheelEvt, function (evt) {
+            self.mouseWheel(evt);
+        }, false);
         // }
 
         this.lastMouseUp = new Date().getTime();
@@ -231,7 +231,7 @@ export class CrosslinkViewer extends Backbone.View {
                 return myList[1]; // don't return smallest scale as default
             }
             if (pos === myList.length) {
-                return myList[myList.length - 1]
+                return myList[myList.length - 1];
             }
             return myList[pos - 1];
         }
@@ -249,7 +249,7 @@ export class CrosslinkViewer extends Backbone.View {
             rp.scale();
             // rp.width;// cause it to store a constant value for unexpanded width?
             if (expand) {
-                rp.toStickNoTransition()
+                rp.toStickNoTransition();
             }
         }
 
@@ -261,7 +261,7 @@ export class CrosslinkViewer extends Backbone.View {
                     const toId = crosslink.toProtein ? crosslink.toProtein.id : "null";
                     const p_pId = crosslink.fromProtein.id + "-" + toId;
                     let p_pLink = this.renderedP_PLinks.get(p_pId);
-                    if (typeof p_pLink == 'undefined') {
+                    if (typeof p_pLink == "undefined") {
                         p_pLink = new P_PLink(p_pId, crosslink, this);
                         this.renderedP_PLinks.set(p_pId, p_pLink);
                     }
@@ -382,7 +382,7 @@ export class CrosslinkViewer extends Backbone.View {
                     const group2 = groups[gj];
                     if (group1.isSubsetOf(group2)) {
                         group2.subgroups.push(group1);
-                        console.log(group1.name, "is SUBSET of", group2.name)
+                        console.log(group1.name, "is SUBSET of", group2.name);
                     }
                 }
             }
@@ -525,7 +525,6 @@ export class CrosslinkViewer extends Backbone.View {
             ppLink.filteredCrossLinkCount = filteredCrossLinks.size;
             ppLink.ambiguous = altP_PLinks.size > 1;
 
-
             if (!ppLink.renderedToProtein || // not linear
                 //or either end hidden hidden
                 ppLink.renderedFromProtein.participant.hidden ||
@@ -544,41 +543,41 @@ export class CrosslinkViewer extends Backbone.View {
                 ) {
                     ppLink.hide();
                 } else {
-                        if (ppLink.filteredCrossLinkCount === 0) {
+                    if (ppLink.filteredCrossLinkCount === 0) {
+                        ppLink.hide();
+                    } else {
+                        ppLink.ambiguous = altP_PLinks.size > 1;
+                        if (fromProtInCollapsedGroup && toProtInCollapsedGroup) {
+                            const source = ppLink.renderedFromProtein.getRenderedParticipant();
+                            const target = ppLink.renderedToProtein.getRenderedParticipant();
+                            let ggId;
+                            if (source.id < target.id) {
+                                ggId = source.id + "_" + target.id;
+                            } else {
+                                ggId = target.id + "_" + source.id;
+                            }
+                            let ggLink = ppLink.controller.g_gLinks.get(ggId);
+                            if (!ggLink) {
+                                if (source.id < target.id) {
+                                    ggLink = new G_GLink(ggId, source, target, this);
+                                } else {
+                                    ggLink = new G_GLink(ggId, target, source, this);
+                                }
+                                this.g_gLinks.set(ggId, ggLink);
+                            }
+                            ggLink.p_pLinks.set(ppLink.id, ppLink);
                             ppLink.hide();
                         } else {
-                            ppLink.ambiguous = altP_PLinks.size > 1;
-                            if (fromProtInCollapsedGroup && toProtInCollapsedGroup) {
-                                const source = ppLink.renderedFromProtein.getRenderedParticipant();
-                                const target = ppLink.renderedToProtein.getRenderedParticipant();
-                                let ggId;
-                                if (source.id < target.id) {
-                                    ggId = source.id + "_" + target.id;
-                                } else {
-                                    ggId = target.id + "_" + source.id;
-                                }
-                                let ggLink = ppLink.controller.g_gLinks.get(ggId);
-                                if (!ggLink) {
-                                    if (source.id < target.id) {
-                                        ggLink = new G_GLink(ggId, source, target, this);
-                                    } else {
-                                        ggLink = new G_GLink(ggId, target, source, this);
-                                    }
-                                    this.g_gLinks.set(ggId, ggLink);
-                                }
-                                ggLink.p_pLinks.set(ppLink.id, ppLink);
-                                ppLink.hide();
-                            } else {
-                                ppLink.show();
-                            }
+                            ppLink.show();
                         }
                     }
+                }
             }
         }
         for (let cLink of this.renderedCrosslinks.values()) {
             cLink.check();
         }
-        const ggLinkIdsToRemove = []
+        const ggLinkIdsToRemove = [];
         for (let ggLink of this.g_gLinks.values()) {
             if (ggLink.group1.expanded === false && ggLink.group2.expanded === false && ggLink.check()
                 && this.groupMap.has(ggLink.group1.id) && this.groupMap.has(ggLink.group2.id)
@@ -716,26 +715,26 @@ export class CrosslinkViewer extends Backbone.View {
             }
             let participantDebugSel, groupDebugSel;
             if (self.debug) {
-                participantDebugSel = d3.select(this.groupsSVG).selectAll('.node')
+                participantDebugSel = d3.select(this.groupsSVG).selectAll(".node")
                     .data(nodeArr);
-                participantDebugSel.enter().append('rect')
-                    .classed('node', true)
+                participantDebugSel.enter().append("rect")
+                    .classed("node", true)
                     .attr({
                         rx: 5,
                         ry: 5
                     })
-                    .style('stroke', "red")
-                    .style('fill', "none");
-                groupDebugSel = d3.select(this.groupsSVG).selectAll('.group')
+                    .style("stroke", "red")
+                    .style("fill", "none");
+                groupDebugSel = d3.select(this.groupsSVG).selectAll(".group")
                     .data(groups);
-                groupDebugSel.enter().append('rect')
-                    .classed('group', true)
+                groupDebugSel.enter().append("rect")
+                    .classed("group", true)
                     .attr({
                         rx: 5,
                         ry: 5
                     })
-                    .style('stroke', "blue")
-                    .style('fill', "none");
+                    .style("stroke", "blue")
+                    .style("fill", "none");
                 groupDebugSel.exit().remove();
                 participantDebugSel.exit().remove();
             }
@@ -762,10 +761,10 @@ export class CrosslinkViewer extends Backbone.View {
                             return d.bounds.y;
                         },
                         width: function (d) {
-                            return d.bounds.width()
+                            return d.bounds.width();
                         },
                         height: function (d) {
-                            return d.bounds.height()
+                            return d.bounds.height();
                         }
                     });
                     participantDebugSel.attr({
@@ -776,10 +775,10 @@ export class CrosslinkViewer extends Backbone.View {
                             return d.bounds.y;
                         },
                         width: function (d) {
-                            return d.bounds.width()
+                            return d.bounds.width();
                         },
                         height: function (d) {
-                            return d.bounds.height()
+                            return d.bounds.height();
                         }
                     });
                 }
@@ -794,7 +793,7 @@ export class CrosslinkViewer extends Backbone.View {
         layout.proteins = Array.from(this.renderedProteins.values());
         const myJSONText = JSON.stringify(layout, null);
         console.log("SAVING", layout);
-        callback(myJSONText.replace(/\\u0000/gi, ''));
+        callback(myJSONText.replace(/\\u0000/gi, ""));
     }
 
     //todo - this is becoming about config of all xiVIEw not just config of xiNET, should be moved
@@ -814,7 +813,7 @@ export class CrosslinkViewer extends Backbone.View {
             const protein = this.renderedProteins.get(protLayout.id);
             if (protein !== undefined) {
                 protein.setPositionFromXinet(protLayout["x"], protLayout["y"]);
-                if (typeof protLayout['rot'] !== 'undefined') {
+                if (typeof protLayout["rot"] !== "undefined") {
                     protein.rotation = protLayout["rot"] - 0;
                 }
                 protein.ix = protLayout["x"];
@@ -842,7 +841,7 @@ export class CrosslinkViewer extends Backbone.View {
             rp.setEverything();
         }
 
-        if (groups && typeof groups[Symbol.iterator] === 'function') {
+        if (groups && typeof groups[Symbol.iterator] === "function") {
             const modelGroupMap = new Map();
             for (const savedGroup of groups) {
                 //gonna need to check for proteins now missing from results
@@ -890,10 +889,10 @@ export class CrosslinkViewer extends Backbone.View {
         const bBox = this.svgElement.getBoundingClientRect();
         const width = Math.round(bBox.width);
         const height = Math.round(bBox.height);
-        svgXML = svgXML.replace('width="100%"', 'width="' + width + 'px"');
-        svgXML = svgXML.replace('height="100%"', 'height="' + height + 'px"');
+        svgXML = svgXML.replace("width=\"100%\"", "width=\"" + width + "px\"");
+        svgXML = svgXML.replace("height=\"100%\"", "height=\"" + height + "px\"");
         const fileName = makeLegalFileName(searchesToString() + "--xiNET--" + filterStateToString());
-        download(svgXML, 'application/svg', fileName + ".svg");
+        download(svgXML, "application/svg", fileName + ".svg");
     }
 
     highlightedLinksChanged() {
@@ -1371,9 +1370,9 @@ export class CrosslinkViewer extends Backbone.View {
 
                                 if (this.dragElement.type !== "group") {
                                     //...for proteins
-                                    const menu = d3.select(".custom-menu-margin")
+                                    const menu = d3.select(".custom-menu-margin");
                                     menu.style("top", (evt.pageY - 20) + "px").style("left", (evt.pageX - 20) + "px").style("display", "block");
-                                    d3.select(".scaleButton_" + (this.dragElement.stickZoom * 100)).property("checked", true)
+                                    d3.select(".scaleButton_" + (this.dragElement.stickZoom * 100)).property("checked", true);
                                 } else {
                                     // for groups
 
@@ -1382,7 +1381,7 @@ export class CrosslinkViewer extends Backbone.View {
                                     canny.style("display", (overlapping ? null : "none"));
                                     d3.select(".collapse-group").style("display", (overlapping ? "none" : null));
 
-                                    const menu = d3.select(".group-custom-menu-margin")
+                                    const menu = d3.select(".group-custom-menu-margin");
                                     menu.style("top", (evt.pageY - 20) + "px").style("left", (evt.pageX - 20) + "px").style("display", "block");
                                 }
                             }

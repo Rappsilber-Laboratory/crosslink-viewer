@@ -1,4 +1,4 @@
-import * as _ from 'underscore';
+import * as _ from "underscore";
 
 import {Link} from "./link";
 import {CrosslinkViewer} from "../crosslink-viewer-BB";
@@ -33,8 +33,8 @@ export class P_PLink extends Link {
             this.renderedFromProtein.selfLink = this;
 
             this.line = document.createElementNS(CrosslinkViewer.svgns, "path");
-            this.highlightLine = document.createElementNS(CrosslinkViewer.svgns, 'path');
-            this.thickLine = document.createElementNS(CrosslinkViewer.svgns, 'path');
+            this.highlightLine = document.createElementNS(CrosslinkViewer.svgns, "path");
+            this.thickLine = document.createElementNS(CrosslinkViewer.svgns, "path");
 
             this.initSelfLinkSVG();
         }
@@ -103,7 +103,7 @@ export class P_PLink extends Link {
             });
     }
 
-// event handler for starting dragging or rotation (or flipping internal links)
+    // event handler for starting dragging or rotation (or flipping internal links)
     mouseDown(evt) {
         //stop layout
         this.controller.d3cola.stop();
@@ -142,9 +142,9 @@ export class P_PLink extends Link {
 
     initSelfLinkSVG () {
         const path = this.renderedFromProtein.getAggregateSelfLinkPath();
-        this.line.setAttribute('d', path);
-        this.highlightLine.setAttribute('d', path);
-        this.thickLine.setAttribute('d', path);
+        this.line.setAttribute("d", path);
+        this.highlightLine.setAttribute("d", path);
+        this.thickLine.setAttribute("d", path);
     }
 
     showHighlight(show) {
@@ -244,7 +244,7 @@ export class P_PLink extends Link {
                         }
                         ggLink.p_pLinks.set(this.id, this);
                         this.hide();
-//                ggLink.show();
+                        //                ggLink.show();
                     } else {
                         this.show();
                     }
@@ -256,7 +256,7 @@ export class P_PLink extends Link {
 
     show() {
         //if (!this.shown) { - causing problems with load layout, TODO - look at again
-        if (typeof this.line === 'undefined') {
+        if (typeof this.line === "undefined") {
             this.initSVG();
         }
         this.shown = true;

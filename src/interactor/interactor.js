@@ -67,14 +67,14 @@ export class Interactor {
         const arcEnd = trig(intraR, -25 + sectorSize);
         const cp1 = trig(intraR, 40 + sectorSize);
         const cp2 = trig(intraR, -40 + sectorSize);
-        return 'M 0,0 ' +
-            'Q ' + cp1.x + ',' + -cp1.y + ' ' + arcStart.x + ',' + -arcStart.y +
-            ' A ' + intraR + ' ' + intraR + ' 0 0 1 ' + arcEnd.x + ',' + -arcEnd.y +
-            ' Q ' + cp2.x + ',' + -cp2.y + ' 0,0';
+        return "M 0,0 " +
+            "Q " + cp1.x + "," + -cp1.y + " " + arcStart.x + "," + -arcStart.y +
+            " A " + intraR + " " + intraR + " 0 0 1 " + arcEnd.x + "," + -arcEnd.y +
+            " Q " + cp2.x + "," + -cp2.y + " 0,0";
     }
 
 
-//// TODO:
+    //// TODO:
     /*
     xiNET.Interactor.prototype.checkLinks = function() {
         function checkAll(linkMap) {
@@ -93,7 +93,7 @@ export class Interactor {
     }*/
 
 
-// update all lines (e.g after a move)
+    // update all lines (e.g after a move)
     setAllLinkCoordinates() {
         for (let pl of this.renderedP_PLinks) {
             pl.setLineCoordinates(this);
@@ -103,13 +103,13 @@ export class Interactor {
         }
     }
 
-// xiNET.Interactor.prototype.getX = function() {
-//     return this.ix;
-// }
-//
-// xiNET.Interactor.prototype.getY = function() {
-//     return this.iy;
-// }
+    // xiNET.Interactor.prototype.getX = function() {
+    //     return this.ix;
+    // }
+    //
+    // xiNET.Interactor.prototype.getY = function() {
+    //     return this.iy;
+    // }
 
 
     showLabel(show) {
@@ -123,11 +123,10 @@ export class Interactor {
         const firstGroup = groupIt.next().value;
         if (firstGroup) {
             if (!firstGroup.expanded) {
-                caller = firstGroup
+                caller = firstGroup;
             }
             return firstGroup.getRenderedParticipant(caller);
-        }
-        else return caller;
+        } else return caller;
     }
 
     inCollapsedGroup() {
