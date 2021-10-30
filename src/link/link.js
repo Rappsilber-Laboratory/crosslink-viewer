@@ -6,7 +6,7 @@ export class Link {
         this.isSelected = false;
     }
 
-    mouseOut () {
+    mouseOut() {
         this.controller.model.setMarkedCrossLinks("highlights", []); // which pokes highlighted matches into changing too
         this.controller.model.get("tooltipModel").set("contents", null);
     }

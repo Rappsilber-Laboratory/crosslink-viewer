@@ -1130,7 +1130,7 @@ export class RenderedProtein extends Interactor {
         return approximatePiePath;
     }
 
-    getAnnotationRectPath (annotation) {
+    getAnnotationRectPath(annotation) {
         //domain as rectangular path
         const bottom = RenderedProtein.STICKHEIGHT / 2,
             top = -RenderedProtein.STICKHEIGHT / 2;

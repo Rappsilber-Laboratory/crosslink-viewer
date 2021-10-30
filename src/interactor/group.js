@@ -113,7 +113,7 @@ export class Group extends Interactor {
     }
 
     // result depends on whats hidden
-    isSubsetOf (anotherGroup) {
+    isSubsetOf(anotherGroup) {
         for (let renderedParticipant of this.renderedParticipants) {
             if (!renderedParticipant.participant.hidden && anotherGroup.renderedParticipants.indexOf(renderedParticipant) === -1) {
                 return false;
@@ -143,8 +143,8 @@ export class Group extends Interactor {
     isOverlappingGroup() {
         for (let renderedParticipant of this.renderedParticipants) {
             if (!renderedParticipant.participant.hidden && renderedParticipant.parentGroups.size > 1) {
-                for (let parentGroup of renderedParticipant.parentGroups){
-                    if (!parentGroup.isSubsetOf(this)){
+                for (let parentGroup of renderedParticipant.parentGroups) {
+                    if (!parentGroup.isSubsetOf(this)) {
                         return true;
                     }
                 }
@@ -448,7 +448,7 @@ export class Group extends Interactor {
     };
     */
 
-    dashedOutline (dash) {
+    dashedOutline(dash) {
         if (dash) {
             this.highlight.setAttribute("stroke-dasharray", (4 * this.controller.z) + ", " + (4 * this.controller.z));
         } else {
@@ -456,7 +456,7 @@ export class Group extends Interactor {
         }
     }
 
-    setExpanded (expanded) {
+    setExpanded(expanded) {
         this.expanded = !!expanded;
         const expandedGroupLabels = this.controller.model.get("xinetShowExpandedGroupLabels"); // todo - will need to look at this again (for anim)
         if (!expanded) { // is collapsing

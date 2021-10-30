@@ -1036,16 +1036,16 @@ export class CrosslinkViewer extends Backbone.View {
         this.contextMenuParticipant = null;
     }
 
-    collapseGroups(){
+    collapseGroups() {
         for (let group of this.groupMap.values()) {
-            if (group.expanded === true && !group.isOverlappingGroup()){
+            if (group.expanded === true && !group.isOverlappingGroup()) {
                 group.setExpanded(false);
             }
         }
         this.render();
     }
 
-    expandGroups(){
+    expandGroups() {
         for (let group of this.groupMap.values()) {
             if (group.expanded === false) {
                 group.setExpanded(true);

@@ -20,11 +20,11 @@ export class P_PLink extends Link {
         }
     }
 
-    getCrosslinks () {
+    getCrosslinks() {
         return this.crosslinks;
     }
 
-    initSVG () {
+    initSVG() {
         if (this.crosslinks[0].isSelfLink() === false) {
             this.line = document.createElementNS(CrosslinkViewer.svgns, "line");
             this.highlightLine = document.createElementNS(CrosslinkViewer.svgns, "line");
@@ -140,7 +140,7 @@ export class P_PLink extends Link {
         this.controller.dragStart = evt;
     }*/
 
-    initSelfLinkSVG () {
+    initSelfLinkSVG() {
         const path = this.renderedFromProtein.getAggregateSelfLinkPath();
         this.line.setAttribute("d", path);
         this.highlightLine.setAttribute("d", path);
@@ -348,6 +348,7 @@ export class P_PLink extends Link {
         }
     }
 }
+
 /*
 xiNET.P_PLink.prototype.getOtherEnd = function(protein) {
     if (this.fromProtein === protein) {

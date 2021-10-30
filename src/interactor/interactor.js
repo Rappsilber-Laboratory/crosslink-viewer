@@ -117,7 +117,7 @@ export class Interactor {
     }
 
     getRenderedParticipant(caller) {
-        caller = caller? caller: this;
+        caller = caller ? caller : this;
         //get highest collapsed group
         const groupIt = this.parentGroups.values();
         const firstGroup = groupIt.next().value;

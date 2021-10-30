@@ -152,7 +152,7 @@ export class G_GLink extends Link {
         this.controller.dragStart = evt;
     }*/
 
-    initSelfLinkSVG () {
+    initSelfLinkSVG() {
         const path = this.group1.getAggregateSelfLinkPath();
         this.line.setAttribute("d", path);
         this.highlightLine.setAttribute("d", path);
@@ -212,7 +212,7 @@ export class G_GLink extends Link {
         this.isSelected = select;
     }
 
-    check (){
+    check() {
         for (let pp of this.p_pLinks.values()) {
             if (pp.filteredCrossLinkCount > 0) {
                 return true;
@@ -383,6 +383,7 @@ export class G_GLink extends Link {
         }
     }
 }
+
 /*
 xiNET.P_PLink.prototype.getOtherEnd = function(protein) {
     if (this.fromProtein === protein) {
