@@ -235,7 +235,7 @@ export class CrosslinkViewer extends Backbone.View {
 
         this.defaultBarScale = takeClosest(CrosslinkViewer.barScales, defaultPixPerRes);
 
-        const expand = this.renderedProteins.size < 5;
+        const expand = this.renderedProteins.size < 4;
         for (let rp of this.renderedProteins.values()) {
             //to do - should this really be here
             this.proteinLower.appendChild(rp.lowerGroup);
