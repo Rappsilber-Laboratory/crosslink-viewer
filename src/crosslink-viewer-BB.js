@@ -679,7 +679,7 @@ export class CrosslinkViewer extends Backbone.View {
                                     }
                                 }
                                 if (!inSubGroup) {
-                                    g.leaves.push(nodeArr.indexOf(rp)); /// URHERE - MOVE UP? **** leaves ends up with way to many things in
+                                    g.leaves.push(nodeArr.indexOf(rp));
                                 }
                             }
                         }
