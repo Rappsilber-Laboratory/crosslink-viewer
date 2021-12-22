@@ -30,7 +30,7 @@ export class CrosslinkViewer extends Backbone.View {
     }
 
     initialize() {
-        // this.debug = true;
+        this.debug = true;
         this.fixedSize = this.model.get("xinetFixedSize");
         const self = this;
 
@@ -341,7 +341,7 @@ export class CrosslinkViewer extends Backbone.View {
                 this.groupMap.set(group.id, group);
             }
         }
-        this.scale();//just to update groups selection highlights
+        // this.scale();//just to update groups selection highlights
         this.hiddenProteinsChanged();
         this.render();
     }
@@ -424,11 +424,11 @@ export class CrosslinkViewer extends Backbone.View {
 
         //sort out parentGroups
         for (let group1 of groups.reverse()) {
-            if (group1.upperGroup.parentNode) {
-                const pn = group1.upperGroup.parentNode;
-                pn.removeChild(group1.upperGroup);
-                pn.appendChild(group1.upperGroup);
-            }
+            // if (group1.upperGroup.parentNode) {
+            //     const pn = group1.upperGroup.parentNode;
+            //     pn.removeChild(group1.upperGroup);
+            //     pn.appendChild(group1.upperGroup);
+            // }
             for (let group2 of group1.subgroups) {
                 group2.parentGroups.add(group1);
             }
@@ -699,7 +699,7 @@ export class CrosslinkViewer extends Backbone.View {
             }
             let participantDebugSel, groupDebugSel;
             if (self.debug) {
-                participantDebugSel = d3.select(this.groupsSVG).selectAll(".node")
+                participantDebugSel = d3.select(self.groupsSVG).selectAll(".node")
                     .data(nodeArr);
                 participantDebugSel.enter().append("rect")
                     .classed("node", true)
@@ -709,7 +709,7 @@ export class CrosslinkViewer extends Backbone.View {
                     })
                     .style("stroke", "red")
                     .style("fill", "none");
-                groupDebugSel = d3.select(this.groupsSVG).selectAll(".group")
+                groupDebugSel = d3.select(self.groupsSVG).selectAll(".group")
                     .data(groups);
                 groupDebugSel.enter().append("rect")
                     .classed("group", true)
@@ -733,7 +733,7 @@ export class CrosslinkViewer extends Backbone.View {
                     }
                 }
                 if (fixedParticipants.length === 0) {
-                    self.zoomToFullExtent();
+                    // self.zoomToFullExtent();
                 }
 
                 if (self.debug) {
@@ -851,7 +851,7 @@ export class CrosslinkViewer extends Backbone.View {
 
         this.model.get("filterModel").trigger("change", this.model.get("filterModel"));
 
-        this.zoomToFullExtent();
+        // this.zoomToFullExtent();
 
         if (layoutIsDodgy) {
             alert("Looks like something went wrong with the saved layout, if you can't see your proteins click Auto layout");
@@ -1096,7 +1096,7 @@ export class CrosslinkViewer extends Backbone.View {
                     p_pLink.highlightLine.setAttribute("stroke-width", this.z * 10);
                     p_pLink.updateThickLineWidth();
                     if (p_pLink.ambiguous) {
-                        p_pLink.dashedLine(true); //rescale spacing of dashes
+                        p_pLink.dashedLine(true); //rescale spacing of dashes // preformance issue?
                     }
                 }
             }

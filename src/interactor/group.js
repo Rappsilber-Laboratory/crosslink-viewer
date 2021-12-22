@@ -74,18 +74,66 @@ export class Group extends Interactor {
             self.mouseOut(evt);
         };
 
-        Object.defineProperty(this, "width", {
-            get: function width() {
-                return this.upperGroup.getBBox().width + 10;
-            }
-        });
-        Object.defineProperty(this, "height", {
-            get: function height() {
-                return 60;//this.upperGroup.getBBox().height + 10;
-            }
-        });
+        // Object.defineProperty(this, "width", {
+        //     get: function width() {
+        //         return this.upperGroup.getBBox().width + 10;
+        //     }
+        // });
+        // Object.defineProperty(this, "height", {
+        //     get: function height() {
+        //         return 60;//this.upperGroup.getBBox().height + 10;
+        //     }
+        // });
     }
 
+    get width(){
+        // if (this.expanded) {
+        //     return this.upperGroup.getBBox().width + 10;
+        // } else {
+        //     return this.upperGroup.getBBox().width + 10;
+        // }
+        return 60;//
+    }
+
+    get height () {
+        // if (this.expanded) {
+        //     return this.upperGroup.getBBox().height + 10;
+        // } else {
+        return 60;//this.upperGroup.getBBox().height + 10;
+        // }
+    }
+
+    get BBox () {
+        let x1 = 0, y1 = 0, x2 = 0, y2 = 0;
+        const z = this.controller.z, pad = 5 * z;
+
+        for (let rp of this.renderedParticipants) {
+            if (!rp.hidden && !this.containsInSubgroup(rp)) {
+                const rpBbox = rp.BBox;
+                if (!x1 || (rpBbox.x * z) + rp.ix < x1) {
+                    x1 = (rpBbox.x * z) + rp.ix;
+                }
+                if (!y1 || (rpBbox.y * z) + rp.iy < y1) {
+                    y1 = (rpBbox.y * z) + rp.iy;
+                }
+                if (!x2 || ((rpBbox.x + rpBbox.width) * z) + rp.ix > x2) {
+                    x2 = ((rpBbox.x + rpBbox.width) * z) + rp.ix;
+                }
+                if (!y2 || ((rpBbox.y + rpBbox.height) * z) + rp.iy > y2) {
+                    y2 = ((rpBbox.y + rpBbox.height) * z) + rp.iy;
+                }
+            }
+        }
+
+        const w = x2 - x1, h = y2 -y1;
+
+        return {
+            x: x1,
+            y: y1,
+            width: w,
+            height: h
+        };
+    }
 
     //only output the info needed to reproduce the layout, used by save layout function
     toJSON() {
@@ -224,12 +272,12 @@ export class Group extends Interactor {
         this.px = this.x;
         this.py = this.y;
         let xOffset = 0;
-        if (!this.hidden) { // todo - hacky
-            xOffset = (this.width / 2); // - (this.getBlobRadius()) + 5)
-            // if (this.expanded) {
-            //   xOffset = xOffset + (this.participant.size / 2 * this.stickZoom );
-            // }
-        }
+        // if (!this.hidden) { // todo - hacky
+        //     xOffset = (this.width / 2); // - (this.getBlobRadius()) + 5)
+        //     // if (this.expanded) {
+        //     //   xOffset = xOffset + (this.participant.size / 2 * this.stickZoom );
+        //     // }
+        // }
         this.x = ix - xOffset;
         this.y = iy;
         this.setPosition(ix, iy);
@@ -290,29 +338,34 @@ export class Group extends Interactor {
 
     updateExpandedGroup() {
         let x1 = 0, y1 = 0, x2 = 0, y2 = 0;
-        const z = this.controller.z, pad = 5 * z;
+        const z = 1/*this.controller.z*/, pad = 5 * z;
 
         for (let rp of this.renderedParticipants) {
             if (!rp.hidden && !this.containsInSubgroup(rp)) {
-                const rpBbox = rp.upperGroup.getBBox();
+
+                const rpBbox = rp.BBox;
+
+                console.log("RP", rpBbox);
+
                 if (!x1 || (rpBbox.x * z) + rp.ix < x1) {
-                    x1 = (rpBbox.x * z) + rp.ix;
+                    x1 = (rpBbox.x * z);// + rp.ix;
                 }
                 if (!y1 || (rpBbox.y * z) + rp.iy < y1) {
-                    y1 = (rpBbox.y * z) + rp.iy;
+                    y1 = (rpBbox.y * z);// + rp.iy;
                 }
                 if (!x2 || ((rpBbox.x + rpBbox.width) * z) + rp.ix > x2) {
-                    x2 = ((rpBbox.x + rpBbox.width) * z) + rp.ix;
+                    x2 = ((rpBbox.x + rpBbox.width) * z);// + rp.ix;
                 }
                 if (!y2 || ((rpBbox.y + rpBbox.height) * z) + rp.iy > y2) {
-                    y2 = ((rpBbox.y + rpBbox.height) * z) + rp.iy;
+                    y2 = ((rpBbox.y + rpBbox.height) * z);// + rp.iy;
                 }
             }
         }
 
         for (let sg of this.subgroups) {
             // sg.updateExpandedGroup();
-            const sgBbox = sg.upperGroup.getBBox();
+            const sgBbox = sg.BBox();
+            console.log("SG", sgBbox);
             if (!x1 || (sgBbox.x) < x1) {
                 x1 = (sgBbox.x);
             }
@@ -326,6 +379,9 @@ export class Group extends Interactor {
                 y2 = ((sgBbox.y + sgBbox.height));
             }
         }
+
+        console.log("G:", x1, y1, x2, y2);
+
 
         const updateOutline = function (svgElement) {
             svgElement.setAttribute("x", x1 - pad);
@@ -354,8 +410,17 @@ export class Group extends Interactor {
     }
 
     setHidden(bool) {
-        d3.select(this.upperGroup).style("display", bool ? "none" : null);
-        d3.select(this.labelSVG).style("display", bool ? "none" : null);
+        // d3.select(this.upperGroup).style("display", bool ? "none" : null);
+        // d3.select(this.labelSVG).style("display", bool ? "none" : null);
+
+        if (bool){
+            this.upperGroup.style.visibility = "hidden";
+            this.labelSVG.style.visibility = "hidden";
+        } else {
+            this.upperGroup.style.visibility = null;
+            this.labelSVG.style.visibility = null;
+        }
+
         this.hidden = !!bool;
     }
 
