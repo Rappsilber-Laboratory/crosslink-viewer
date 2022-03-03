@@ -531,15 +531,16 @@ export class CrosslinkViewer extends Backbone.View {
                 const fromProtInCollapsedGroup = ppLink.renderedFromProtein.inCollapsedGroup();
                 const toProtInCollapsedGroup = ppLink.renderedToProtein.inCollapsedGroup();
 
-                if (// or is self link in collapsed group
-                    (ppLink.crosslinks[0].isSelfLink() && fromProtInCollapsedGroup) ||
-                    // or either end is expanded to bar and not in collapsed group
-                    (ppLink.renderedFromProtein.expanded && !fromProtInCollapsedGroup) ||
-                    (ppLink.renderedToProtein.expanded && !toProtInCollapsedGroup) ||
-                    (fromProtInCollapsedGroup && toProtInCollapsedGroup)
-                ) {
-                    ppLink.hide();
-                } else {
+                // if (// or is self link in collapsed group
+                //     (ppLink.crosslinks[0].isSelfLink() && fromProtInCollapsedGroup) ||
+                //     // or either end is expanded to bar and not in collapsed group
+                //     (ppLink.renderedFromProtein.expanded && !fromProtInCollapsedGroup) ||
+                //     (ppLink.renderedToProtein.expanded && !toProtInCollapsedGroup) ||
+                //     (fromProtInCollapsedGroup && toProtInCollapsedGroup)
+                // ) {
+                //     ppLink.hide();
+                // }
+                // else {
                     if (ppLink.filteredCrossLinkCount === 0) {
                         ppLink.hide();
                     } else {
@@ -565,10 +566,21 @@ export class CrosslinkViewer extends Backbone.View {
                             ggLink.p_pLinks.set(ppLink.id, ppLink);
                             ppLink.hide();
                         } else {
-                            ppLink.show();
+                            // ppLink.show();
+                            if (// or is self link in collapsed group
+                                (ppLink.crosslinks[0].isSelfLink() && fromProtInCollapsedGroup) ||
+                                // or either end is expanded to bar and not in collapsed group
+                                (ppLink.renderedFromProtein.expanded && !fromProtInCollapsedGroup) ||
+                                (ppLink.renderedToProtein.expanded && !toProtInCollapsedGroup) ||
+                                (fromProtInCollapsedGroup && toProtInCollapsedGroup)
+                            ) {
+                                ppLink.hide();
+                            } else {
+                                ppLink.show();
+                            }
                         }
                     }
-                }
+                // }
             }
         }
         for (let cLink of this.renderedCrosslinks.values()) {
@@ -576,9 +588,12 @@ export class CrosslinkViewer extends Backbone.View {
         }
         const ggLinkIdsToRemove = [];
         for (let ggLink of this.g_gLinks.values()) {
-            if (ggLink.group1.expanded === false && ggLink.group2.expanded === false && ggLink.check()
-                && this.groupMap.has(ggLink.group1.id) && this.groupMap.has(ggLink.group2.id)
-                && !(ggLink.group1.inCollapsedGroup() || ggLink.group2.inCollapsedGroup)) {
+            if ( //true
+                ggLink.group1.expanded === false && ggLink.group2.expanded === false
+                // && ggLink.check()
+                // && this.groupMap.has(ggLink.group1.id) && this.groupMap.has(ggLink.group2.id)
+                // && !(ggLink.group1.inCollapsedGroup() || ggLink.group2.inCollapsedGroup)
+                ) {
                 ggLink.show();
                 //set line coord?
             } else {
