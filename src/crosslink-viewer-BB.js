@@ -590,9 +590,9 @@ export class CrosslinkViewer extends Backbone.View {
         for (let ggLink of this.g_gLinks.values()) {
             if ( //true
                 ggLink.group1.expanded === false && ggLink.group2.expanded === false
-                // && ggLink.check()
-                // && this.groupMap.has(ggLink.group1.id) && this.groupMap.has(ggLink.group2.id)
-                // && !(ggLink.group1.inCollapsedGroup() || ggLink.group2.inCollapsedGroup)
+                 && ggLink.check()
+                && this.groupMap.has(ggLink.group1.id) && this.groupMap.has(ggLink.group2.id)
+                && !(ggLink.group1.inCollapsedGroup() || ggLink.group2.inCollapsedGroup())
                 ) {
                 ggLink.show();
                 //set line coord?
