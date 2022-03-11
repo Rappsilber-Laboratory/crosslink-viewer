@@ -1281,13 +1281,14 @@ export class CrosslinkViewer extends Backbone.View {
 
                     this.toSelect = [];
 
+                    const svgRect = this.svgElement.createSVGRect();
+                    svgRect.x = rectX;
+                    svgRect.y = rectY;
+                    svgRect.width = Math.abs(sx);
+                    svgRect.height = Math.abs(sy);
+
                     for (let renderedParticipant of this.renderedProteins.values()) {
                         if (renderedParticipant.hidden !== true) {
-                            const svgRect = this.svgElement.createSVGRect();
-                            svgRect.x = rectX;
-                            svgRect.y = rectY;
-                            svgRect.width = Math.abs(sx);
-                            svgRect.height = Math.abs(sy);
                             const intersects = this.svgElement.getIntersectionList(svgRect, renderedParticipant.upperGroup);
                             if (intersects.length > 0) {
                                 renderedParticipant.showHighlight(true);
@@ -1299,6 +1300,21 @@ export class CrosslinkViewer extends Backbone.View {
 
                     }
 
+                    for (let renderedGroup of this.groupMap.values()) {
+                        if (renderedGroup.hidden !== true && renderedGroup.expanded === false) {
+                            const intersects = this.svgElement.getIntersectionList(svgRect, renderedGroup.upperGroup);
+                            if (intersects.length > 0) {
+                                renderedGroup.showHighlight(true);
+                                // this.toSelect.concat(renderedGroup.renderedParticipants);
+                                for (let renderedParticipant of renderedGroup.renderedParticipants){
+                                    this.toSelect.push(renderedParticipant.participant);
+                                }
+                            } else {
+                                renderedGroup.showHighlight(false);
+                            }
+                        }
+
+                    }
 
                 } else {
                     //PAN
