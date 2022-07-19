@@ -25,9 +25,13 @@ export class RenderedProtein extends Interactor {
         this.isFlipped = false;
         this.isSelected = false;
         this.isHighlighted = false;
+        this.createElements();
+    }
+
+    createElements() {
         //'rotators'
-        this.lowerRotator = new Rotator(this, 0, this.controller);
-        this.upperRotator = new Rotator(this, 1, this.controller);
+        // this.lowerRotator = new Rotator(this, 0, this.controller);
+        // this.upperRotator = new Rotator(this, 1, this.controller);
 
         /*
          * Lower group
@@ -121,25 +125,40 @@ export class RenderedProtein extends Interactor {
             evt.returnValue = false;
             return false;
         };
+    }
 
-        Object.defineProperty(this, "width", {
-            get: function width() {
-                if (this.expanded) {
-                    return this.upperGroup.getBBox().width + 10;
-                } else {
-                    return this.upperGroup.getBBox().width + 10;
-                }
-            }
-        });
-        Object.defineProperty(this, "height", {
-            get: function height() {
-                if (this.expanded) {
-                    return this.upperGroup.getBBox().height + 10;
-                } else {
-                    return 60;//this.upperGroup.getBBox().height + 10;
-                }
-            }
-        });
+    get BBox () {
+        return {
+            x:this.ix - 30,
+            y: this.iy - 30,
+            width: 60,
+            height: 60
+        };
+    }
+
+    get width(){
+        // if (this.expanded) {
+        //     return this.upperGroup.getBBox().width + 10;
+        // } else {
+        //     return this.upperGroup.getBBox().width + 10;
+        // }
+        return 60;//
+    }
+
+    get height () {
+        // if (this.expanded) {
+        //     return this.upperGroup.getBBox().height + 10;
+        // } else {
+        return 60;//this.upperGroup.getBBox().height + 10;
+        // }
+    }
+
+    get symbolRadius() {
+        if (this.controller.fixedSize) {
+            return 12;
+        } else {
+            return Math.sqrt(this.participant.size / Math.PI) * 0.6;
+        }
     }
 
     //when we get here all prot's have been created and defaultBarScale will have value
@@ -149,9 +168,47 @@ export class RenderedProtein extends Interactor {
         if (!this.stickZoom) {
             this.stickZoom = this.controller.defaultBarScale;
         }
-        this.showHighlight(this.isHighlighted);
-        this.setSelected(this.isSelected);
-        this.setPositionFromXinet(this.ix, this.iy);
+        // this.showHighlight(this.isHighlighted);
+        // this.setSelected(this.isSelected);
+
+
+
+        // const show = this.isHighlighted;
+        // const select = this.isSelected;
+        //
+        // const d3HighSel = d3.select(this.highlight);
+        // if (show === true) {
+        //     d3HighSel
+        //         .classed("selectedProtein", false)
+        //         .classed("highlightedProtein", true)
+        //         .attr("stroke-opacity", "1");
+        // } else {
+        //     if (!this.isSelected) {
+        //         d3HighSel.attr("stroke-opacity", "0");
+        //     }
+        //     d3HighSel
+        //         .classed("selectedProtein", true)
+        //         .classed("highlightedProtein", false);
+        // }
+        // this.isHighlighted = !!show; // mjg apr 18
+        //
+        // const d3HighSel2 = d3.select(this.highlight);
+        // if (select === true) {
+        //     d3HighSel2
+        //         .classed("selectedProtein", true)
+        //         .classed("highlightedProtein", false)
+        //         .attr("stroke-opacity", "1");
+        // } else {
+        //     d3HighSel2
+        //         .attr("stroke-opacity", "0")
+        //         .classed("selectedProtein", false)
+        //         .classed("highlightedProtein", true);
+        // }
+        // this.isSelected = !!select;
+
+
+
+        // this.setPositionFromXinet(this.ix, this.iy);
         this.scale();
         this.setAllLinkCoordinates();
         if (this.newForm === true) { //hacky?
@@ -178,17 +235,9 @@ export class RenderedProtein extends Interactor {
         }
     }
 
-    getSymbolRadius() {
-        if (this.controller.fixedSize) {
-            return 12;
-        } else {
-            return Math.sqrt(this.participant.size / Math.PI) * 0.6;
-        }
-    }
-
     resize() {
         if (!this.expanded) {
-            const r = this.getSymbolRadius();
+            const r = this.symbolRadius;
             d3.select(this.outline)
                 .attr("x", -r).attr("y", -r)
                 .attr("width", r * 2).attr("height", r * 2)
@@ -288,12 +337,12 @@ export class RenderedProtein extends Interactor {
         this.px = this.x;
         this.py = this.y;
         let xOffset = 0;
-        if (!this.hidden) { // todo - hacky
-            xOffset = (this.width / 2 - (this.getSymbolRadius()) + 5);
-            // if (this.expanded) {
-            //   xOffset = xOffset + (this.participant.size / 2 * this.stickZoom );
-            // }
-        }
+        // if (!this.hidden) { // todo - hacky
+        //     xOffset = (this.width / 2 - (this.getSymbolRadius()) + 5);
+        //     // if (this.expanded) {
+        //     //   xOffset = xOffset + (this.participant.size / 2 * this.stickZoom );
+        //     // }
+        // }
         this.x = ix - xOffset;
         this.y = iy;
         this.setPosition(ix, iy);
@@ -366,7 +415,7 @@ export class RenderedProtein extends Interactor {
         d3.select(this.peptides).attr("transform", "scale(" + (this.stickZoom) + ", 1)");
         const protLength = (this.participant.size) * this.stickZoom;
         if (this.expanded) {
-            const labelWidth = this.labelSVG.getBBox().width;
+            const labelWidth = 40;//this.labelSVG.getBBox().width;
             const labelTransform = d3.transform(this.labelSVG.getAttribute("transform"));
             const k = this.controller.svgElement.createSVGMatrix().rotate(labelTransform.rotate)
                 .translate((-(((this.participant.size / 2) * this.stickZoom) + +(labelWidth / 2) + 10)), 0);
@@ -499,8 +548,18 @@ export class RenderedProtein extends Interactor {
 
     setHidden(bool) {
         // MJG
-        d3.select(this.upperGroup).style("display", bool ? "none" : null);
-        d3.select(this.lowerGroup).style("display", bool ? "none" : null);
+        // d3.select(this.upperGroup).style("display", bool ? "none" : null);
+        // d3.select(this.lowerGroup).style("display", bool ? "none" : null);
+
+        //changing display cuases DOM reflow but visibility does not
+        if (bool){
+            this.upperGroup.style.visibility = "hidden";
+            this.lowerGroup.style.visibility = "hidden";
+        } else {
+            this.upperGroup.style.visibility = null;
+            this.lowerGroup.style.visibility = null;
+        }
+
         this.hidden = !!bool;
     }
 
@@ -523,36 +582,59 @@ export class RenderedProtein extends Interactor {
         const transitionTime = transition ? RenderedProtein.transitionTime : 0; //this maybe isn't so good
 
         this.busy = true;
-        CrosslinkViewer.removeDomElement(this.lowerRotator.svg);
-        CrosslinkViewer.removeDomElement(this.upperRotator.svg);
+        // CrosslinkViewer.removeDomElement(this.lowerRotator.svg);
+        // CrosslinkViewer.removeDomElement(this.upperRotator.svg);
 
         // const protLength = this.participant.size * this.stickZoom;
-        const r = this.getSymbolRadius();
+        const r = this.symbolRadius;
         const protColourModel = window.compositeModelInst.get("proteinColourAssignment");
 
-        d3.select(this.outline).transition()
-            .attr("fill-opacity", 1)
-            .attr("fill", protColourModel.getColour(this.participant))
-            .attr("x", -r).attr("y", -r)
-            .attr("width", r * 2).attr("height", r * 2)
-            .attr("rx", r).attr("ry", r)
-            .duration(transitionTime);
+        if (transition) {
+            d3.select(this.outline).transition()
+                .attr("fill-opacity", 1)
+                .attr("fill", protColourModel.getColour(this.participant))
+                .attr("x", -r).attr("y", -r)
+                .attr("width", r * 2).attr("height", r * 2)
+                .attr("rx", r).attr("ry", r)
+                .duration(transitionTime);
 
-        d3.select(this.background).transition()
-            .attr("fill-opacity", 1)
-            .attr("fill", protColourModel.getColour(this.participant))
-            .attr("x", -r).attr("y", -r)
-            .attr("width", r * 2).attr("height", r * 2)
-            .attr("rx", r).attr("ry", r)
-            .duration(transitionTime);
+            d3.select(this.background).transition()
+                .attr("fill-opacity", 1)
+                .attr("fill", protColourModel.getColour(this.participant))
+                .attr("x", -r).attr("y", -r)
+                .attr("width", r * 2).attr("height", r * 2)
+                .attr("rx", r).attr("ry", r)
+                .duration(transitionTime);
 
-        d3.select(this.rectDomains).transition().attr("opacity", 0)
-            .attr("transform", "scale(1, 1)")
-            .duration(transitionTime);
+            d3.select(this.rectDomains).transition().attr("opacity", 0)
+                .attr("transform", "scale(1, 1)")
+                .duration(transitionTime);
 
-        d3.select(this.circDomains).transition().attr("opacity", 1)
-            .attr("transform", "scale(1, 1)")
-            .duration(transitionTime);
+            d3.select(this.circDomains).transition().attr("opacity", 1)
+                .attr("transform", "scale(1, 1)")
+                .duration(transitionTime);
+        } else {
+            d3.select(this.outline)
+                .attr("fill-opacity", 1)
+                .attr("fill", protColourModel.getColour(this.participant))
+                .attr("x", -r).attr("y", -r)
+                .attr("width", r * 2).attr("height", r * 2)
+                .attr("rx", r).attr("ry", r);
+
+            d3.select(this.background)
+                .attr("fill-opacity", 1)
+                .attr("fill", protColourModel.getColour(this.participant))
+                .attr("x", -r).attr("y", -r)
+                .attr("width", r * 2).attr("height", r * 2)
+                .attr("rx", r).attr("ry", r);
+
+            d3.select(this.rectDomains).attr("opacity", 0)
+                .attr("transform", "scale(1, 1)");
+
+            d3.select(this.circDomains).attr("opacity", 1)
+                .attr("transform", "scale(1, 1)");
+        }
+
 
         const stickZoomInterpol = d3.interpolate(this.stickZoom, 0);
         const rotationInterpol = d3.interpolate((this.rotation > 180) ? this.rotation - 360 : this.rotation, 0);
@@ -569,72 +651,89 @@ export class RenderedProtein extends Interactor {
         }
 
         const self = this;
-        d3.select(this.ticks).transition().attr("opacity", 0).duration(transitionTime / 4)
-            .each("end",
-                function () {
-                    d3.select(this).selectAll("*").remove();
+        if (transition) {
+            d3.select(this.ticks).transition().attr("opacity", 0).duration(transitionTime / 4)
+                .each("end",
+                    function () {
+                        d3.select(this).selectAll("*").remove();
+                    }
+                );
+            d3.select(this.highlight).transition()
+                .attr("width", (r * 2) + 5).attr("height", (r * 2) + 5)
+                .attr("x", -r - 2.5).attr("y", -r - 2.5)
+                .attr("rx", r + 2.5).attr("ry", r + 2.5)
+                .duration(transitionTime);
+            const aggSelfLinkPath = this.getAggregateSelfLinkPath();
+            for (let residueLink of this.renderedCrosslinks) {
+                const crosslinkPath = this.getCrossLinkPath(residueLink);
+                const lineSel = d3.select(residueLink.line);
+                if (residueLink.crosslink.isSelfLink()) {
+                    lineSel.attr("d", crosslinkPath);
+                    lineSel.transition().attr("d", aggSelfLinkPath)
+                        .duration(transitionTime);
+                    const highlightLineSel = d3.select(residueLink.highlightLine);
+                    highlightLineSel.attr("d", crosslinkPath);
+                    highlightLineSel.transition().attr("d", aggSelfLinkPath)
+                        .duration(transitionTime);
+                } else if (residueLink.crosslink.isMonoLink()) {
+                    lineSel.attr("d", crosslinkPath);
+                    lineSel.transition().attr("d", "M 0,0 L 0,0 L 0,0 L 0,0")
+                        .duration(transitionTime);
+                    const highlightLineSel = d3.select(residueLink.highlightLine);
+                    highlightLineSel.attr("d", crosslinkPath);
+                    highlightLineSel.transition().attr("d", "M 0,0 L 0,0 L 0,0 L 0,0")
+                        .duration(transitionTime);
                 }
-            );
-
-        d3.select(this.highlight).transition()
-            .attr("width", (r * 2) + 5).attr("height", (r * 2) + 5)
-            .attr("x", -r - 2.5).attr("y", -r - 2.5)
-            .attr("rx", r + 2.5).attr("ry", r + 2.5)
-            .duration(transitionTime);
-
-        const aggSelfLinkPath = this.getAggregateSelfLinkPath();
-        for (let residueLink of this.renderedCrosslinks) {
-            const crosslinkPath = this.getCrossLinkPath(residueLink);
-            const lineSel = d3.select(residueLink.line);
-            if (residueLink.crosslink.isSelfLink()) {
-                lineSel.attr("d", crosslinkPath);
-                lineSel.transition().attr("d", aggSelfLinkPath)
-                    .duration(transitionTime);
-                const highlightLineSel = d3.select(residueLink.highlightLine);
-                highlightLineSel.attr("d", crosslinkPath);
-                highlightLineSel.transition().attr("d", aggSelfLinkPath)
-                    .duration(transitionTime);
-            } else if (residueLink.crosslink.isMonoLink()) {
-                lineSel.attr("d", crosslinkPath);
-                lineSel.transition().attr("d", "M 0,0 L 0,0 L 0,0 L 0,0")
-                    .duration(transitionTime);
-                const highlightLineSel = d3.select(residueLink.highlightLine);
-                highlightLineSel.attr("d", crosslinkPath);
-                highlightLineSel.transition().attr("d", "M 0,0 L 0,0 L 0,0 L 0,0")
-                    .duration(transitionTime);
             }
-        }
 
-        if (this.annotations) {
-            const annotArr = Array.from(this.annotations.values());
-            const annotationCount = annotArr.length;
-            for (let a = 0; a < annotationCount; a++) {
-                const anno = annotArr[a],
-                    feature = anno.feature,
-                    pieSlice = anno.pieSlice,
-                    rectDomain = anno.colouredRect;
-                if (feature.type !== RenderedProtein.disulfide) {
-                    d3.select(pieSlice).transition().attr("d", this.getAnnotationPieSliceApproximatePath(feature))
-                        .duration(transitionTime).each("end",
-                            function () {
-                                for (let b = 0; b < annotationCount; b++) {
-                                    const annoB = annotArr[b];
-                                    if (this === annoB.pieSlice) {
-                                        d3.select(this).attr("d", self.getAnnotationPieSliceArcPath(annoB.feature));
+            if (this.annotations) {
+                const annotArr = Array.from(this.annotations.values());
+                const annotationCount = annotArr.length;
+                for (let a = 0; a < annotationCount; a++) {
+                    const anno = annotArr[a],
+                        feature = anno.feature,
+                        pieSlice = anno.pieSlice,
+                        rectDomain = anno.colouredRect;
+                    if (feature.type !== RenderedProtein.disulfide) {
+                        if (transition) {
+                            d3.select(pieSlice).transition().attr("d", this.getAnnotationPieSliceApproximatePath(feature))
+                                .duration(transitionTime).each("end",
+                                    function () {
+                                        for (let b = 0; b < annotationCount; b++) {
+                                            const annoB = annotArr[b];
+                                            if (this === annoB.pieSlice) {
+                                                d3.select(this).attr("d", self.getAnnotationPieSliceArcPath(annoB.feature));
+                                            }
+                                        }
                                     }
+                                );
+
+                            d3.select(rectDomain).transition().attr("d", self.getAnnotationPieSliceApproximatePath(feature))
+                                .duration(transitionTime);
+                        }
+                        else {
+                            for (let b = 0; b < annotationCount; b++) {
+                                const annoB = annotArr[b];
+                                if (this === annoB.pieSlice) {
+                                    d3.select(this).attr("d", self.getAnnotationPieSliceArcPath(annoB.feature));
                                 }
                             }
-                        );
 
-                    d3.select(rectDomain).transition().attr("d", self.getAnnotationPieSliceApproximatePath(feature))
-                        .duration(transitionTime);
-                } else {
-                    d3.select(pieSlice).transition().attr("d", this.getDisulfidAnnotationCircPath(feature))
-                        .duration(transitionTime);
-                    d3.select(rectDomain).transition().attr("d", self.getDisulfidAnnotationRectPath(feature))
-                        .duration(transitionTime);
+                        }
+                    } else {
+                        d3.select(pieSlice).transition().attr("d", this.getDisulfidAnnotationCircPath(feature))
+                            .duration(transitionTime);
+                        d3.select(rectDomain).transition().attr("d", self.getDisulfidAnnotationRectPath(feature))
+                            .duration(transitionTime);
+                    }
                 }
             }
+        } else {
+            d3.select(this.ticks).selectAll("*").remove();
+            d3.select(this.highlight)
+                .attr("width", (r * 2) + 5).attr("height", (r * 2) + 5)
+                .attr("x", -r - 2.5).attr("y", -r - 2.5)
+                .attr("rx", r + 2.5).attr("ry", r + 2.5);
         }
 
         const originalStickZoom = this.stickZoom;
@@ -695,17 +794,17 @@ export class RenderedProtein extends Interactor {
         this.expanded = true;
 
         //place rotators
-        this.upperGroup.appendChild(this.lowerRotator.svg);
-        this.upperGroup.appendChild(this.upperRotator.svg);
-        this.placeRotators();
+        // this.upperGroup.appendChild(this.lowerRotator.svg);
+        // this.upperGroup.appendChild(this.upperRotator.svg);
+        // this.placeRotators();
 
         const protLength = this.participant.size * this.stickZoom;
-        const r = this.getSymbolRadius();
+        const r = this.symbolRadius;
 
         const lengthInterpol = d3.interpolate((2 * r), protLength);
         const stickZoomInterpol = d3.interpolate(0, this.stickZoom);
         const rotationInterpol = d3.interpolate(0, (this.rotation > 180) ? this.rotation - 360 : this.rotation);
-        const labelWidth = this.labelSVG.getBBox().width;
+        const labelWidth = 40;//this.labelSVG.getBBox().width;
         const labelTranslateInterpol = d3.interpolate(0 /*-(r + 5)*/, -(((this.participant.size / 2) * this.stickZoom) + (labelWidth / 2) + 10));
 
         const origStickZoom = this.stickZoom;
@@ -1106,7 +1205,7 @@ export class RenderedProtein extends Interactor {
             sweepFlag = 1;
         }
 
-        const radius = this.getSymbolRadius() - 2;
+        const radius = this.symbolRadius - 2;
         const arcStart = trig(radius, startAngle - 90);
         const arcEnd = trig(radius, endAngle - 90);
         return "M0,0 L" + arcStart.x + "," + arcStart.y + " A" + radius + "," +
@@ -1117,7 +1216,7 @@ export class RenderedProtein extends Interactor {
         //approximate pie slice
         const startAngle = ((annotation.fstart - 1) / this.participant.size) * 360;
         const endAngle = ((annotation.fend) / this.participant.size) * 360;
-        const pieRadius = this.getSymbolRadius() - 2;
+        const pieRadius = this.symbolRadius - 2;
         let approximatePiePath = "M 0,0";
         const stepsInArc = 5;
         for (let sia = 0; sia <= RenderedProtein.stepsInArc; sia++) {

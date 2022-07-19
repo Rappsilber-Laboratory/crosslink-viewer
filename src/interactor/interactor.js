@@ -7,7 +7,7 @@ export class Interactor {
         this.controller = controller;
     }
 
-    getSymbolRadius() {
+    get symbolRadius() {
         return 25;
     }
 
@@ -60,8 +60,25 @@ export class Interactor {
         this.isSelected = !!select;
     }
 
+    // setHidden(bool) {
+    //     // MJG
+    //     // d3.select(this.upperGroup).style("display", bool ? "none" : null);
+    //     // d3.select(this.lowerGroup).style("display", bool ? "none" : null);
+    //
+    //     //changing display causes DOM reflow but visibility does not
+    //     if (bool){
+    //         this.upperGroup.style.visibility = "hidden";
+    //         this.lowerGroup.style.visibility = "hidden";
+    //     } else {
+    //         this.upperGroup.style.visibility = null;
+    //         this.lowerGroup.style.visibility = null;
+    //     }
+    //
+    //     this.hidden = !!bool;
+    // }
+
     getAggregateSelfLinkPath() {
-        const intraR = this.getSymbolRadius() + 7;
+        const intraR = this.symbolRadius + 7;
         const sectorSize = 45;
         const arcStart = trig(intraR, 25 + sectorSize);
         const arcEnd = trig(intraR, -25 + sectorSize);
