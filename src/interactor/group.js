@@ -410,16 +410,18 @@ export class Group extends Interactor {
     }
 
     setHidden(bool) {
-        // d3.select(this.upperGroup).style("display", bool ? "none" : null);
-        // d3.select(this.labelSVG).style("display", bool ? "none" : null);
+        d3.select(this.upperGroup).style("display", bool ? "none" : null);
+        d3.select(this.labelSVG).style("display", bool ? "none" : null);
 
-        if (bool){
-            this.upperGroup.style.visibility = "hidden";
-            this.labelSVG.style.visibility = "hidden";
-        } else {
-            this.upperGroup.style.visibility = null;
-            this.labelSVG.style.visibility = null;
-        }
+        //changing display cuases DOM reflow but visibility does not
+        // ...BUT they do need display none so they don't affect boundingbox of container
+        // if (bool){
+        //     this.upperGroup.style.visibility = "hidden";
+        //     this.labelSVG.style.visibility = "hidden";
+        // } else {
+        //     this.upperGroup.style.visibility = null;
+        //     this.labelSVG.style.visibility = null;
+        // }
 
         this.hidden = !!bool;
     }

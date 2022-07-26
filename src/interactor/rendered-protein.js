@@ -30,8 +30,8 @@ export class RenderedProtein extends Interactor {
 
     createElements() {
         //'rotators'
-        // this.lowerRotator = new Rotator(this, 0, this.controller);
-        // this.upperRotator = new Rotator(this, 1, this.controller);
+        this.lowerRotator = new Rotator(this, 0, this.controller);
+        this.upperRotator = new Rotator(this, 1, this.controller);
 
         /*
          * Lower group
@@ -415,7 +415,7 @@ export class RenderedProtein extends Interactor {
         d3.select(this.peptides).attr("transform", "scale(" + (this.stickZoom) + ", 1)");
         const protLength = (this.participant.size) * this.stickZoom;
         if (this.expanded) {
-            const labelWidth = 40;//this.labelSVG.getBBox().width;
+            const labelWidth = this.labelSVG.getBBox().width;
             const labelTransform = d3.transform(this.labelSVG.getAttribute("transform"));
             const k = this.controller.svgElement.createSVGMatrix().rotate(labelTransform.rotate)
                 .translate((-(((this.participant.size / 2) * this.stickZoom) + +(labelWidth / 2) + 10)), 0);
@@ -548,18 +548,8 @@ export class RenderedProtein extends Interactor {
 
     setHidden(bool) {
         // MJG
-        // d3.select(this.upperGroup).style("display", bool ? "none" : null);
-        // d3.select(this.lowerGroup).style("display", bool ? "none" : null);
-
-        //changing display cuases DOM reflow but visibility does not
-        if (bool){
-            this.upperGroup.style.visibility = "hidden";
-            this.lowerGroup.style.visibility = "hidden";
-        } else {
-            this.upperGroup.style.visibility = null;
-            this.lowerGroup.style.visibility = null;
-        }
-
+        d3.select(this.upperGroup).style("display", bool ? "none" : null);
+        d3.select(this.lowerGroup).style("display", bool ? "none" : null);
         this.hidden = !!bool;
     }
 
@@ -582,8 +572,8 @@ export class RenderedProtein extends Interactor {
         const transitionTime = transition ? RenderedProtein.transitionTime : 0; //this maybe isn't so good
 
         this.busy = true;
-        // CrosslinkViewer.removeDomElement(this.lowerRotator.svg);
-        // CrosslinkViewer.removeDomElement(this.upperRotator.svg);
+        CrosslinkViewer.removeDomElement(this.lowerRotator.svg);
+        CrosslinkViewer.removeDomElement(this.upperRotator.svg);
 
         // const protLength = this.participant.size * this.stickZoom;
         const r = this.symbolRadius;
@@ -794,9 +784,9 @@ export class RenderedProtein extends Interactor {
         this.expanded = true;
 
         //place rotators
-        // this.upperGroup.appendChild(this.lowerRotator.svg);
-        // this.upperGroup.appendChild(this.upperRotator.svg);
-        // this.placeRotators();
+        this.upperGroup.appendChild(this.lowerRotator.svg);
+        this.upperGroup.appendChild(this.upperRotator.svg);
+        this.placeRotators();
 
         const protLength = this.participant.size * this.stickZoom;
         const r = this.symbolRadius;
@@ -804,7 +794,7 @@ export class RenderedProtein extends Interactor {
         const lengthInterpol = d3.interpolate((2 * r), protLength);
         const stickZoomInterpol = d3.interpolate(0, this.stickZoom);
         const rotationInterpol = d3.interpolate(0, (this.rotation > 180) ? this.rotation - 360 : this.rotation);
-        const labelWidth = 40;//this.labelSVG.getBBox().width;
+        const labelWidth = this.labelSVG.getBBox().width;
         const labelTranslateInterpol = d3.interpolate(0 /*-(r + 5)*/, -(((this.participant.size / 2) * this.stickZoom) + (labelWidth / 2) + 10));
 
         const origStickZoom = this.stickZoom;

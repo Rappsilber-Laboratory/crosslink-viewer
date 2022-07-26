@@ -30,7 +30,7 @@ export class CrosslinkViewer extends Backbone.View {
     }
 
     initialize() {
-        this.debug = true;
+        this.debug = false;
         this.fixedSize = this.model.get("xinetFixedSize");
         const self = this;
 
@@ -341,7 +341,7 @@ export class CrosslinkViewer extends Backbone.View {
                 this.groupMap.set(group.id, group);
             }
         }
-        // this.scale();//just to update groups selection highlights
+        this.scale();//just to update groups selection highlights
         this.hiddenProteinsChanged();
         this.render();
     }
@@ -424,11 +424,11 @@ export class CrosslinkViewer extends Backbone.View {
 
         //sort out parentGroups
         for (let group1 of groups.reverse()) {
-            // if (group1.upperGroup.parentNode) {
-            //     const pn = group1.upperGroup.parentNode;
-            //     pn.removeChild(group1.upperGroup);
-            //     pn.appendChild(group1.upperGroup);
-            // }
+            if (group1.upperGroup.parentNode) {
+                const pn = group1.upperGroup.parentNode;
+                pn.removeChild(group1.upperGroup);
+                pn.appendChild(group1.upperGroup);
+            }
             for (let group2 of group1.subgroups) {
                 group2.parentGroups.add(group1);
             }
@@ -748,7 +748,7 @@ export class CrosslinkViewer extends Backbone.View {
                     }
                 }
                 if (fixedParticipants.length === 0) {
-                    // self.zoomToFullExtent();
+                    self.zoomToFullExtent();
                 }
 
                 if (self.debug) {
@@ -866,7 +866,7 @@ export class CrosslinkViewer extends Backbone.View {
 
         this.model.get("filterModel").trigger("change", this.model.get("filterModel"));
 
-        // this.zoomToFullExtent();
+        this.zoomToFullExtent();
 
         if (layoutIsDodgy) {
             alert("Looks like something went wrong with the saved layout, if you can't see your proteins click Auto layout");
