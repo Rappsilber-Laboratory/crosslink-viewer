@@ -89,7 +89,7 @@ export class CrosslinkViewer extends Backbone.View {
         const groupContextMenu = d3.select(".group-custom-menu-margin").node();
         groupContextMenu.onmouseout = contextMenuMouseOut;
 
-        //create SVG elemnent
+        //create SVG element
         this.svgElement = d3.select(this.el).append("div").style("height", "100%").append("svg").node(); //document.createElementNS(CrosslinkViewer.svgns, "svg");
         this.svgElement.setAttribute("width", "100%");
         this.svgElement.setAttribute("height", "100%");
@@ -110,7 +110,7 @@ export class CrosslinkViewer extends Backbone.View {
             if (evt.preventDefault) { // necessary for addEventListener, works with traditional
                 evt.preventDefault();
             }
-            // if (evt.stopPropogation) {
+            // if (evt.stopPropagation) {
             //     evt.stopPropagation();
             // }
             evt.returnValue = false; // necessary for attachEvent, works with traditional
@@ -206,8 +206,8 @@ export class CrosslinkViewer extends Backbone.View {
         let maxSeqLength = 0;
         for (let participant of this.model.get("clmsModel").get("participants").values()) {
             if (participant.is_decoy === false && this.renderedProteins.has(participant.id) === false) {
-                const newProt = new RenderedProtein(participant, this);
-                this.renderedProteins.set(participant.id, newProt);
+                const newProtien = new RenderedProtein(participant, this);
+                this.renderedProteins.set(participant.id, newProtien);
 
                 const protSize = participant.size;
                 if (protSize > maxSeqLength) {
@@ -311,10 +311,10 @@ export class CrosslinkViewer extends Backbone.View {
         const modelGroups = this.model.get("groups");
 
         //clear out old groups -- https://stackoverflow.com/questions/9882284/looping-through-array-and-removing-items-without-breaking-for-loop
-        const groupIdsToremove = [];
+        const groupIdsToRemove = [];
         for (let group of this.groupMap.values()) {
             if (!modelGroups.has(group.id)) {
-                groupIdsToremove.push(group.id);
+                groupIdsToRemove.push(group.id);
 
                 group.parentGroups = new Set();//[]; //don't think necessary but just in case
                 group.subroups = [];
@@ -329,7 +329,7 @@ export class CrosslinkViewer extends Backbone.View {
                 }
             }
         }
-        for (let rgId of groupIdsToremove) {
+        for (let rgId of groupIdsToRemove) {
             this.groupMap.delete(rgId);
         }
 
@@ -349,7 +349,7 @@ export class CrosslinkViewer extends Backbone.View {
     // handle changes to manually hidden proteins,
     // but also deal with stuff to do with groups / group hierarchy
     // specifically subgroups could change as result of things being hidden so this is here
-    // (i.e overlapping group becomes subgroup)
+    // (i.e. overlapping group becomes subgroup)
     hiddenProteinsChanged() {
         console.log("xiNET HIDDEN PROTEINS CHANGED");
         this.d3cola.stop();
@@ -359,7 +359,7 @@ export class CrosslinkViewer extends Backbone.View {
             g.subgroups = []; // subgroups as xiNET.Groups
             g.parentGroups = new Set();
             g.leaves = []; // different from g.renderedParticipants coz only contains ungrouped RenderedProteins, used by cola.js
-            g.groups = []; // indexes of subgroups in resulting groupArr, used by cola.js // needed? prob not coz groups already refered to by index
+            g.groups = []; // indexes of subgroups in resulting groupArr, used by cola.js // needed? prob not coz groups already referred to by index
 
             for (let rp of g.renderedParticipants) {
                 rp.parentGroups.delete(g); // sometimes it won't have contained g as parentGroup
@@ -385,7 +385,7 @@ export class CrosslinkViewer extends Backbone.View {
             }
         }
 
-        //remove obselete subgroups
+        //remove obsolete subgroups
         for (let gi = 0; gi < gCount; gi++) {
             const group1 = groups[gi];
             //if subgroup has parent also in group1.subgroups then remove it
@@ -400,14 +400,14 @@ export class CrosslinkViewer extends Backbone.View {
                     }
                 }
             }
-            for (let sgToremove of subgroupsToRemove) {
-                const index = group1.subgroups.indexOf(sgToremove);
+            for (let sgToRemove of subgroupsToRemove) {
+                const index = group1.subgroups.indexOf(sgToRemove);
                 group1.subgroups = group1.subgroups.splice(index, 1);
             }
         }
 
         for (let g of groups) {
-            g.leaves = []; // clear this, its used by cola, gets filled by auto
+            g.leaves = []; // clear this, it's used by cola, gets filled by auto
             for (let rp of g.renderedParticipants) {
                 let inSubGroup = false;
                 for (let subgroup of g.subgroups) {
@@ -451,8 +451,8 @@ export class CrosslinkViewer extends Backbone.View {
         } else {
             const pSel = d3.select("#hiddenProteinsText");
             pSel.text((manuallyHidden > 1) ? (manuallyHidden + " Hidden Proteins") : (manuallyHidden + " Hidden Protein"));
-            const messgeSel = d3.select("#hiddenProteinsMessage");
-            messgeSel.style("display", "block");
+            const messageSel = d3.select("#hiddenProteinsMessage");
+            messageSel.style("display", "block");
         }
 
 
@@ -523,7 +523,7 @@ export class CrosslinkViewer extends Backbone.View {
             ppLink.ambiguous = altP_PLinks.size > 1;
 
             if (!ppLink.renderedToProtein || // not linear
-                //or either end hidden hidden
+                //or either end hidden
                 ppLink.renderedFromProtein.participant.hidden ||
                 ppLink.renderedToProtein.participant.hidden) {
                 ppLink.hide();
@@ -625,7 +625,7 @@ export class CrosslinkViewer extends Backbone.View {
             delete renderedProtein.index;
         }
         for (let g of this.groupMap.values()) {
-            if (fixedParticipants.length === 0) { // todo - some issues here (select a collpased group and select fixed selected)
+            if (fixedParticipants.length === 0) { // todo - some issues here (select a collapsed group and select fixed selected)
                 delete g.x;
                 delete g.y;
                 delete g.px; // todo - check if this is necessary
@@ -633,7 +633,7 @@ export class CrosslinkViewer extends Backbone.View {
             }
             delete g.index;
             delete g.parent;
-            g.leaves = []; // clear this, its used by cola, gets filled by auto
+            g.leaves = []; // clear this, it's used by cola, gets filled by auto
         }
 
         const linkLength = (this.renderedProteins.size < 20) ? 40 : 20;
@@ -873,7 +873,7 @@ export class CrosslinkViewer extends Backbone.View {
         }
 
         if (namesChanged) {
-            // vent.trigger("proteinMetadataUpdated", {}); //aint gonna work
+            // vent.trigger("proteinMetadataUpdated", {}); //ain't gonna work
             for (let renderedParticipant of this.renderedProteins.values()) {
                 renderedParticipant.updateName();
             }
@@ -1111,7 +1111,7 @@ export class CrosslinkViewer extends Backbone.View {
                     p_pLink.highlightLine.setAttribute("stroke-width", this.z * 10);
                     p_pLink.updateThickLineWidth();
                     if (p_pLink.ambiguous) {
-                        p_pLink.dashedLine(true); //rescale spacing of dashes // preformance issue?
+                        p_pLink.dashedLine(true); //rescale spacing of dashes // performance issue?
                     }
                 }
             }
@@ -1154,7 +1154,7 @@ export class CrosslinkViewer extends Backbone.View {
     }
 
     mouseDown(evt) {
-        //prevent default, but allow propogation
+        //prevent default, but allow propagation
         evt.preventDefault();
         //stop layout
         this.d3cola.stop();
@@ -1177,14 +1177,14 @@ export class CrosslinkViewer extends Backbone.View {
             if (Math.sqrt(dx * dx + dy * dy) > (5 * this.z)) {
                 this.mouseMoved = true;
             }
-            if (this.dragElement != null && evt.which !== 3) { //dragging or rotating / not right click mouse down
+            if (this.dragElement != null && evt.which !== 3) { //dragging or rotating / not right-click mouse down
                 //remove tooltip
                 this.model.get("tooltipModel").set("contents", null);
                 if (this.state === CrosslinkViewer.STATES.DRAGGING) {
                     // we are currently dragging things around
                     let ox, oy, nx, ny;
                     if (this.dragElement.participant) {
-                        //its a protein - drag it, or drag all selcted if it is selected
+                        //it's a protein - drag it, or drag all selected if it is selected
                         let toDrag;
                         if (this.dragElement.isSelected === false) {
                             toDrag = [this.dragElement.participant];
@@ -1337,7 +1337,7 @@ export class CrosslinkViewer extends Backbone.View {
         this.preventDefaultsAndStopPropagation(evt);
         //remove selection rect, may not be shown but just do this now
         this.selectionRectSel.attr("display", "none");
-        //eliminate some spurious mouse up events - a simple version of debouncing but it seems to work better than for e.g. _.debounce
+        //eliminate some spurious mouse up events - a simple version of debouncing, but it seems to work better than for e.g. _.debounce
         const time = new Date().getTime();
         if ((time - this.lastMouseUp) > 150) {
             const rightClick = (evt.button === 2);
@@ -1400,12 +1400,12 @@ export class CrosslinkViewer extends Backbone.View {
                             }
                         }
 
-                    } else if (this.dragElement.participant && !this.mouseMoved) { // its a protein
+                    } else if (this.dragElement.participant && !this.mouseMoved) { // it's a protein
 
                         // ADD SINGLE PROTEIN TO SELECTION - LEFT CLICK, NO MOVE, IS A DRAG ELEMENT
                         this.model.setSelectedProteins([this.dragElement.participant], add);
 
-                    } else if (this.dragElement.type === "group" && !this.mouseMoved) { // was left click on a group, no move mouse
+                    } else if (this.dragElement.type === "group" && !this.mouseMoved) { // was left-click on a group, no move mouse
                         //add all group proteins to selection
                         const participants = [];
                         for (let rp of this.dragElement.renderedParticipants) {
@@ -1460,7 +1460,7 @@ export class CrosslinkViewer extends Backbone.View {
     }
 
     mouseOut() { //todo
-        // don't, causes prob's - RenderedInteractor mouseOut getting propogated?
+        // don't, causes problem's - RenderedInteractor mouseOut getting propagated?
         // d3.select(".custom-menu-margin").style("display", "none");
         // d3.select(".group-custom-menu-margin").style("display", "none");
     }
@@ -1480,7 +1480,7 @@ export class CrosslinkViewer extends Backbone.View {
         return p;
     }
 
-    //stop event propogation and defaults; only do what we ask
+    //stop event propagation and defaults; only do what we ask
     preventDefaultsAndStopPropagation(evt) {
         if (evt.stopPropagation)
             evt.stopPropagation();
