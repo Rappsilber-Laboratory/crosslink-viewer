@@ -5,7 +5,6 @@ import * as _ from "underscore";
 import Backbone from "backbone";
 import * as cola from "../vendor/cola";
 
-
 import {svgUtils} from "../../xi3/vendor/svgexp";
 import {filterStateToString, makeLegalFileName, searchesToString} from "../../xi3/js/utils";
 import {download} from "../../xi3/js/downloads";
@@ -541,45 +540,45 @@ export class CrosslinkViewer extends Backbone.View {
                 //     ppLink.hide();
                 // }
                 // else {
-                    if (ppLink.filteredCrossLinkCount === 0) {
+                if (ppLink.filteredCrossLinkCount === 0) {
+                    ppLink.hide();
+                } else {
+                    ppLink.ambiguous = altP_PLinks.size > 1;
+                    if (fromProtInCollapsedGroup && toProtInCollapsedGroup) {
+                        const source = ppLink.renderedFromProtein.getRenderedParticipant();
+                        const target = ppLink.renderedToProtein.getRenderedParticipant();
+                        let ggId;
+                        if (source.id < target.id) {
+                            ggId = source.id + "_" + target.id;
+                        } else {
+                            ggId = target.id + "_" + source.id;
+                        }
+                        let ggLink = ppLink.controller.g_gLinks.get(ggId);
+                        if (!ggLink) {
+                            if (source.id < target.id) {
+                                ggLink = new G_GLink(ggId, source, target, this);
+                            } else {
+                                ggLink = new G_GLink(ggId, target, source, this);
+                            }
+                            this.g_gLinks.set(ggId, ggLink);
+                        }
+                        ggLink.p_pLinks.set(ppLink.id, ppLink);
                         ppLink.hide();
                     } else {
-                        ppLink.ambiguous = altP_PLinks.size > 1;
-                        if (fromProtInCollapsedGroup && toProtInCollapsedGroup) {
-                            const source = ppLink.renderedFromProtein.getRenderedParticipant();
-                            const target = ppLink.renderedToProtein.getRenderedParticipant();
-                            let ggId;
-                            if (source.id < target.id) {
-                                ggId = source.id + "_" + target.id;
-                            } else {
-                                ggId = target.id + "_" + source.id;
-                            }
-                            let ggLink = ppLink.controller.g_gLinks.get(ggId);
-                            if (!ggLink) {
-                                if (source.id < target.id) {
-                                    ggLink = new G_GLink(ggId, source, target, this);
-                                } else {
-                                    ggLink = new G_GLink(ggId, target, source, this);
-                                }
-                                this.g_gLinks.set(ggId, ggLink);
-                            }
-                            ggLink.p_pLinks.set(ppLink.id, ppLink);
+                        // ppLink.show();
+                        if (// or is self link in collapsed group
+                            (ppLink.crosslinks[0].isSelfLink() && fromProtInCollapsedGroup) ||
+                            // or either end is expanded to bar and not in collapsed group
+                            (ppLink.renderedFromProtein.expanded && !fromProtInCollapsedGroup) ||
+                            (ppLink.renderedToProtein.expanded && !toProtInCollapsedGroup) ||
+                            (fromProtInCollapsedGroup && toProtInCollapsedGroup)
+                        ) {
                             ppLink.hide();
                         } else {
-                            // ppLink.show();
-                            if (// or is self link in collapsed group
-                                (ppLink.crosslinks[0].isSelfLink() && fromProtInCollapsedGroup) ||
-                                // or either end is expanded to bar and not in collapsed group
-                                (ppLink.renderedFromProtein.expanded && !fromProtInCollapsedGroup) ||
-                                (ppLink.renderedToProtein.expanded && !toProtInCollapsedGroup) ||
-                                (fromProtInCollapsedGroup && toProtInCollapsedGroup)
-                            ) {
-                                ppLink.hide();
-                            } else {
-                                ppLink.show();
-                            }
+                            ppLink.show();
                         }
                     }
+                }
                 // }
             }
         }
@@ -590,10 +589,10 @@ export class CrosslinkViewer extends Backbone.View {
         for (let ggLink of this.g_gLinks.values()) {
             if ( //true
                 ggLink.group1.expanded === false && ggLink.group2.expanded === false
-                 && ggLink.check()
+                && ggLink.check()
                 && this.groupMap.has(ggLink.group1.id) && this.groupMap.has(ggLink.group2.id)
                 && !(ggLink.group1.inCollapsedGroup() || ggLink.group2.inCollapsedGroup())
-                ) {
+            ) {
                 ggLink.show();
                 //set line coord?
             } else {
@@ -1083,7 +1082,7 @@ export class CrosslinkViewer extends Backbone.View {
             scaleFactor = xr;
         }
         this.container.setAttribute("transform", "scale(" + scaleFactor
-            + ") translate(" + ((width / scaleFactor) - bbox.width - bbox.x + (margin /scaleFactor)) + " " + (-bbox.y + (margin /scaleFactor)) + ")");
+            + ") translate(" + ((width / scaleFactor) - bbox.width - bbox.x + (margin / scaleFactor)) + " " + (-bbox.y + (margin / scaleFactor)) + ")");
         this.scale();
     }
 
@@ -1306,7 +1305,7 @@ export class CrosslinkViewer extends Backbone.View {
                             if (intersects.length > 0) {
                                 renderedGroup.showHighlight(true);
                                 // this.toSelect.concat(renderedGroup.renderedParticipants);
-                                for (let renderedParticipant of renderedGroup.renderedParticipants){
+                                for (let renderedParticipant of renderedGroup.renderedParticipants) {
                                     this.toSelect.push(renderedParticipant.participant);
                                 }
                             } else {
