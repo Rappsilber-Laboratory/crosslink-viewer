@@ -33,9 +33,6 @@ export class CrosslinkViewer extends Backbone.View {
         this.fixedSize = this.model.get("xinetFixedSize");
         const self = this;
 
-        //avoids prob with 'save - web page complete'
-        d3.select(this.el).selectAll("*").remove();
-
         //protein context menu
         const customMenuSel = d3.select(this.el)
             .append("div").classed("custom-menu-margin", true)
@@ -117,15 +114,9 @@ export class CrosslinkViewer extends Backbone.View {
         };
 
         const mouseWheelEvt = (/Firefox/i.test(navigator.userAgent)) ? "DOMMouseScroll" : "mousewheel"; //FF doesn't recognize mousewheel as of FF3.x
-        // if (document.attachEvent) { //if IE (and Opera depending on user setting)
-        //     this.svgElement.attachEvent("on" + mouseWheelEvt, function (evt) {
-        //         self.mouseWheel(evt);
-        //     });
-        // } else if (document.addEventListener) { //WC3 browsers
         this.svgElement.addEventListener(mouseWheelEvt, function (evt) {
             self.mouseWheel(evt);
         }, false);
-        // }
 
         this.lastMouseUp = new Date().getTime();
 
@@ -271,7 +262,6 @@ export class CrosslinkViewer extends Backbone.View {
         this.listenTo(this.model, "filteringDone", this.render);
         this.listenTo(this.model, "hiddenChanged", this.hiddenProteinsChanged);
         this.listenTo(this.model, "change:groups", this.groupsChanged);
-
         this.listenTo(this.model, "change:highlights", this.highlightedLinksChanged);
         this.listenTo(this.model, "change:selection", this.selectedLinksChanged);
 

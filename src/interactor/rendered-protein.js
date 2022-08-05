@@ -127,30 +127,30 @@ export class RenderedProtein extends Interactor {
         };
     }
 
-    get BBox () {
-        return {
-            x:this.ix - 30,
-            y: this.iy - 30,
-            width: 60,
-            height: 60
-        };
-    }
+    //get BBox () {
+    //    return {
+    //        x:this.ix - 30,
+    //        y: this.iy - 30,
+    //        width: 60,
+    //        height: 60
+    //    };
+    //}
 
     get width(){
-        // if (this.expanded) {
-        //     return this.upperGroup.getBBox().width + 10;
-        // } else {
-        //     return this.upperGroup.getBBox().width + 10;
-        // }
-        return 60;//
+        if (this.expanded) {
+             return this.upperGroup.getBBox().width + 10;
+         } else {
+             return this.upperGroup.getBBox().width + 10;
+         }
+        //return 60;//
     }
 
     get height () {
-        // if (this.expanded) {
-        //     return this.upperGroup.getBBox().height + 10;
-        // } else {
+        if (this.expanded) {
+             return this.upperGroup.getBBox().height + 10;
+         } else {
         return 60;//this.upperGroup.getBBox().height + 10;
-        // }
+        }
     }
 
     get symbolRadius() {
@@ -168,8 +168,8 @@ export class RenderedProtein extends Interactor {
         if (!this.stickZoom) {
             this.stickZoom = this.controller.defaultBarScale;
         }
-        // this.showHighlight(this.isHighlighted);
-        // this.setSelected(this.isSelected);
+        this.showHighlight(this.isHighlighted);
+        this.setSelected(this.isSelected);
 
 
 
@@ -208,7 +208,7 @@ export class RenderedProtein extends Interactor {
 
 
 
-        // this.setPositionFromXinet(this.ix, this.iy);
+        this.setPositionFromXinet(this.ix, this.iy);
         this.scale();
         this.setAllLinkCoordinates();
         if (this.newForm === true) { //hacky?
@@ -337,12 +337,12 @@ export class RenderedProtein extends Interactor {
         this.px = this.x;
         this.py = this.y;
         let xOffset = 0;
-        // if (!this.hidden) { // todo - hacky
-        //     xOffset = (this.width / 2 - (this.getSymbolRadius()) + 5);
+        if (!this.hidden) { // todo - hacky
+             xOffset = (this.width / 2 - (this.symbolRadius) + 5);
         //     // if (this.expanded) {
         //     //   xOffset = xOffset + (this.participant.size / 2 * this.stickZoom );
         //     // }
-        // }
+        }
         this.x = ix - xOffset;
         this.y = iy;
         this.setPosition(ix, iy);
