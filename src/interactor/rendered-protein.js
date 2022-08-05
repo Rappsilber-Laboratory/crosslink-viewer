@@ -149,7 +149,7 @@ export class RenderedProtein extends Interactor {
         if (this.expanded) {
              return this.upperGroup.getBBox().height + 10;
          } else {
-        return 60;//this.upperGroup.getBBox().height + 10;
+        return this.upperGroup.getBBox().height + 10;
         }
     }
 
