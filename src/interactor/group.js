@@ -7,7 +7,7 @@ export class Group extends Interactor {
     constructor(id, participantIds, controller) {
         super(controller);
 
-        this.id = id;
+        this._id = id;
         this.name = id;
 
         this.renderedParticipants = [];
@@ -596,5 +596,39 @@ export class Group extends Interactor {
         for (let rp of this.renderedParticipants) {
             rp.setAllLinkCoordinates();
         }
+    }
+
+    get id () {
+        return this._id;
+    }
+
+    set id (id){
+        this._id = id;
+    }
+
+    // U R HERE
+    countExternalLinks () {
+        // return this.renderedP_PLinks.length;
+        const renderedParticipantsLinkedTo = new Set();
+
+        for (let link of this.subgraph.links.values()) {
+            const rp = link.getOtherEnd(this);
+            renderedParticipantsLinkedTo.add(rp);
+        }
+
+
+
+        // //let countExternal = 0;
+        // for (let link of this.renderedP_PLinks) {
+        //     if (link.crosslinks[0].isSelfLink() === false)
+        //     {
+        //         if (link.isPassingFilter()) {
+        //             //countExternal++;
+        //             renderedParticipantsLinkedTo.add(link.getOtherEnd(this).getRenderedParticipant());
+        //         }
+        //     }
+        // }
+        return renderedParticipantsLinkedTo.size;
+
     }
 }

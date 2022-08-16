@@ -172,6 +172,51 @@ export class Interactor {
         }
         return false;
     }
+
+    getSubgraph () {
+        if (this.subgraph == null) {
+            var subgraph = {
+                nodes: new Map(),
+                links: new Map()
+            };
+            const thisNode = this.getRenderedParticipant();
+            subgraph.nodes.set(thisNode.id, thisNode);
+            this.subgraph = this.addConnectedNodes(subgraph);
+            thisNode.subgraph = subgraph;
+            this.controller.subgraphs.push(subgraph);
+        }
+        return this.subgraph;
+    }
+
+    addConnectedNodes (subgraph) {
+        for (let link of this.renderedP_PLinks.values()) {
+            //visible, non-self links only
+            if (link.renderedFromProtein !== link.renderedToProtein && link.isPassingFilter()) {
+                if (!subgraph.links.has(link.id)) {
+                    subgraph.links.set(link.id, link);
+                    let otherEnd;
+                    if (link.renderedFromProtein === this) {
+                        otherEnd = link.renderedToProtein;
+                    }
+                    else {
+                        otherEnd = link.renderedFromProtein;
+                    }
+                    // if (otherEnd !== null) {
+                        const renderedOtherEnd = otherEnd.getRenderedParticipant();
+                        renderedOtherEnd.subgraph = subgraph;
+                        //if (!subgraph.nodes.has(renderedOtherEnd.id)) {
+                            subgraph.nodes.set(renderedOtherEnd.id, renderedOtherEnd);
+                            otherEnd.subgraph = subgraph;
+                            otherEnd.addConnectedNodes(subgraph);
+                        //}
+                    // }
+                }
+            }
+        }
+        return subgraph;
+    }
+
+
 }
 
 //
@@ -188,3 +233,5 @@ export class Interactor {
 //     }
 //     return results;
 // }
+
+

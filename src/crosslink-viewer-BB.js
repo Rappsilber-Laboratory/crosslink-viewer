@@ -20,6 +20,7 @@ export class CrosslinkViewer extends Backbone.View {
     constructor(attributes, options) {
         super(_.extend(attributes, {
             events: {
+                "click .expandProtein": "expandProtein",
                 "click .collapse": "collapseParticipant",
                 "click .collapse-group": "collapseParticipant",
                 "click .cant-collapse-group": "cantCollapseGroup",
@@ -33,13 +34,33 @@ export class CrosslinkViewer extends Backbone.View {
         this.fixedSize = this.model.get("xinetFixedSize");
         const self = this;
 
-        //protein context menu
-        const customMenuSel = d3.select(this.el)
-            .append("div").classed("custom-menu-margin", true)
-            .append("div").classed("custom-menu", true)
-            .append("ul");
-        customMenuSel.append("li").classed("collapse", true).text("Collapse");
-        const scaleButtonsListItemSel = customMenuSel.append("li").text("Scale: ");
+        function newCustomContextMenuSel(outerDivClass) {
+            const contextMenuSel = d3.select(self.el)
+                .append("div").classed("custom-menu-margin", true)
+                .classed(outerDivClass, true);
+            const menuUL = contextMenuSel.append("div").classed("custom-menu", true)
+                .append("ul");
+            contextMenuSel.node().onmouseout = function (evt) {
+                let e = evt.toElement || evt.relatedTarget;
+                do {
+                    if (e === this) return;
+                    e = e.parentNode;
+                } while (e);
+                self.contextMenuParticipant = null;
+                d3.select(this).style("display", "none");
+            }
+            return menuUL;
+        }
+
+
+        //collapsed protein context menu
+        const collapsedProteinMenuSel = newCustomContextMenuSel("collapsed-protein-menu");
+        collapsedProteinMenuSel.append("li").classed("expandProtein", true).text("Expand");
+
+        //expanded protein context menu
+        const expandedProteinMenuSel = newCustomContextMenuSel("expanded-protein-menu");
+        expandedProteinMenuSel.append("li").classed("collapse", true).text("Collapse");
+        const scaleButtonsListItemSel = expandedProteinMenuSel.append("li").text("Scale: ");
         const scaleButtons = scaleButtonsListItemSel.selectAll("ul.custom-menu")
             .data(CrosslinkViewer.barScales)
             .enter()
@@ -61,29 +82,13 @@ export class CrosslinkViewer extends Backbone.View {
             .on("change", function (d) {
                 self.contextMenuParticipant.setStickScale(d, self.contextMenuPoint);
             });
-        const contextMenu = d3.select(".custom-menu-margin").node();
-        const contextMenuMouseOut = function (evt) {
-            let e = evt.toElement || evt.relatedTarget;
-            do {
-                if (e === this) return;
-                e = e.parentNode;
-            } while (e);
-            self.contextMenuParticipant = null;
-            d3.select(this).style("display", "none");
-        };
-        contextMenu.onmouseout = contextMenuMouseOut;
 
         //group context menu
-        const groupCustomMenuSel = d3.select(this.el)
-            .append("div").classed("group-custom-menu-margin", true)
-            .append("div").classed("custom-menu", true)
-            .append("ul");
+        const groupCustomMenuSel = newCustomContextMenuSel("group-custom-menu-margin");
         groupCustomMenuSel.append("li").classed("cant-collapse-group", true).text("Can't Collapse (members overlap)");
         groupCustomMenuSel.append("li").classed("collapse-group", true).text("Collapse");
         groupCustomMenuSel.append("li").classed("ungroup", true).text("Ungroup");
         // groupCustomMenuSel.append("li").classed("ungroupAll", true).text("Clear All Groups");
-        const groupContextMenu = d3.select(".group-custom-menu-margin").node();
-        groupContextMenu.onmouseout = contextMenuMouseOut;
 
         //create SVG element
         this.svgElement = d3.select(this.el).append("div").style("height", "100%").append("svg").node(); //document.createElementNS(CrosslinkViewer.svgns, "svg");
@@ -106,9 +111,6 @@ export class CrosslinkViewer extends Backbone.View {
             if (evt.preventDefault) { // necessary for addEventListener, works with traditional
                 evt.preventDefault();
             }
-            // if (evt.stopPropagation) {
-            //     evt.stopPropagation();
-            // }
             evt.returnValue = false; // necessary for attachEvent, works with traditional
             return false; // works with traditional, not with attachEvent or addEventListener
         };
@@ -292,6 +294,61 @@ export class CrosslinkViewer extends Backbone.View {
         return this;
     }
 
+
+    expandProtein() {
+        // d3.select(".custom-menu-margin").style("display", "none");
+        // d3.select(".group-custom-menu-margin").style("display", "none");
+        this.contextMenuParticipant.setExpanded(true);//, this.contextMenuPoint);
+        // if (this.contextMenuParticipant.type === "group") {
+        //     this.render();
+        // }
+        // this.hiddenProteinsChanged();
+        this.render();
+        this.contextMenuParticipant = null;
+    }
+
+    collapseParticipant() {
+        // d3.select(".custom-menu-margin").style("display", "none");
+        // d3.select(".group-custom-menu-margin").style("display", "none");
+        this.contextMenuParticipant.setExpanded(false, this.contextMenuPoint);
+        if (this.contextMenuParticipant.type === "group") {
+            this.render();
+        }
+        this.hiddenProteinsChanged();
+        this.render();
+        this.contextMenuParticipant = null;
+    }
+
+    cantCollapseGroup() {
+        // d3.select(".custom-menu-margin").style("display", "none");
+        // d3.select(".group-custom-menu-margin").style("display", "none");
+    }
+
+    ungroup() {
+        d3.select(".group-custom-menu-margin").style("display", "none");
+        this.model.get("groups").delete(this.contextMenuParticipant.id);
+        this.model.trigger("change:groups");
+        this.contextMenuParticipant = null;
+    }
+
+    collapseGroups() {
+        for (let group of this.groupMap.values()) {
+            if (group.expanded === true && !group.isOverlappingGroup()) {
+                group.setExpanded(false);
+            }
+        }
+        this.render();
+    }
+
+    expandGroups() {
+        for (let group of this.groupMap.values()) {
+            if (group.expanded === false) {
+                group.setExpanded(true);
+            }
+        }
+        this.render();
+    }
+
     groupsChanged() {
         console.log("xiNET GROUPS CHANGED");
         this.d3cola.stop();
@@ -466,6 +523,66 @@ export class CrosslinkViewer extends Backbone.View {
                 }
             }
         }
+
+        this.subgraphs = [];
+
+        for (let interactor of this.renderedProteins.values()) {
+            interactor.subgraph = null;
+        }
+        for (let interactor of this.groupMap.values()) {
+            interactor.subgraph = null;
+        }
+
+        for (let interactor of this.renderedProteins.values()) {
+            if (!interactor.hidden || interactor.parentGroups.size) {
+                interactor.getSubgraph();//adds new subgraphs to this.subgraphs
+            }
+        }
+        // for (let interactor of this.groupMap.values()) {
+        //     interactor.getSubgraph();//adds new subgraphs to this.subgraphs
+        // }
+
+        this.subgraphs.sort(function (a, b) {
+            return b.nodes.size - a.nodes.size;
+        });
+
+        //Sort subgraphs into linear and non-linear sets
+        this.linearGraphs = [];
+        this.nonLinearGraphs = [];
+        for (let graph of this.subgraphs) {
+            // const nodes = graph.nodes.values();
+            const nodeCount = graph.nodes.size;
+            let isLinear = true;
+            if (nodeCount === 1) {
+                isLinear = true;
+            } else {
+                var endFound = false;
+                for (let node of graph.nodes.values()) {
+                    const externalLinkCount = node.countExternalLinks();
+                    // console.log("ELC*: " + externalLinkCount);
+                    if (node.expanded === true) {
+                        isLinear = false;
+                        break;
+                    }
+                    if (externalLinkCount > 2) {
+                        isLinear = false;
+                        break;
+                    } else if (externalLinkCount < 2) {
+                        endFound = true;
+                    }
+                }
+                //check not circular
+                if (!endFound) {
+                    isLinear = false;
+                }
+            }
+            if (isLinear === true) {
+                this.linearGraphs.push(graph);
+            } else {
+                this.nonLinearGraphs.push(graph);
+            }
+        }
+
         return this;
     }
 
@@ -603,175 +720,336 @@ export class CrosslinkViewer extends Backbone.View {
             this.scale();
         }
 
-        for (let renderedProtein of this.renderedProteins.values()) {
-            if (fixedParticipants.length === 0) {
-                delete renderedProtein.x;
-                delete renderedProtein.y;
-                delete renderedProtein.px; // todo - check if this is necessary
-                delete renderedProtein.py;
-            }
-            renderedProtein.fixed = fixedParticipants.indexOf(renderedProtein.participant) !== -1;
-            delete renderedProtein.index;
-        }
-        for (let g of this.groupMap.values()) {
-            if (fixedParticipants.length === 0) { // todo - some issues here (select a collapsed group and select fixed selected)
-                delete g.x;
-                delete g.y;
-                delete g.px; // todo - check if this is necessary
-                delete g.py;
-            }
-            delete g.index;
-            delete g.parent;
-            g.leaves = []; // clear this, it's used by cola, gets filled by auto
-        }
-
         const linkLength = (this.renderedProteins.size < 20) ? 40 : 20;
         const width = this.svgElement.parentNode.clientWidth;
         const height = this.svgElement.parentNode.clientHeight;
-        this.d3cola.size([height - 40, width - 40]).symmetricDiffLinkLengths(linkLength);
 
-        const self = this;
+        const tempGroupMap = new Map (this.groupMap);
 
-        const links = new Map();
-        const nodeSet = new Set();
-        for (let crosslink of self.model.getFilteredCrossLinks()) {
-            if (crosslink.toProtein) { //?
-                const source = self.renderedProteins.get(crosslink.fromProtein.id).getRenderedParticipant();
-                const target = self.renderedProteins.get(crosslink.toProtein.id).getRenderedParticipant();
-                nodeSet.add(source);
-                const fromId = crosslink.fromProtein.id;
-                const toId = crosslink.toProtein.id;
-                const linkId = fromId + "-" + toId;
-                if (!links.has(linkId)) {
-                    const linkObj = {};
-                    // todo - maybe do use indexes, might avoid probs in cola
-                    linkObj.source = source;
-                    linkObj.target = target;
-                    nodeSet.add(target);
-                    linkObj.id = linkId;
-                    links.set(linkId, linkObj);
+        //Grid layout linear graphs
+        var column = 0, row = 0;
+        if (this.linearGraphs.length > 0) {
+            column++;
+            for (let graph of this.linearGraphs) {
+                var nodes = Array.from(graph.nodes.keys()); //
+                var nodeCount = nodes.length;
+                if (nodeCount > 2) {
+                    nodes = this.reorderedNodes(graph);
+                }
+                for (var n = 0; n < nodeCount; n++) {
+                    var p = this.renderedProteins.get(nodes[n]);
+                    if (!p) {
+                        p = this.groupMap.get(nodes[n]);
+                        tempGroupMap.delete(nodes[n]);
+                    }
+                    for (let pg of p.parentGroups.values()) {
+                        tempGroupMap.delete(pg.id);
+                    }
+                    var x, y;
+                    row++;
+                    x = this.xForColumn(column);
+                    y = this.yForRow(row);
+                    var lastNodeY = this.yForRow(row + ((nodeCount - 1 - n) * 2));
+                    let lowerBound = height;
+                    if (column < 4) {
+                        lowerBound = lowerBound - 100;
+                    }
+                    if ((lastNodeY + 20/*this.maxBlobRadius*/) > lowerBound) {
+                        column++;
+                        row = 1;
+                        x = this.xForColumn(column);
+                        y = this.yForRow(row);
+                    }
+                    p.setPosition(x, y);
+                    p.setAllLinkCoordinates();
                 }
             }
         }
-        const nodeArr = Array.from(nodeSet);
-        const linkArr = Array.from(links.values());
-        doLayout(nodeArr, linkArr, false);
+        //remember edge of gridded proteins
+        const layoutXOffset = this.xForColumn(column + 1);
 
-        function doLayout(nodes, links) {
-            //don't know how necessary these deletions are
-            delete self.d3cola._lastStress;
-            delete self.d3cola._alpha;
-            delete self.d3cola._descent;
-            delete self.d3cola._rootGroup;
 
-            const groups = [];
-            if (self.groupMap) {
-                for (let g of self.groupMap.values()) {
-                    // delete g.index;
-                    if (!g.hidden && g.expanded) {
-                        g.groups = [];
-                        // put any rp not contained in a subgroup(recursive) in group1.leaves
+                for (let renderedProtein of this.renderedProteins.values()) {
+                    if (fixedParticipants.length === 0) {
+                        delete renderedProtein.x;
+                        delete renderedProtein.y;
+                        delete renderedProtein.px; // todo - check if this is necessary
+                        delete renderedProtein.py;
+                    }
+                    renderedProtein.fixed = fixedParticipants.indexOf(renderedProtein.participant) !== -1;
+                    delete renderedProtein.index;
+                }
+                for (let g of this.groupMap.values()) {
+                    if (fixedParticipants.length === 0) { // todo - some issues here (select a collapsed group and select fixed selected)
+                        delete g.x;
+                        delete g.y;
+                        delete g.px; // todo - check if this is necessary
+                        delete g.py;
+                    }
+                    delete g.index;
+                    delete g.parent;
+                    g.leaves = []; // clear this, it's used by cola, gets filled by auto
+                }
 
-                        for (let rp of g.renderedParticipants) {
-                            if (!rp.hidden) {
-                                let inSubGroup = false;
-                                for (let subgroup of g.subgroups) {
-                                    // UR HERE
-                                    if (subgroup.contains(rp)) {
-                                        inSubGroup = true;
-                                        // break; ?
+
+                this.d3cola.size([width - layoutXOffset - 120, height - 60]).symmetricDiffLinkLengths(linkLength);
+
+                const self = this;
+
+                const links = new Map();
+                const nodeSet = new Set();
+                // for (let crosslink of self.model.getFilteredCrossLinks()) {
+                for (let graph of this.nonLinearGraphs) {
+                    for (let link of graph.links.values()) {
+                        // if (crosslink.toProtein) { //?
+                        if (link.crosslinks[0].isSelfLink() === false) {
+                            const source = self.renderedProteins.get(link.renderedFromProtein.participant.id).getRenderedParticipant();
+                            const target = self.renderedProteins.get(link.renderedToProtein.participant.id).getRenderedParticipant();
+                            nodeSet.add(source);
+                            const fromId = link.renderedFromProtein.participant.id;
+                            const toId = link.renderedToProtein.participant.id;
+                            const linkId = fromId + "-" + toId;
+                            if (!links.has(linkId)) {
+                                const linkObj = {};
+                                // todo - maybe do use indexes, might avoid probs in cola
+                                linkObj.source = source;
+                                linkObj.target = target;
+                                nodeSet.add(target);
+                                linkObj.id = linkId;
+                                links.set(linkId, linkObj);
+                            }
+                        }
+                    }
+                }
+                const nodeArr = Array.from(nodeSet);
+                const linkArr = Array.from(links.values());
+                doLayout(nodeArr, linkArr, false);
+
+                function doLayout(nodes, links) {
+                    //don't know how necessary these deletions are
+                    delete self.d3cola._lastStress;
+                    delete self.d3cola._alpha;
+                    delete self.d3cola._descent;
+                    delete self.d3cola._rootGroup;
+
+                    const groups = [];
+                    if (self.groupMap) {
+                        for (let g of tempGroupMap.values()) {
+                            // delete g.index;
+                            if (!g.hidden && g.expanded) {
+                                g.groups = [];
+                                // put any rp not contained in a subgroup(recursive) in group1.leaves
+
+                                for (let rp of g.renderedParticipants) {
+                                    if (!rp.hidden) {
+                                        let inSubGroup = false;
+                                        for (let subgroup of g.subgroups) {
+                                            // UR HERE
+                                            if (subgroup.contains(rp)) {
+                                                inSubGroup = true;
+                                                // break; ?
+                                            }
+                                        }
+                                        if (!inSubGroup) {
+                                            g.leaves.push(nodeArr.indexOf(rp));
+                                        }
                                     }
                                 }
-                                if (!inSubGroup) {
-                                    g.leaves.push(nodeArr.indexOf(rp));
+                                groups.push(g);
+                            }
+                        }
+                        //need to use indexes of groups
+                        for (let g of groups) {
+                            for (let i = 0; i < g.subgroups.length; i++) {
+                                if (g.subgroups[i].expanded) {
+                                    g.groups[i] = groups.indexOf(g.subgroups[i]);
+                                } else {
+                                    g.leaves.push(g.subgroups[i]);
                                 }
                             }
                         }
-                        groups.push(g);
                     }
-                }
-                //need to use indexes of groups
-                for (let g of groups) {
-                    for (let i = 0; i < g.subgroups.length; i++) {
-                        if (g.subgroups[i].expanded) {
-                            g.groups[i] = groups.indexOf(g.subgroups[i]);
-                        } else {
-                            g.leaves.push(g.subgroups[i]);
+                    let participantDebugSel, groupDebugSel;
+                    if (self.debug) {
+                        participantDebugSel = d3.select(self.groupsSVG).selectAll(".node")
+                            .data(nodeArr);
+                        participantDebugSel.enter().append("rect")
+                            .classed("node", true)
+                            .attr({
+                                rx: 5,
+                                ry: 5
+                            })
+                            .style("stroke", "red")
+                            .style("fill", "none");
+                        groupDebugSel = d3.select(self.groupsSVG).selectAll(".group")
+                            .data(groups);
+                        groupDebugSel.enter().append("rect")
+                            .classed("group", true)
+                            .attr({
+                                rx: 5,
+                                ry: 5
+                            })
+                            .style("stroke", "blue")
+                            .style("fill", "none");
+                        groupDebugSel.exit().remove();
+                        participantDebugSel.exit().remove();
+                    }
+                    self.d3cola.nodes(nodes).groups(groups).links(links).start(23, 10, 1, 0, true).on("tick", function () { //.start(23, 10, 1, 0, true)
+                        let x1 = null, y1 = null, x2 = null, y2 = null;
+                        for (let node of self.d3cola.nodes()) {
+                            if (!x1 || node.x < x1) {
+                                x1 = node.x;
+                            }
+                            if (!y1 || node.y < y1) {
+                                y1 = node.y;
+                            }
+                            if (!x2 || node.x > x2) {
+                                x2 = node.x;
+                            }
+                            if (!y2 || node.y > y2) {
+                                y2 = node.y;
+                            }
                         }
-                    }
-                }
-            }
-            let participantDebugSel, groupDebugSel;
-            if (self.debug) {
-                participantDebugSel = d3.select(self.groupsSVG).selectAll(".node")
-                    .data(nodeArr);
-                participantDebugSel.enter().append("rect")
-                    .classed("node", true)
-                    .attr({
-                        rx: 5,
-                        ry: 5
-                    })
-                    .style("stroke", "red")
-                    .style("fill", "none");
-                groupDebugSel = d3.select(self.groupsSVG).selectAll(".group")
-                    .data(groups);
-                groupDebugSel.enter().append("rect")
-                    .classed("group", true)
-                    .attr({
-                        rx: 5,
-                        ry: 5
-                    })
-                    .style("stroke", "blue")
-                    .style("fill", "none");
-                groupDebugSel.exit().remove();
-                participantDebugSel.exit().remove();
-            }
-            self.d3cola.nodes(nodes).groups(groups).links(links).start(23, 10, 1, 0, true).on("tick", function () { //.start(23, 10, 1, 0, true)
-                for (let node of self.d3cola.nodes()) {
-                    node.setPositionFromCola(node.x, node.y);
-                    node.setAllLinkCoordinates();
-                }
-                for (let g of self.d3cola.groups()) { // todo -  seems a bit of a weird way to have done this?
-                    if (g.expanded) {
-                        g.updateExpandedGroup();
-                    }
-                }
-                if (fixedParticipants.length === 0) {
-                    self.zoomToFullExtent();
-                }
+                        // let scaleFactor;
+                        //
+                        let c = 0;//, x1 = 1000, x2 = 2800;
+                        let xr = (width - layoutXOffset - 120) / (x2 - x1);
+                        let yr = ((height - 60) / (y2 - y1));
+                        // if (xr > yr) {
+                        //     scaleFactor = yr;
+                        // } else {
+                        //     scaleFactor = xr;
+                        // }
+                        //
+                        // console.log("*XR: " + xr);// + "*YR: " + yr  );
 
-                if (self.debug) {
-                    groupDebugSel.attr({
-                        x: function (d) {
-                            return d.bounds.x;
-                        },
-                        y: function (d) {
-                            return d.bounds.y;
-                        },
-                        width: function (d) {
-                            return d.bounds.width();
-                        },
-                        height: function (d) {
-                            return d.bounds.height();
+                        // if (scaleFactor > 1){
+                        //     scaleFactor = 1;
+                        // }
+
+                        // scaleFactor = xr;
+
+
+
+                        for (let node of self.d3cola.nodes()) {
+                            // c++;
+                            // if (c % 2 == 0) {
+                                node.setPosition((node.x * xr) - (x1 * xr) + layoutXOffset,// - (x1 * scaleFactor),
+                                    (node.y * yr) - (y1 * yr) + 30);// * scaleFactor) - (y1 * scaleFactor) + 30);
+                            // } else {
+                            //     node.setPosition((node.x * xr) - (x1 * xr) + layoutXOffset,//(node.x * xr) + layoutXOffset,// - (x1 * scaleFactor),
+                            //         (node.y));// * scaleFactor) - (y1 * scaleFactor) + 30);
+                            // }
+
+
+                                // node.setPosition((node.x * xr) + layoutXOffset,// - (x1 * scaleFactor),
+                                //     (node.y));// * scaleFactor) - (y1 * scaleFactor) + 30);
+                                node.setAllLinkCoordinates();
+                        }
+                        for (let g of self.d3cola.groups()) { // todo -  seems a bit of a weird way to have done this?
+                            if (g.expanded) {
+                                g.updateExpandedGroup();
+                            }
+                        }
+                        if (fixedParticipants.length === 0) {
+                            // self.zoomToFullExtent();
+                        }
+
+                        if (self.debug) {
+                            groupDebugSel.attr({
+                                x: function (d) {
+                                    return d.bounds.x;
+                                },
+                                y: function (d) {
+                                    return d.bounds.y;
+                                },
+                                width: function (d) {
+                                    return d.bounds.width();
+                                },
+                                height: function (d) {
+                                    return d.bounds.height();
+                                }
+                            });
+                            participantDebugSel.attr({
+                                x: function (d) {
+                                    return d.bounds.x;
+                                },
+                                y: function (d) {
+                                    return d.bounds.y;
+                                },
+                                width: function (d) {
+                                    return d.bounds.width();
+                                },
+                                height: function (d) {
+                                    return d.bounds.height();
+                                }
+                            });
                         }
                     });
-                    participantDebugSel.attr({
-                        x: function (d) {
-                            return d.bounds.x;
-                        },
-                        y: function (d) {
-                            return d.bounds.y;
-                        },
-                        width: function (d) {
-                            return d.bounds.width();
-                        },
-                        height: function (d) {
-                            return d.bounds.height();
-                        }
-                    });
+                    //}
                 }
-            });
-            //}
+    }
+
+    //functions used...
+    xForColumn(c) {
+        var maxBlobRadius = 40;
+        // var LABELMAXLENGTH = 0;
+        // return (c * ((2 * maxBlobRadius) + LABELMAXLENGTH)) - maxBlobRadius;
+        return c * maxBlobRadius - (maxBlobRadius / 2);
+    }
+
+    yForRow(r) {
+        var maxBlobRadius = 50;
+        return (r * maxBlobRadius) - 10;
+    }
+
+    reorderedNodes(linearGraph) {
+        var reorderedNodes = [];
+        appendNode(getStartNode());
+        return reorderedNodes;
+
+        function getStartNode() {
+            // var ns = Array.from(linearGraph.nodes.values());
+            // var count = ns.length;
+            // //                    alert (nodeCount);
+            // for (var n = 0; n < count; n++) {
+            //     if (ns[n].countExternalLinks() < 2) {
+            //         //                            alert("got start");
+            //         return ns[n];
+            //     }
+            // }
+            for (let node of linearGraph.nodes.values()) {
+                if (node.countExternalLinks() < 2) {
+                    return node;
+                }
+            }
+            console.error("missed linear subgraph start");
+            return null;
+        }
+
+        function appendNode(currentNode) {
+            reorderedNodes.push(currentNode.participant.id);
+            // var proteinLinksArr = Array.from(currentNode.renderedP_PLinks.values());
+            // for (var l = 0; l < proteinLinksArr.length; l++) {
+            //     var link = proteinLinksArr[l];
+            //     if (link.isPassingFilter()) {
+            //         var nextNode = link.getOtherEnd(currentNode);
+            //         if (reorderedNodes.indexOf(nextNode.participant.id) === -1) {
+            //             //                    alert("here");
+            //             appendNode(nextNode);
+            //             break;
+            //         }
+            //     }
+            // }
+            for (let link of currentNode.renderedP_PLinks.values()) {
+                if (link.isPassingFilter()) {
+                    const nextNode = link.getOtherEnd(currentNode);
+                    if (reorderedNodes.indexOf(nextNode.participant.id) === -1) {
+                        appendNode(nextNode);
+                        break;
+                    }
+                }
+            }
         }
     }
 
@@ -1014,48 +1292,6 @@ export class CrosslinkViewer extends Backbone.View {
             renderedParticipant.resize();
         }
         return this;
-    }
-
-    collapseParticipant() {
-        d3.select(".custom-menu-margin").style("display", "none");
-        d3.select(".group-custom-menu-margin").style("display", "none");
-        this.contextMenuParticipant.setExpanded(false, this.contextMenuPoint);
-        if (this.contextMenuParticipant.type === "group") {
-            this.render();
-        }
-        this.hiddenProteinsChanged();
-        this.render();
-        this.contextMenuParticipant = null;
-    }
-
-    cantCollapseGroup() {
-        d3.select(".custom-menu-margin").style("display", "none");
-        d3.select(".group-custom-menu-margin").style("display", "none");
-    }
-
-    ungroup() {
-        d3.select(".group-custom-menu-margin").style("display", "none");
-        this.model.get("groups").delete(this.contextMenuParticipant.id);
-        this.model.trigger("change:groups");
-        this.contextMenuParticipant = null;
-    }
-
-    collapseGroups() {
-        for (let group of this.groupMap.values()) {
-            if (group.expanded === true && !group.isOverlappingGroup()) {
-                group.setExpanded(false);
-            }
-        }
-        this.render();
-    }
-
-    expandGroups() {
-        for (let group of this.groupMap.values()) {
-            if (group.expanded === false) {
-                group.setExpanded(true);
-            }
-        }
-        this.render();
     }
 
     zoomToFullExtent() {
@@ -1347,11 +1583,12 @@ export class CrosslinkViewer extends Backbone.View {
                             this.model.setSelectedProteins(this.toSelect, add);
                         }
                         // EXPANDING / COLLAPSING -- RIGHT CLICK, NO MOVE, IS A DRAG ELEMENT
+                        this.contextMenuParticipant = this.dragElement;
                         if (this.dragElement.ix || this.dragElement.type === "group") {
                             if (!this.dragElement.expanded) {
                                 //expand the collapsed
-                                this.dragElement.setExpanded(true, c);
                                 if (this.dragElement.type === "group") {
+                                    this.dragElement.setExpanded(true, c);
                                     this.hiddenProteinsChanged();
                                     this.render();
                                     /*
@@ -1363,16 +1600,18 @@ export class CrosslinkViewer extends Backbone.View {
                                                                         }
                                                                         this.autoLayout(fixed); //pass in those NOT to autolayout
                                     */
+                                } else {
+                                    const menu = d3.select(".collapsed-protein-menu");
+                                    menu.style("top", (evt.pageY - 20) + "px").style("left", (evt.pageX - 20) + "px").style("display", "block");
                                 }
                             } else {
                                 //give context menu that allows collapsing the expanded...
                                 this.model.get("tooltipModel").set("contents", null);
-                                this.contextMenuParticipant = this.dragElement;
                                 this.contextMenuPoint = c;
 
                                 if (this.dragElement.type !== "group") {
                                     //...for proteins
-                                    const menu = d3.select(".custom-menu-margin");
+                                    const menu = d3.select(".expanded-protein-menu");
                                     menu.style("top", (evt.pageY - 20) + "px").style("left", (evt.pageX - 20) + "px").style("display", "block");
                                     d3.select(".scaleButton_" + (this.dragElement.stickZoom * 100)).property("checked", true);
                                 } else {

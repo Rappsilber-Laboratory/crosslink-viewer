@@ -119,7 +119,7 @@ export class RenderedProtein extends Interactor {
             if (evt.preventDefault) {
                 evt.preventDefault();
             }
-            // if (evt.stopPropogation) {
+            // if (evt.stopPropagation) {
             //     evt.stopPropagation();
             // }
             evt.returnValue = false;
@@ -149,7 +149,7 @@ export class RenderedProtein extends Interactor {
         if (this.expanded) {
              return this.upperGroup.getBBox().height + 10;
          } else {
-        return this.upperGroup.getBBox().height + 10;
+            return this.upperGroup.getBBox().height + 10;
         }
     }
 
@@ -1259,6 +1259,28 @@ export class RenderedProtein extends Interactor {
     getDisulfidAnnotationCircPath(/*annotation*/) {
         return "M 0,0 L 0,0 L 0,0 L 0,0 ";
     }
+
+    get id () {
+        return this.participant.id;
+    }
+
+    countExternalLinks () {
+        // return this.renderedP_PLinks.length;
+        const renderedParticipantsLinkedTo = new Set();
+        //let countExternal = 0;
+        for (let link of this.renderedP_PLinks) {
+            if (link.crosslinks[0].isSelfLink() === false)
+            {
+                if (link.isPassingFilter()) {
+                    //countExternal++;
+                    renderedParticipantsLinkedTo.add(link.getOtherEnd(this).getRenderedParticipant());
+                }
+            }
+        }
+        return renderedParticipantsLinkedTo.size;
+
+    }
+
 }
 
 RenderedProtein.STICKHEIGHT = 20; // height of stick in pixels
