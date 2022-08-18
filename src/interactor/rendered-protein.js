@@ -146,11 +146,12 @@ export class RenderedProtein extends Interactor {
     }
 
     get height () {
-        if (this.expanded) {
-             return this.upperGroup.getBBox().height + 10;
-         } else {
-            return this.upperGroup.getBBox().height + 10;
-        }
+        // if (this.expanded) {
+        //      return this.upperGroup.getBBox().height + 10;
+        //  } else {
+        //     return this.upperGroup.getBBox().height + 10;
+        // }
+        return 60;
     }
 
     get symbolRadius() {
@@ -1263,6 +1264,35 @@ export class RenderedProtein extends Interactor {
     get id () {
         return this.participant.id;
     }
+
+    addConnectedNodes (subgraph) {
+        for (let link of this.renderedP_PLinks.values()) {
+            //visible, non-self links only
+            if (link.renderedFromProtein !== link.renderedToProtein && link.isPassingFilter()) {
+                if (!subgraph.links.has(link.id)) {
+                    subgraph.links.set(link.id, link);
+                    let otherEnd;
+                    if (link.renderedFromProtein === this) {
+                        otherEnd = link.renderedToProtein;
+                    }
+                    else {
+                        otherEnd = link.renderedFromProtein;
+                    }
+                    // if (otherEnd !== null) {
+                    const renderedOtherEnd = otherEnd.getRenderedParticipant();
+                    renderedOtherEnd.subgraph = subgraph;
+                    //if (!subgraph.nodes.has(renderedOtherEnd.id)) {
+                    subgraph.nodes.set(renderedOtherEnd.id, renderedOtherEnd);
+                    otherEnd.subgraph = subgraph;
+                    otherEnd.addConnectedNodes(subgraph);
+                    //}
+                    // }
+                }
+            }
+        }
+        return subgraph;
+    }
+
 
     countExternalLinks () {
         // return this.renderedP_PLinks.length;

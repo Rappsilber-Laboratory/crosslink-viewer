@@ -76,7 +76,7 @@ export class Group extends Interactor {
 
         Object.defineProperty(this, "width", {
             get: function width() {
-                return this.upperGroup.getBBox().width + 10;
+                return 60;//this.upperGroup.getBBox().width + 10;
             }
         });
         Object.defineProperty(this, "height", {
@@ -193,6 +193,15 @@ export class Group extends Interactor {
             if (!renderedParticipant.participant.hidden && renderedParticipant.parentGroups.size > 1) {
                 for (let parentGroup of renderedParticipant.parentGroups) {
                     if (!parentGroup.isSubsetOf(this)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        for (let subgroup of this.subgroups) {
+            if (!subgroup.hidden && subgroup.parentGroups.size > 1) {
+                for (let subgroupParentGroup of subgroup.parentGroups) {
+                    if (!subgroupParentGroup.isSubsetOf(this)) {
                         return true;
                     }
                 }
@@ -521,6 +530,12 @@ export class Group extends Interactor {
     }
 
     setExpanded(expanded) {
+
+        if (this.isOverlappingGroup()) {
+            // console.log("overlapping group", this.id);
+            expanded = true;
+        }
+
         this.expanded = !!expanded;
         const expandedGroupLabels = this.controller.model.get("xinetShowExpandedGroupLabels"); // todo - will need to look at this again (for anim)
         if (!expanded) { // is collapsing
@@ -606,7 +621,35 @@ export class Group extends Interactor {
         this._id = id;
     }
 
-    // U R HERE
+    addConnectedNodes (subgraph) {
+        for (let p of this.renderedParticipants) {
+            for (let link of p.renderedP_PLinks.values()) {
+                //visible, non-self links only
+                if (link.renderedFromProtein !== link.renderedToProtein && link.isPassingFilter()) {
+                    if (!subgraph.links.has(link.id)) {
+                        subgraph.links.set(link.id, link);
+                        let otherEnd;
+                        if (link.renderedFromProtein === this) {
+                            otherEnd = link.renderedToProtein;
+                        } else {
+                            otherEnd = link.renderedFromProtein;
+                        }
+                        // if (otherEnd !== null) {
+                        const renderedOtherEnd = otherEnd.getRenderedParticipant();
+                        renderedOtherEnd.subgraph = subgraph;
+                        //if (!subgraph.nodes.has(renderedOtherEnd.id)) {
+                        subgraph.nodes.set(renderedOtherEnd.id, renderedOtherEnd);
+                        otherEnd.subgraph = subgraph;
+                        otherEnd.addConnectedNodes(subgraph);
+                        //}
+                        // }
+                    }
+                }
+            }
+        }
+        return subgraph;
+    }
+
     countExternalLinks () {
         // return this.renderedP_PLinks.length;
         const renderedParticipantsLinkedTo = new Set();

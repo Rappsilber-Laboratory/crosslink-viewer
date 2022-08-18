@@ -524,6 +524,7 @@ export class CrosslinkViewer extends Backbone.View {
             }
         }
 
+        /*
         this.subgraphs = [];
 
         for (let interactor of this.renderedProteins.values()) {
@@ -534,17 +535,20 @@ export class CrosslinkViewer extends Backbone.View {
         }
 
         for (let interactor of this.renderedProteins.values()) {
-            if (!interactor.hidden || interactor.parentGroups.size) {
+            if (!interactor.hidden) {
                 interactor.getSubgraph();//adds new subgraphs to this.subgraphs
             }
         }
-        // for (let interactor of this.groupMap.values()) {
-        //     interactor.getSubgraph();//adds new subgraphs to this.subgraphs
-        // }
+        for (let interactor of this.groupMap.values()) {
+            if (!interactor.hidden) {
+                interactor.getSubgraph();//adds new subgraphs to this.subgraphs
+            }
+        }
 
         this.subgraphs.sort(function (a, b) {
             return b.nodes.size - a.nodes.size;
         });
+
 
         //Sort subgraphs into linear and non-linear sets
         this.linearGraphs = [];
@@ -581,7 +585,7 @@ export class CrosslinkViewer extends Backbone.View {
             } else {
                 this.nonLinearGraphs.push(graph);
             }
-        }
+        }*/
 
         return this;
     }
@@ -724,18 +728,20 @@ export class CrosslinkViewer extends Backbone.View {
         const width = this.svgElement.parentNode.clientWidth;
         const height = this.svgElement.parentNode.clientHeight;
 
-        const tempGroupMap = new Map (this.groupMap);
+/*        const tempGroupMap = new Map (this.groupMap);
 
         //Grid layout linear graphs
         var column = 0, row = 0;
         if (this.linearGraphs.length > 0) {
             column++;
             for (let graph of this.linearGraphs) {
+                // todo - this is a right mess, fixing can wait til i'm back from holiday
                 var nodes = Array.from(graph.nodes.keys()); //
                 var nodeCount = nodes.length;
                 if (nodeCount > 2) {
                     nodes = this.reorderedNodes(graph);
                 }
+                nodeCount = nodes.length;
                 for (var n = 0; n < nodeCount; n++) {
                     var p = this.renderedProteins.get(nodes[n]);
                     if (!p) {
@@ -754,19 +760,20 @@ export class CrosslinkViewer extends Backbone.View {
                     if (column < 4) {
                         lowerBound = lowerBound - 100;
                     }
-                    if ((lastNodeY + 20/*this.maxBlobRadius*/) > lowerBound) {
+                    if ((lastNodeY + 20) > lowerBound) {
                         column++;
                         row = 1;
                         x = this.xForColumn(column);
                         y = this.yForRow(row);
                     }
+                    // console.log("??", p.id, column, row);
                     p.setPosition(x, y);
                     p.setAllLinkCoordinates();
                 }
             }
         }
         //remember edge of gridded proteins
-        const layoutXOffset = this.xForColumn(column + 1);
+        const layoutXOffset = this.xForColumn(column + 1);*/
 
 
                 for (let renderedProtein of this.renderedProteins.values()) {
@@ -792,35 +799,35 @@ export class CrosslinkViewer extends Backbone.View {
                 }
 
 
-                this.d3cola.size([width - layoutXOffset - 120, height - 60]).symmetricDiffLinkLengths(linkLength);
+                this.d3cola.size([height - /*layoutXOffset -*/ 40, width - 40]).symmetricDiffLinkLengths(linkLength);
 
                 const self = this;
 
                 const links = new Map();
                 const nodeSet = new Set();
-                // for (let crosslink of self.model.getFilteredCrossLinks()) {
-                for (let graph of this.nonLinearGraphs) {
-                    for (let link of graph.links.values()) {
-                        // if (crosslink.toProtein) { //?
-                        if (link.crosslinks[0].isSelfLink() === false) {
-                            const source = self.renderedProteins.get(link.renderedFromProtein.participant.id).getRenderedParticipant();
-                            const target = self.renderedProteins.get(link.renderedToProtein.participant.id).getRenderedParticipant();
+                for (let crosslink of self.model.getFilteredCrossLinks()) {
+                // for (let graph of this.nonLinearGraphs) {
+                //     for (let link of graph.links.values()) {
+                        if (crosslink.toProtein) { //?
+                        // if (link.crosslinks[0].isSelfLink() === false) {
+                            const source = self.renderedProteins.get(crosslink.fromProtein.id).getRenderedParticipant();
+                            const target = self.renderedProteins.get(crosslink.toProtein.id).getRenderedParticipant();
                             nodeSet.add(source);
-                            const fromId = link.renderedFromProtein.participant.id;
-                            const toId = link.renderedToProtein.participant.id;
+                            const fromId = crosslink.fromProtein.id;
+                            const toId = crosslink.toProtein.id;
                             const linkId = fromId + "-" + toId;
                             if (!links.has(linkId)) {
                                 const linkObj = {};
                                 // todo - maybe do use indexes, might avoid probs in cola
                                 linkObj.source = source;
                                 linkObj.target = target;
-                                nodeSet.add(target);
+                                nodeSet.add(target); // bit weird doing ths here
                                 linkObj.id = linkId;
                                 links.set(linkId, linkObj);
                             }
                         }
                     }
-                }
+                // }
                 const nodeArr = Array.from(nodeSet);
                 const linkArr = Array.from(links.values());
                 doLayout(nodeArr, linkArr, false);
@@ -834,7 +841,7 @@ export class CrosslinkViewer extends Backbone.View {
 
                     const groups = [];
                     if (self.groupMap) {
-                        for (let g of tempGroupMap.values()) {
+                        for (let g of self.groupMap.values()) {
                             // delete g.index;
                             if (!g.hidden && g.expanded) {
                                 g.groups = [];
@@ -895,55 +902,30 @@ export class CrosslinkViewer extends Backbone.View {
                         participantDebugSel.exit().remove();
                     }
                     self.d3cola.nodes(nodes).groups(groups).links(links).start(23, 10, 1, 0, true).on("tick", function () { //.start(23, 10, 1, 0, true)
-                        let x1 = null, y1 = null, x2 = null, y2 = null;
-                        for (let node of self.d3cola.nodes()) {
-                            if (!x1 || node.x < x1) {
-                                x1 = node.x;
-                            }
-                            if (!y1 || node.y < y1) {
-                                y1 = node.y;
-                            }
-                            if (!x2 || node.x > x2) {
-                                x2 = node.x;
-                            }
-                            if (!y2 || node.y > y2) {
-                                y2 = node.y;
-                            }
-                        }
-                        // let scaleFactor;
-                        //
-                        let c = 0;//, x1 = 1000, x2 = 2800;
-                        let xr = (width - layoutXOffset - 120) / (x2 - x1);
-                        let yr = ((height - 60) / (y2 - y1));
-                        // if (xr > yr) {
-                        //     scaleFactor = yr;
-                        // } else {
-                        //     scaleFactor = xr;
+                        // let x1 = null, y1 = null, x2 = null, y2 = null;
+                        // for (let node of self.d3cola.nodes()) {
+                        //     if (!x1 || node.x < x1) {
+                        //         x1 = node.x;
+                        //     }
+                        //     if (!y1 || node.y < y1) {
+                        //         y1 = node.y;
+                        //     }
+                        //     if (!x2 || node.x > x2) {
+                        //         x2 = node.x;
+                        //     }
+                        //     if (!y2 || node.y > y2) {
+                        //         y2 = node.y;
+                        //     }
                         // }
                         //
-                        // console.log("*XR: " + xr);// + "*YR: " + yr  );
-
-                        // if (scaleFactor > 1){
-                        //     scaleFactor = 1;
-                        // }
-
-                        // scaleFactor = xr;
-
-
+                        // let c = 0;
+                        // let xr = (width - /*layoutXOffset -*/ 120) / (x2 - x1);
+                        // let yr = ((height - 60) / (y2 - y1));
 
                         for (let node of self.d3cola.nodes()) {
-                            // c++;
-                            // if (c % 2 == 0) {
-                                node.setPosition((node.x * xr) - (x1 * xr) + layoutXOffset,// - (x1 * scaleFactor),
-                                    (node.y * yr) - (y1 * yr) + 30);// * scaleFactor) - (y1 * scaleFactor) + 30);
-                            // } else {
-                            //     node.setPosition((node.x * xr) - (x1 * xr) + layoutXOffset,//(node.x * xr) + layoutXOffset,// - (x1 * scaleFactor),
-                            //         (node.y));// * scaleFactor) - (y1 * scaleFactor) + 30);
-                            // }
-
-
-                                // node.setPosition((node.x * xr) + layoutXOffset,// - (x1 * scaleFactor),
-                                //     (node.y));// * scaleFactor) - (y1 * scaleFactor) + 30);
+                                // node.setPositionFromCola((node.x * xr) - (x1 * xr) /*+ layoutXOffset*/,
+                                //     (node.y * yr) - (y1 * yr) + 30);
+                                node.setPositionFromCola();
                                 node.setAllLinkCoordinates();
                         }
                         for (let g of self.d3cola.groups()) { // todo -  seems a bit of a weird way to have done this?
@@ -952,7 +934,7 @@ export class CrosslinkViewer extends Backbone.View {
                             }
                         }
                         if (fixedParticipants.length === 0) {
-                            // self.zoomToFullExtent();
+                            self.zoomToFullExtent();
                         }
 
                         if (self.debug) {
@@ -1005,7 +987,7 @@ export class CrosslinkViewer extends Backbone.View {
 
     reorderedNodes(linearGraph) {
         var reorderedNodes = [];
-        appendNode(getStartNode());
+        appendNode(getStartNode(), new Set ());
         return reorderedNodes;
 
         function getStartNode() {
@@ -1020,6 +1002,7 @@ export class CrosslinkViewer extends Backbone.View {
             // }
             for (let node of linearGraph.nodes.values()) {
                 if (node.countExternalLinks() < 2) {
+                    console.log("StartNode", node.id)
                     return node;
                 }
             }
@@ -1027,8 +1010,12 @@ export class CrosslinkViewer extends Backbone.View {
             return null;
         }
 
-        function appendNode(currentNode) {
-            reorderedNodes.push(currentNode.participant.id);
+        function appendNode(currentNode, checkedNodes) {
+            checkedNodes.add(currentNode.id); // yeah, wierdness, this all needs tidied up
+            if (!currentNode.hidden) {
+                reorderedNodes.push(currentNode.participant.id);
+            }
+
             // var proteinLinksArr = Array.from(currentNode.renderedP_PLinks.values());
             // for (var l = 0; l < proteinLinksArr.length; l++) {
             //     var link = proteinLinksArr[l];
@@ -1041,11 +1028,13 @@ export class CrosslinkViewer extends Backbone.View {
             //         }
             //     }
             // }
+
             for (let link of currentNode.renderedP_PLinks.values()) {
                 if (link.isPassingFilter()) {
                     const nextNode = link.getOtherEnd(currentNode);
-                    if (reorderedNodes.indexOf(nextNode.participant.id) === -1) {
-                        appendNode(nextNode);
+                    if (!checkedNodes.has(nextNode.id)) {
+                        console.log("nextNode", nextNode.id);
+                        appendNode(nextNode, checkedNodes);
                         break;
                     }
                 }
@@ -1591,15 +1580,16 @@ export class CrosslinkViewer extends Backbone.View {
                                     this.dragElement.setExpanded(true, c);
                                     this.hiddenProteinsChanged();
                                     this.render();
-                                    /*
-                                                                        const fixed = [];
-                                                                        for (let rp of this.renderedProteins.values()) {
-                                                                            if (this.dragElement.renderedParticipants.indexOf(rp) == -1) {
-                                                                                fixed.push(rp.participant)
-                                                                            }
-                                                                        }
-                                                                        this.autoLayout(fixed); //pass in those NOT to autolayout
-                                    */
+
+                                    /*const fixed = [];
+                                    for (let rp of this.renderedProteins.values()) {
+                                        if (this.dragElement.renderedParticipants.indexOf(rp) == -1) {
+                                            fixed.push(rp.participant)
+                                        }
+                                    }
+                                    this.autoLayout(fixed); //pass in those NOT to autolayout
+*/
+
                                 } else {
                                     const menu = d3.select(".collapsed-protein-menu");
                                     menu.style("top", (evt.pageY - 20) + "px").style("left", (evt.pageX - 20) + "px").style("display", "block");
