@@ -577,7 +577,36 @@ export class Group extends Interactor {
 
             this.outline.setAttribute("fill-opacity", "0.5");
 
+            const cBBox = this.controller.container.getBBox();
+            // console.log(cBBox);
+            // const centre = [cBBox.x + (cBBox.width / 2), cBBox.y + (cBBox.height / 2)]
+            const tl = this.svgElement.createSVGPoint();
+            tl.x = 0, tl.y =0;
+            const br = this.svgElement.createSVGPoint();
+            const width = this.svgElement.parentNode.clientWidth;
+            const height = this.svgElement.parentNode.clientHeight;
+            br.x = width, br.y = height;
+            const topLeft = tl.matrixTransform(this.controller.container.getCTM().inverse());
+            const bottomRight = br.matrixTransform(this.controller.container.getCTM().inverse());
+
+
             for (let rp of this.renderedParticipants) {
+                let tempX = rp.ix, tempY = rp.iy;
+                if ( tempX < topLeft.x ) {
+                    tempX = topLeft.x + 80;
+                }
+                if ( tempX > bottomRight.x) {
+                    tempX = bottomRight.x - 80;
+                }
+                if ( tempY > topLeft.y ) {
+                    tempY = topLeft.y + 80;
+                }
+                if ( tempY < bottomRight.y) {
+                    tempY = bottomRight.y - 80;
+                }
+
+                rp.setPositionFromXinet(tempX, tempY);
+
                 rp.setAllLinkCoordinates();
                 rp.setHidden(rp.participant.hidden || rp.inCollapsedGroup());
                 //rp.checkLinks();
