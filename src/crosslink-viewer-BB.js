@@ -21,6 +21,7 @@ export class CrosslinkViewer extends Backbone.View {
         super(_.extend(attributes, {
             events: {
                 "click .expandProtein": "expandProtein",
+                "click .alphafold": "loadAlphafold",
                 "click .collapse": "collapseParticipant",
                 "click .collapse-group": "collapseParticipant",
                 "click .cant-collapse-group": "cantCollapseGroup",
@@ -56,6 +57,7 @@ export class CrosslinkViewer extends Backbone.View {
         //collapsed protein context menu
         const collapsedProteinMenuSel = newCustomContextMenuSel("collapsed-protein-menu");
         collapsedProteinMenuSel.append("li").classed("expandProtein", true).text("Expand");
+        // collapsedProteinMenuSel.append("li").classed("alphafold", true).text("Load Alphafold model");
 
         //expanded protein context menu
         const expandedProteinMenuSel = newCustomContextMenuSel("expanded-protein-menu");
@@ -82,6 +84,7 @@ export class CrosslinkViewer extends Backbone.View {
             .on("change", function (d) {
                 self.contextMenuParticipant.setStickScale(d, self.contextMenuPoint);
             });
+        // expandedProteinMenuSel.append("li").classed("alphafold", true).text("Load Alphafold model");
 
         //group context menu
         const groupCustomMenuSel = newCustomContextMenuSel("group-custom-menu-margin");
@@ -311,12 +314,17 @@ export class CrosslinkViewer extends Backbone.View {
         // d3.select(".custom-menu-margin").style("display", "none");
         // d3.select(".group-custom-menu-margin").style("display", "none");
         this.contextMenuParticipant.setExpanded(false, this.contextMenuPoint);
-        if (this.contextMenuParticipant.type === "group") {
-            this.render();
-        }
-        this.hiddenProteinsChanged();
+        // if (this.contextMenuParticipant.type === "group") {
+        //     this.render();
+        // }
+        //this.hiddenProteinsChanged();
         this.render();
         this.contextMenuParticipant = null;
+    }
+
+    loadAlphafold(){
+        const acc = this.contextMenuParticipant.participant.accession;
+        window.vent.trigger("loadAlphafold", acc);
     }
 
     cantCollapseGroup() {
@@ -1574,6 +1582,7 @@ export class CrosslinkViewer extends Backbone.View {
                         // EXPANDING / COLLAPSING -- RIGHT CLICK, NO MOVE, IS A DRAG ELEMENT
                         this.contextMenuParticipant = this.dragElement;
                         if (this.dragElement.ix || this.dragElement.type === "group") {
+                            this.model.get("tooltipModel").set("contents", null);
                             if (!this.dragElement.expanded) {
                                 //expand the collapsed
                                 if (this.dragElement.type === "group") {
@@ -1596,7 +1605,6 @@ export class CrosslinkViewer extends Backbone.View {
                                 }
                             } else {
                                 //give context menu that allows collapsing the expanded...
-                                this.model.get("tooltipModel").set("contents", null);
                                 this.contextMenuPoint = c;
 
                                 if (this.dragElement.type !== "group") {

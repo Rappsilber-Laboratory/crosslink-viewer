@@ -328,6 +328,7 @@ export class RenderedProtein extends Interactor {
         // }
         // }
         this.setPosition(this.x /*- xOffset*/, this.y);
+        this.updateExpandedGroup();
     }
 
     /* calculate top left of interactor's glyph,
@@ -347,6 +348,7 @@ export class RenderedProtein extends Interactor {
         this.x = ix - xOffset;
         this.y = iy;
         this.setPosition(ix, iy);
+        this.updateExpandedGroup();
     }
 
     // more accurately described as setting transform for top svg elements (sets scale also)
@@ -374,14 +376,15 @@ export class RenderedProtein extends Interactor {
                     " " + this.iy + ")" + " scale(" + (this.controller.z) + ")");
             }
         }
+    }
 
+    updateExpandedGroup() {
         for (let group of this.parentGroups) {
             if (group.expanded && !this.hidden) {
                 group.updateExpandedGroup();
             }
         }
     }
-
 
     setStickScale(scale, svgP) {
         const oldScale = this.stickZoom;
