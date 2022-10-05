@@ -370,7 +370,7 @@ export class Group extends Interactor {
 
         for (let sg of this.subgroups) {
             // sg.updateExpandedGroup();
-	    const sgBbox = sg.upperGroup.getBBox();
+            const sgBbox = sg.upperGroup.getBBox();
             //const sgBbox = sg.BBox();
             //console.log("SG", sgBbox);
             if (!x1 || (sgBbox.x) < x1) {
@@ -386,9 +386,6 @@ export class Group extends Interactor {
                 y2 = ((sgBbox.y + sgBbox.height));
             }
         }
-
-        //console.log("G:", x1, y1, x2, y2);
-
 
         const updateOutline = function (svgElement) {
             svgElement.setAttribute("x", x1 - pad);
@@ -531,19 +528,16 @@ export class Group extends Interactor {
     }
 
     setExpanded(expanded, svgP) {
-
         if (this.isOverlappingGroup()) {
-            // console.log("overlapping group", this.id);
+            console.error("overlapping group", this.id);
             expanded = true;
         }
-
         const self = this;
+        // this.expanded = !!expanded;
+        // const expandedGroupLabels = this.controller.model.get("xinetShowExpandedGroupLabels"); // todo - will need to look at this again (for anim)
 
-        this.expanded = !!expanded;
-        const expandedGroupLabels = this.controller.model.get("xinetShowExpandedGroupLabels"); // todo - will need to look at this again (for anim)
         if (!expanded) { // is collapsing
-            // const pPos = this.getAverageParticipantPosition(); // todo - use svgP?
-            this.setPositionFromXinet(svgP.x, svgP.y);//pPos[0], pPos[1]);
+            this.setPositionFromXinet(svgP.x, svgP.y);
             const originalPositions = [];
             for (let rp of this.renderedParticipants) {
                 originalPositions.push([rp.ix, rp.iy]);
@@ -568,12 +562,16 @@ export class Group extends Interactor {
                     const rp = self.renderedParticipants[i];
                     const x = xPositionInterpolations[i](cubicInOut(interp));
                     const y = yPositionInterpolations[i](cubicInOut(interp));
-                    rp.setPosition(x, y);
+                    rp.setPositionFromXinet(x, y);
                     rp.setAllLinkCoordinates();
                 }
                 self.updateExpandedGroup();
                 if (interp === 1) { // finished - tidy up
+                    self.expanded = !!expanded;
                     self.setPositionFromXinet(svgP.x, svgP.y);//pPos[0], pPos[1]);
+                    self.controller.hiddenProteinsChanged();
+                    self.controller.render();
+
                     for (let i = 0; i < self.renderedParticipants.length; i++) {
                         const rp = self.renderedParticipants[i];
                         rp.setHidden(true);
@@ -586,9 +584,9 @@ export class Group extends Interactor {
                     self.hideSubgroups();
 
                     self.controller.proteinUpper.appendChild(self.upperGroup);
-                    if (!expandedGroupLabels) {
-                        self.upperGroup.appendChild(this.labelSVG);
-                    }
+                    // if (!expandedGroupLabels) {
+                    //self.upperGroup.appendChild(this.labelSVG);
+                    // }
 
                     self.outline.setAttribute("fill-opacity", "1");
                     // self.busy = false;
@@ -601,31 +599,34 @@ export class Group extends Interactor {
             }
 
         } else { // is expanding
+            self.expanded = !!expanded;
             this.labelSVG.setAttribute("dominant-baseline", null);
             this.labelSVG.setAttribute("text-anchor", null);
 
             this.showSubgroups();
 
             this.controller.groupsSVG.appendChild(this.upperGroup);
-            if (!expandedGroupLabels) {
-                if (this.upperGroup.contains(this.labelSVG)) {
-                    this.upperGroup.removeChild(this.labelSVG);
-                }
-            } else { // this is a mess? todo
-                this.upperGroup.appendChild(this.labelSVG);
-            }
+            // if (!expandedGroupLabels) {
+            //     if (this.upperGroup.contains(this.labelSVG)) {
+            //         this.upperGroup.removeChild(this.labelSVG);
+            //     }
+            // } else { // this is a mess? todo
+            //this.upperGroup.appendChild(this.labelSVG);
+            // }
 
             this.outline.setAttribute("fill-opacity", "0.5");
 
-            const cBBox = this.controller.container.getBBox();
+            // const cBBox = this.controller.container.getBBox();
             // console.log(cBBox);
             // const centre = [cBBox.x + (cBBox.width / 2), cBBox.y + (cBBox.height / 2)]
             const tl = this.controller.svgElement.createSVGPoint();
-            tl.x = 0, tl.y =0;
+            tl.x = 0;
+            tl.y =0;
             const br = this.controller.svgElement.createSVGPoint();
             const width = this.controller.svgElement.parentNode.clientWidth;
             const height = this.controller.svgElement.parentNode.clientHeight;
-            br.x = width, br.y = height;
+            br.x = width;
+            br.y = height;
             const topLeft = tl.matrixTransform(this.controller.container.getCTM().inverse());
             const bottomRight = br.matrixTransform(this.controller.container.getCTM().inverse());
 
@@ -634,7 +635,8 @@ export class Group extends Interactor {
             let ix = this.ix, iy = this.iy;
             if (!ix) {
                 const pPos = this.getAverageParticipantPosition();
-                ix = pPos[0], iy = pPos[1];
+                ix = pPos[0];
+                iy = pPos[1];
             }
 
             for (let rp of this.renderedParticipants) {
@@ -677,6 +679,9 @@ export class Group extends Interactor {
                 }
                 self.updateExpandedGroup();
                 if (interp === 1) { // finished - tidy up
+                    self.controller.hiddenProteinsChanged();
+                    self.controller.render();
+                    // self.expanded = !!expanded;
                     // self.busy = false;
                     return true;
                 } else if (interp > 1 || isNaN(interp)) {
@@ -685,10 +690,7 @@ export class Group extends Interactor {
                     return false;
                 }
             }
-
-            // this.updateExpandedGroup();
         }
-
     }
 
     hideSubgroups() {

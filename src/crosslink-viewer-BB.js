@@ -297,10 +297,10 @@ export class CrosslinkViewer extends Backbone.View {
         return this;
     }
 
-
     expandProtein() {
         // d3.select(".custom-menu-margin").style("display", "none");
         // d3.select(".group-custom-menu-margin").style("display", "none");
+        d3.select(".collapsed-protein-menu").style("display", "none");
         this.contextMenuParticipant.setExpanded(true);//, this.contextMenuPoint);
         // if (this.contextMenuParticipant.type === "group") {
         //     this.render();
@@ -313,12 +313,14 @@ export class CrosslinkViewer extends Backbone.View {
     collapseParticipant() {
         // d3.select(".custom-menu-margin").style("display", "none");
         // d3.select(".group-custom-menu-margin").style("display", "none");
+        d3.select(".group-custom-menu-margin").style("display", "none");
+        d3.select(".expanded-protein-menu").style("display", "none");
         this.contextMenuParticipant.setExpanded(false, this.contextMenuPoint);
         // if (this.contextMenuParticipant.type === "group") {
         //     this.render();
         // }
-        //this.hiddenProteinsChanged();
-        this.render();
+        //this.hiddenProteinsChanged(); //REINSTATE?
+        //this.render();
         this.contextMenuParticipant = null;
     }
 
@@ -1384,8 +1386,8 @@ export class CrosslinkViewer extends Backbone.View {
         this.state = CrosslinkViewer.STATES.SELECT_PAN;
         this.mouseMoved = false;
         this.toSelect = [];
-        d3.select(".custom-menu-margin").style("display", "none");
-        d3.select(".group-custom-menu-margin").style("display", "none");
+        // d3.select(".custom-menu-margin").style("display", "none");
+        // d3.select(".group-custom-menu-margin").style("display", "none");
     }
 
     // dragging/rotation/panning/selecting
