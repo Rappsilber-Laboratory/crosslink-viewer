@@ -138,10 +138,10 @@ export class RenderedProtein extends Interactor {
 
     get width(){
         if (this.expanded) {
-             return this.upperGroup.getBBox().width + 10;
-         } else {
-             return this.upperGroup.getBBox().width + 10;
-         }
+            return this.upperGroup.getBBox().width + 10;
+        } else {
+            return this.upperGroup.getBBox().width + 10;
+        }
         //return 60;//
     }
 
@@ -152,6 +152,10 @@ export class RenderedProtein extends Interactor {
         //     return this.upperGroup.getBBox().height + 10;
         // }
         return 60;
+    }
+
+    get selected () {
+        return this.isSelected;
     }
 
     get symbolRadius() {

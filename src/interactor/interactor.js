@@ -5,6 +5,7 @@ export class Interactor {
 
     constructor(controller) {
         this.controller = controller;
+        this.selfLink = null;
     }
 
     get symbolRadius() {

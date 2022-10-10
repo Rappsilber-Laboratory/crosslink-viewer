@@ -161,6 +161,16 @@ export class Group extends Interactor {
         return count;
     }
 
+    get selected () {
+        const selectedProteins = this.controller.model.get("selectedProteins");
+        for (let rp of this.renderedParticipants) {
+            if (selectedProteins.indexOf(rp.participant) === -1) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     // result depends on whats hidden
     isSubsetOf(anotherGroup) {
         for (let renderedParticipant of this.renderedParticipants) {
@@ -527,17 +537,275 @@ export class Group extends Interactor {
         }
     }
 
+    updateCountLabel() {
+        this.labelSVG.innerHTML = this.labelText + " ("+ this.unhiddenParticipantCount() + ")";
+    }
+
     setExpanded(expanded, svgP) {
+        this.controller.model.get("tooltipModel").set("contents", null);
+        if (this.busy !== true) {
+            if (this.isOverlappingGroup()) {
+                console.error("overlapping group", this.id);
+                expanded = true;
+            }
+            if (expanded) {
+                if (this.expanded !== expanded) {
+                    this.expand();
+                }
+            } else {
+                if (this.expanded !== expanded) {
+                    this.collapse(svgP);
+                }
+            }
+        }
+    }
+
+    collapse(svgP, transition = true) {
         if (this.isOverlappingGroup()) {
             console.error("overlapping group", this.id);
-            expanded = true;
+            this.expand(false);
+            return;
         }
+        let newX, newY;
+        if (svgP) {
+            newX = svgP.x;
+            newY = svgP.y;
+        } else {
+            const avPos = this.getAverageParticipantPosition();
+            newX = avPos[0];
+            newY = avPos[1];
+        }
+
+        const originalProteinPositions = []; // will reset positions after transition
+        const originalCollapsedSubgroupPositions = []; // will reset positions after transition
+        const proteinXPositionInterpolations = [];
+        const proteinYPositionInterpolations = [];
+        const collapsedSubgroupXPositionInterpolations = [];
+        const collapsedSubgroupYPositionInterpolations = [];
+        const cubicInOut = d3.ease("cubic-in-out");
+        this.busy = true;
+        const self = this;
+
+        if (transition) {
+            for (let rp of this.renderedParticipants) {
+                originalProteinPositions.push([rp.ix, rp.iy]);
+                proteinXPositionInterpolations.push(d3.interpolate(rp.ix, newX));
+                proteinYPositionInterpolations.push(d3.interpolate(rp.iy, newY));
+            }
+
+            for (let sg of this.subgroups) {
+                if (!sg.expanded) {
+                    originalCollapsedSubgroupPositions.push([sg.ix, sg.iy]);
+                    collapsedSubgroupXPositionInterpolations.push(d3.interpolate(sg.ix, newX));
+                    collapsedSubgroupYPositionInterpolations.push(d3.interpolate(sg.iy, newY));
+                }
+            }
+
+            d3.timer(function (elapsed) {
+                return updateCollapsing(elapsed / (RenderedProtein.transitionTime * 2));
+            });
+
+        } else {
+            updateCollapsing(1);
+        }
+
+        function updateCollapsing(interp) {
+            if (interp === 1) { // finished - tidy up
+                self.expanded = false;
+                self.setPositionFromXinet(newX, newY);
+
+                for (let i = 0; i < self.renderedParticipants.length; i++) {
+                    const rp = self.renderedParticipants[i];
+                    rp.setHidden(true);
+                    if (transition){
+                        rp.setPositionFromXinet(originalProteinPositions[i][0], originalProteinPositions[i][1]);
+                    }
+                    // rp.setAllLinkCoordinates();
+                }
+
+                for (let i = 0; i < self.subgroups.length; i++) {
+                    const sg = self.subgroups[i];
+                    if (!sg.expanded) {
+                        if (transition){
+                            sg.setPositionFromXinet(originalCollapsedSubgroupPositions[i][0], originalCollapsedSubgroupPositions[i][1]);
+                        }
+                    }
+                }
+                self.labelSVG.setAttribute("dominant-baseline", "central");
+                self.labelSVG.setAttribute("text-anchor", "middle");
+                self.hideSubgroups();
+                self.controller.proteinUpper.appendChild(self.upperGroup);
+                self.outline.setAttribute("fill-opacity", "1");
+                if (transition) {
+                    self.controller.hiddenProteinsChanged();
+                    self.controller.render();
+                }
+                self.busy = false;
+                return true;
+            } else if (interp > 1 || isNaN(interp)) {
+                return updateCollapsing(1);
+            } else {
+                for (let i = 0; i < self.renderedParticipants.length; i++) {
+                    const rp = self.renderedParticipants[i];
+                    const x = proteinXPositionInterpolations[i](cubicInOut(interp));
+                    const y = proteinYPositionInterpolations[i](cubicInOut(interp));
+                    rp.setPositionFromXinet(x, y);
+                    rp.setAllLinkCoordinates();
+                }
+
+                for (let i = 0; i < self.subgroups.length; i++) {
+                    const sg = self.subgroups[i];
+                    if (!sg.expanded) {
+                        const x = collapsedSubgroupXPositionInterpolations[i](cubicInOut(interp));
+                        const y = collapsedSubgroupYPositionInterpolations[i](cubicInOut(interp));
+                        sg.setPositionFromXinet(x, y);
+                    }
+                }
+                self.updateExpandedGroup();
+                return false;
+            }
+        }
+    }
+
+    expand(transition = true) {
+        this.busy = true;
+        const self = this;
+        this.expanded = true;
+
+        const proteinXPositionInterpolations = [];
+        const proteinYPositionInterpolations = [];
+        const collapsedSubgroupXPositionInterpolations = [];
+        const collapsedSubgroupYPositionInterpolations = [];
+
+        const cubicInOut = d3.ease("cubic-out");
+
+        this.labelSVG.setAttribute("dominant-baseline", null);
+        this.labelSVG.setAttribute("text-anchor", null);
+        this.showSubgroups();
+        this.controller.groupsSVG.appendChild(this.upperGroup);
+        this.outline.setAttribute("fill-opacity", "0.5");
+
+        for (let rp of this.renderedParticipants) {
+            rp.setHidden(rp.participant.hidden || rp.inCollapsedGroup());
+        }
+
+        if (transition) {
+            // const cBBox = this.controller.container.getBBox();
+            // console.log(cBBox);
+            // const centre = [cBBox.x + (cBBox.width / 2), cBBox.y + (cBBox.height / 2)]
+            const tl = this.controller.svgElement.createSVGPoint();
+            tl.x = 0;
+            tl.y =0;
+            const br = this.controller.svgElement.createSVGPoint();
+            const width = this.controller.svgElement.parentNode.clientWidth;
+            const height = this.controller.svgElement.parentNode.clientHeight;
+            br.x = width;
+            br.y = height;
+            const topLeft = tl.matrixTransform(this.controller.container.getCTM().inverse());
+            const bottomRight = br.matrixTransform(this.controller.container.getCTM().inverse());
+
+            let ix = this.ix, iy = this.iy;
+            if (!ix) {
+                const pPos = this.getAverageParticipantPosition();
+                ix = pPos[0];
+                iy = pPos[1];
+            }
+
+            for (let rp of this.renderedParticipants) {
+                let tempX = rp.ix, tempY = rp.iy;
+                if ( tempX < topLeft.x ) {
+                    tempX = topLeft.x + 200;
+                }
+                if ( tempX > bottomRight.x) {
+                    tempX = bottomRight.x - 200;
+                }
+                if ( tempY < topLeft.y ) {
+                    tempY = topLeft.y + 200;
+                }
+                if ( tempY > bottomRight.y) {
+                    tempY = bottomRight.y - 200;
+                }
+
+                // rp.setPositionFromXinet(tempX, tempY);
+                proteinXPositionInterpolations.push(d3.interpolate(ix, tempX));
+                proteinYPositionInterpolations.push(d3.interpolate(iy, tempY));
+
+                // rp.setAllLinkCoordinates();
+                // rp.setHidden(rp.participant.hidden || rp.inCollapsedGroup());
+                //rp.checkLinks();
+            }
+
+            for (let sg of this.subgroups) {
+                if (!sg.expanded) {
+                    collapsedSubgroupXPositionInterpolations.push(d3.interpolate(ix, sg.ix));
+                    collapsedSubgroupYPositionInterpolations.push(d3.interpolate(iy, sg.iy));
+                }
+
+            }
+
+            d3.timer(function (elapsed) {
+                return updateExpanding(elapsed / (RenderedProtein.transitionTime * 2));
+            });
+        } else {
+            updateExpanding(1);
+        }
+
+        function updateExpanding(interp) {
+            if (interp === 1) { // finished - tidy up
+                self.updateExpandedGroup();
+                if (transition) {
+                    self.controller.hiddenProteinsChanged();
+                    self.controller.render();
+                }
+                self.busy = false;
+                return true;
+            } else if (interp > 1 || isNaN(interp)) {
+                return updateExpanding(1);
+            } else {
+                for (let i = 0; i < self.renderedParticipants.length; i++) {
+                    const rp = self.renderedParticipants[i];
+                    const x = proteinXPositionInterpolations[i](cubicInOut(interp));
+                    const y = proteinYPositionInterpolations[i](cubicInOut(interp));
+                    rp.setPosition(x, y);
+                    rp.setAllLinkCoordinates();
+                }
+
+                for (let i = 0; i < self.subgroups.length; i++) {
+                    const sg = self.subgroups[i];
+                    if (!sg.expanded) {
+                        const x = collapsedSubgroupXPositionInterpolations[i](cubicInOut(interp));
+                        const y = collapsedSubgroupYPositionInterpolations[i](cubicInOut(interp));
+                        sg.setPosition(x, y);
+                    }
+                }
+                
+                self.updateExpandedGroup();
+                return false;
+            }
+        }
+
+    }
+
+/*    setExpanded(expanded, svgP) {
+        // if (this.isOverlappingGroup()) {
+        //     console.error("overlapping group", this.id);
+        //     expanded = true;
+        // }
         const self = this;
         // this.expanded = !!expanded;
         // const expandedGroupLabels = this.controller.model.get("xinetShowExpandedGroupLabels"); // todo - will need to look at this again (for anim)
 
         if (!expanded) { // is collapsing
-            this.setPositionFromXinet(svgP.x, svgP.y);
+            let newX, newY;
+            if (svgP) {
+                newX = svgP.x;
+                newY = svgP.y;
+            } else {
+                const avPos = this.getAverageParticipantPosition()
+                newX = avPos[0];
+                newY = avPos[1];
+            }
+            // this.setPositionFromXinet(newX, newY);
             const originalPositions = [];
             for (let rp of this.renderedParticipants) {
                 originalPositions.push([rp.ix, rp.iy]);
@@ -547,8 +815,8 @@ export class Group extends Interactor {
             const yPositionInterpolations = [];
 
             for (let rp of this.renderedParticipants) {
-                xPositionInterpolations.push(d3.interpolate(rp.ix, svgP.x));
-                yPositionInterpolations.push(d3.interpolate(rp.iy, svgP.y));
+                xPositionInterpolations.push(d3.interpolate(rp.ix, newX));
+                yPositionInterpolations.push(d3.interpolate(rp.iy, newY));
             }
 
             const cubicInOut = d3.ease("cubic-in-out");
@@ -568,7 +836,7 @@ export class Group extends Interactor {
                 self.updateExpandedGroup();
                 if (interp === 1) { // finished - tidy up
                     self.expanded = !!expanded;
-                    self.setPositionFromXinet(svgP.x, svgP.y);//pPos[0], pPos[1]);
+                    self.setPositionFromXinet(newX, newY);
                     self.controller.hiddenProteinsChanged();
                     self.controller.render();
 
@@ -691,7 +959,7 @@ export class Group extends Interactor {
                 }
             }
         }
-    }
+    }*/
 
     hideSubgroups() {
         for (let subgroup of this.subgroups) {
