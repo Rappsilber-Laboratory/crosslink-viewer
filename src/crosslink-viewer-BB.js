@@ -880,7 +880,7 @@ export class CrosslinkViewer extends Backbone.View {
                 for (let g of groups) {
                     for (let i = 0; i < g.subgroups.length; i++) {
                         if (g.subgroups[i].expanded) {
-                            g.groups[i] = groups.indexOf(g.subgroups[i]);
+                            g.groups.push(groups.indexOf(g.subgroups[i]));
                         } else {
                             g.leaves.push(g.subgroups[i]);
                         }
@@ -1411,40 +1411,30 @@ export class CrosslinkViewer extends Backbone.View {
                 this.model.get("tooltipModel").set("contents", null);
                 if (this.state === CrosslinkViewer.STATES.DRAGGING) {
                     // we are currently dragging things around
-                    if (this.dragElement.participant) {  // if is a protein
-                        //it's a protein - drag it, or drag all selected if it is selected
-                        if (!this.dragElement.selected) { // if is not selected
+                    if (this.dragElement.type === "group" && this.dragElement.expanded) {
+                        if (!this.dragElement.selected) {
+                            const toDrag = this.dragElement.renderedParticipants;
+                            for (let d = 0; d < toDrag.length; d++) {
+                                const renderedProtein = toDrag[d];
+                                renderedProtein.setPositionFromXinet(renderedProtein.ix - dx, renderedProtein.iy - dy);
+                                renderedProtein.setAllLinkCoordinates();
+                            }
+                            for (let g of this.dragElement.subgroups) {
+                                if (!g.expanded) {
+                                    g.setPositionFromXinet(g.ix - dx, g.iy - dy);
+                                    g.setAllLinkCoordinates();
+                                }
+                            }
+                        }else {
+                            this.moveSelected(dx, dy);
+                        }
+                        this.dragElement.updateExpandedGroup();
+                    } else if (this.dragElement.participant || this.dragElement.type === "group"){ //collapsed group or protein
+                        if (!this.dragElement.selected) {
                             this.dragElement.setPositionFromXinet(this.dragElement.ix - dx, this.dragElement.iy - dy);
                             this.dragElement.setAllLinkCoordinates();
                         } else {
                             this.moveSelected(dx, dy);
-                        }
-                    } else if (this.dragElement.type === "group") { // else if group
-                        if (this.dragElement.expanded) {
-                            if (!this.dragElement.selected) {
-                                const toDrag = this.dragElement.renderedParticipants;
-                                for (let d = 0; d < toDrag.length; d++) {
-                                    const renderedProtein = toDrag[d];
-                                    renderedProtein.setPositionFromXinet(renderedProtein.ix - dx, renderedProtein.iy - dy);
-                                    renderedProtein.setAllLinkCoordinates();
-                                }
-                                for (let g of this.dragElement.subgroups) {
-                                    if (!g.expanded) {
-                                        g.setPositionFromXinet(g.ix - dx, g.iy - dy);
-                                        g.setAllLinkCoordinates();
-                                    }
-                                }
-                            }else {
-                                this.moveSelected(dx, dy);
-                            }
-                            this.dragElement.updateExpandedGroup();
-                        } else { //collapsed group
-                            if (!this.dragElement.selected) {
-                                this.dragElement.setPositionFromXinet(this.dragElement.ix - dx, this.dragElement.iy - dy);
-                                this.dragElement.setAllLinkCoordinates();
-                            } else {
-                                this.moveSelected(dx, dy);
-                            }
                         }
                     }
                     this.dragStart = evt;

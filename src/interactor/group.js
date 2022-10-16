@@ -561,6 +561,7 @@ export class Group extends Interactor {
     }
 
     collapse(svgP, transition = true) {
+        // transition = false;
         if (this.isOverlappingGroup()) {
             console.error("overlapping group", this.id);
             this.expand(false);
@@ -594,11 +595,11 @@ export class Group extends Interactor {
             }
 
             for (let sg of this.subgroups) {
-                if (!sg.expanded) {
-                    originalCollapsedSubgroupPositions.push([sg.ix, sg.iy]);
-                    collapsedSubgroupXPositionInterpolations.push(d3.interpolate(sg.ix, newX));
-                    collapsedSubgroupYPositionInterpolations.push(d3.interpolate(sg.iy, newY));
-                }
+                // if (!sg.expanded) {
+                originalCollapsedSubgroupPositions.push([sg.ix, sg.iy]);
+                collapsedSubgroupXPositionInterpolations.push(d3.interpolate(sg.ix, newX));
+                collapsedSubgroupYPositionInterpolations.push(d3.interpolate(sg.iy, newY));
+                // }
             }
 
             d3.timer(function (elapsed) {
@@ -625,11 +626,11 @@ export class Group extends Interactor {
 
                 for (let i = 0; i < self.subgroups.length; i++) {
                     const sg = self.subgroups[i];
-                    if (!sg.expanded) {
-                        if (transition){
-                            sg.setPositionFromXinet(originalCollapsedSubgroupPositions[i][0], originalCollapsedSubgroupPositions[i][1]);
-                        }
+                    // if (!sg.expanded) {
+                    if (transition){
+                        sg.setPositionFromXinet(originalCollapsedSubgroupPositions[i][0], originalCollapsedSubgroupPositions[i][1]);
                     }
+                    // }
                 }
                 self.labelSVG.setAttribute("dominant-baseline", "central");
                 self.labelSVG.setAttribute("text-anchor", "middle");
@@ -668,6 +669,7 @@ export class Group extends Interactor {
     }
 
     expand(transition = true) {
+        // transition = false;
         this.busy = true;
         const self = this;
         this.expanded = true;
