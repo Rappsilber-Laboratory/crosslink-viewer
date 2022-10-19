@@ -20,12 +20,12 @@ export class CrosslinkViewer extends Backbone.View {
     constructor(attributes, options) {
         super(_.extend(attributes, {
             events: {
-                "click .expandProtein": "expandProtein",
-                "click .alphafold": "loadAlphafold",
-                "click .collapse": "collapseParticipant",
-                "click .collapse-group": "collapseParticipant",
-                "click .cant-collapse-group": "cantCollapseGroup",
-                "click .ungroup": "ungroup"
+                // "click .expandProtein": "expandProtein",
+                // "click .uniprot": "openUniprot",
+                // "click .collapse": "collapseParticipant",
+                // "click .collapse-group": "collapseParticipant",
+                // "click .cant-collapse-group": "cantCollapseGroup",
+                // "click .ungroup": "ungroup"
             }
         }), options);
     }
@@ -41,58 +41,25 @@ export class CrosslinkViewer extends Backbone.View {
                 .classed(outerDivClass, true);
             const menuUL = contextMenuSel.append("div").classed("custom-menu", true)
                 .append("ul");
+            contextMenuSel.node().onmouseover = function () {
+                self.contextMenuParticipant.showHighlight(true);
+            };
             contextMenuSel.node().onmouseout = function (evt) {
                 let e = evt.toElement || evt.relatedTarget;
                 do {
                     if (e === this) return;
-                    e = e.parentNode;
+                    if (e) e = e.parentNode; // seems like tab changing when uniprot opens can cause e to become null
                 } while (e);
+                if (self.contextMenuParticipant){
+                    self.contextMenuParticipant.showHighlight(false);
+                }
                 self.contextMenuParticipant = null;
                 d3.select(this).style("display", "none");
             };
             return menuUL;
         }
 
-
-        //collapsed protein context menu
-        const collapsedProteinMenuSel = newCustomContextMenuSel("collapsed-protein-menu");
-        collapsedProteinMenuSel.append("li").classed("expandProtein", true).text("Expand");
-        // collapsedProteinMenuSel.append("li").classed("alphafold", true).text("Load Alphafold model");
-
-        //expanded protein context menu
-        const expandedProteinMenuSel = newCustomContextMenuSel("expanded-protein-menu");
-        expandedProteinMenuSel.append("li").classed("collapse", true).text("Collapse");
-        const scaleButtonsListItemSel = expandedProteinMenuSel.append("li").text("Scale: ");
-        const scaleButtons = scaleButtonsListItemSel.selectAll("ul.custom-menu")
-            .data(CrosslinkViewer.barScales)
-            .enter()
-            .append("div")
-            .attr("class", "barScale")
-            .append("label");
-        scaleButtons.append("span")
-            .text(function (d) {
-                if (d === 8) return "AA";
-                else return d;
-            });
-        scaleButtons.append("input")
-            // .attr ("id", function(d) { return d*100; })
-            .attr("class", function (d) {
-                return "scaleButton scaleButton_" + (d * 100);
-            })
-            .attr("name", "scaleButtons")
-            .attr("type", "radio")
-            .on("change", function (d) {
-                self.contextMenuParticipant.setStickScale(d, self.contextMenuPoint);
-            });
-        // expandedProteinMenuSel.append("li").classed("alphafold", true).text("Load Alphafold model");
-
-        //group context menu
-        const groupCustomMenuSel = newCustomContextMenuSel("group-custom-menu-margin");
-        groupCustomMenuSel.append("li").classed("cant-collapse-group", true).text("Can't Collapse (members overlap)");
-        groupCustomMenuSel.append("li").classed("collapse-group", true).text("Collapse");
-        groupCustomMenuSel.append("li").classed("ungroup", true).text("Ungroup");
-        // groupCustomMenuSel.append("li").classed("ungroupAll", true).text("Clear All Groups");
-
+        this.contextMenuUlSel = newCustomContextMenuSel("xinet-context-menu");
         //create SVG element
         this.svgElement = d3.select(this.el).append("div").style("height", "100%").append("svg").node(); //document.createElementNS(CrosslinkViewer.svgns, "svg");
         this.svgElement.setAttribute("width", "100%");
@@ -298,9 +265,7 @@ export class CrosslinkViewer extends Backbone.View {
     }
 
     expandProtein() {
-        // d3.select(".custom-menu-margin").style("display", "none");
-        // d3.select(".group-custom-menu-margin").style("display", "none");
-        d3.select(".collapsed-protein-menu").style("display", "none");
+        d3.select(".xinet-context-menu").style("display", "none");
         this.contextMenuParticipant.setExpanded(true);//, this.contextMenuPoint);
         // if (this.contextMenuParticipant.type === "group") {
         //     this.render();
@@ -310,11 +275,9 @@ export class CrosslinkViewer extends Backbone.View {
         this.contextMenuParticipant = null;
     }
 
-    collapseParticipant() {
-        // d3.select(".custom-menu-margin").style("display", "none");
-        // d3.select(".group-custom-menu-margin").style("display", "none");
-        d3.select(".group-custom-menu-margin").style("display", "none");
-        d3.select(".expanded-protein-menu").style("display", "none");
+    collapseInteractor() {
+        d3.select(".xinet-context-menu").style("display", "none");
+        this.contextMenuParticipant.showHighlight(false);
         this.contextMenuParticipant.setExpanded(false, this.contextMenuPoint);
         // if (this.contextMenuParticipant.type === "group") {
         //     this.render();
@@ -324,9 +287,11 @@ export class CrosslinkViewer extends Backbone.View {
         this.contextMenuParticipant = null;
     }
 
-    loadAlphafold(){
+    openUniprot(){
+        d3.select(".xinet-context-menu").style("display", "none");
+        this.contextMenuParticipant.showHighlight(false);
         const acc = this.contextMenuParticipant.participant.accession;
-        window.vent.trigger("loadAlphafold", acc);
+        window.open("https://www.uniprot.org/uniprotkb/" + acc + "/entry", "_blank");
     }
 
     cantCollapseGroup() {
@@ -335,7 +300,8 @@ export class CrosslinkViewer extends Backbone.View {
     }
 
     ungroup() {
-        d3.select(".group-custom-menu-margin").style("display", "none");
+        d3.select(".xinet-context-menu").style("display", "none");
+        this.contextMenuParticipant.showHighlight(false);
         this.model.get("groups").delete(this.contextMenuParticipant.id);
         this.model.trigger("change:groups");
         this.contextMenuParticipant = null;
@@ -1262,10 +1228,11 @@ export class CrosslinkViewer extends Backbone.View {
         for (let renderedParticipant of this.renderedProteins.values()) {
             renderedParticipant.updateName();
             if (proteinColourModel) {
+                const c = proteinColourModel.getColour(renderedParticipant.participant);
                 d3.select(renderedParticipant.outline)
-                    .attr("fill", proteinColourModel.getColour(renderedParticipant.participant));
+                    .attr("fill", c);
                 d3.select(renderedParticipant.background)
-                    .attr("fill", proteinColourModel.getColour(renderedParticipant.participant));
+                    .attr("fill", c);
             }
         }
         return this;
@@ -1557,14 +1524,12 @@ export class CrosslinkViewer extends Backbone.View {
             const add = evt.ctrlKey || evt.shiftKey;
             const p = this.getEventPoint(evt);
             const c = p.matrixTransform(this.container.getCTM().inverse());
-
             if (this.state === CrosslinkViewer.STATES.ROTATING) {
                 //round protein rotation to nearest 5 degrees (looks neater)
                 this.dragElement.setRotation(Math.round(this.dragElement.rotation / 5) * 5);
                 this.dragElement.setAllLinkCoordinates();
-
             } else {
-                if (this.dragElement) { // issue re selection drag that started on group, in this case drag element is set
+                if (this.dragElement) { // todo - issue re selection drag that started on group, in this case drag element is set
                     if (rightClick) {
                         if (this.mouseMoved) { // move and right click
                             // ADD TO SELECT POST RIGHT CLICK DRAG -- RIGHT CLICK, HAS MOVED, NO DRAG ELEMENT
@@ -1574,55 +1539,17 @@ export class CrosslinkViewer extends Backbone.View {
                         this.contextMenuParticipant = this.dragElement;
                         if (this.dragElement.ix || this.dragElement.type === "group") {
                             this.model.get("tooltipModel").set("contents", null);
-                            if (!this.dragElement.expanded) {
-                                //expand the collapsed
-                                if (this.dragElement.type === "group") {
-                                    this.dragElement.setExpanded(true, c);
-                                    this.hiddenProteinsChanged();
-                                    this.render();
-
-                                    /*const fixed = [];
-                                    for (let rp of this.renderedProteins.values()) {
-                                        if (this.dragElement.renderedParticipants.indexOf(rp) == -1) {
-                                            fixed.push(rp.participant)
-                                        }
-                                    }
-                                    this.autoLayout(fixed); //pass in those NOT to autolayout
-*/
-
-                                } else {
-                                    const menu = d3.select(".collapsed-protein-menu");
-                                    menu.style("top", (evt.pageY - 20) + "px").style("left", (evt.pageX - 20) + "px").style("display", "block");
-                                }
-                            } else {
-                                //give context menu that allows collapsing the expanded...
-                                this.contextMenuPoint = c;
-
-                                if (this.dragElement.type !== "group") {
-                                    //...for proteins
-                                    const menu = d3.select(".expanded-protein-menu");
-                                    menu.style("top", (evt.pageY - 20) + "px").style("left", (evt.pageX - 20) + "px").style("display", "block");
-                                    d3.select(".scaleButton_" + (this.dragElement.stickZoom * 100)).property("checked", true);
-                                } else {
-                                    // for groups
-
-                                    const overlapping = this.dragElement.isOverlappingGroup();
-                                    const canny = d3.select(".cant-collapse-group");
-                                    canny.style("display", (overlapping ? null : "none"));
-                                    d3.select(".collapse-group").style("display", (overlapping ? "none" : null));
-
-                                    const menu = d3.select(".group-custom-menu-margin");
-                                    menu.style("top", (evt.pageY - 20) + "px").style("left", (evt.pageX - 20) + "px").style("display", "block");
-                                }
-                            }
+                            this.contextMenuPoint = c;
+                            this.showContextMenu(evt);
                         }
-
                     } else if (this.dragElement.participant && !this.mouseMoved) { // it's a protein
-
                         // ADD SINGLE PROTEIN TO SELECTION - LEFT CLICK, NO MOVE, IS A DRAG ELEMENT
                         this.model.setSelectedProteins([this.dragElement.participant], add);
-
-                    } else if (this.dragElement.type === "group" && !this.mouseMoved) { // was left-click on a group, no move mouse
+                    } else if (this.dragElement.participant && add && this.mouseMoved) {
+                        alert ("add protein to group, not implemented yet");
+                        // todo: get list of groups intersecting point where protein was 'dropped'
+                    }
+                    else if (this.dragElement.type === "group" && !this.mouseMoved) { // was left-click on a group, no move mouse
                         //add all group proteins to selection
                         const participants = [];
                         for (let rp of this.dragElement.renderedParticipants) {
@@ -1630,7 +1557,6 @@ export class CrosslinkViewer extends Backbone.View {
                         }
                         this.model.setSelectedProteins(participants, add);
                     }
-
                 } else { //no drag element
                     if (rightClick) {
                         if (this.mouseMoved) { // move and right click
@@ -1638,7 +1564,6 @@ export class CrosslinkViewer extends Backbone.View {
                             this.model.setSelectedProteins(this.toSelect, add);
                         }
                     } else if (!this.mouseMoved) {
-
                         //UNSELECT - EITHER MOUSE BUTTON, NO MOVE, NO DRAG ELEMENT
                         this.model.setMarkedCrossLinks("selection", [], false, add);
                         this.model.setSelectedProteins([]);
@@ -1646,7 +1571,6 @@ export class CrosslinkViewer extends Backbone.View {
                     }
                 }
             }
-
             this.dragElement = null;
             this.whichRotator = -1;
             this.state = CrosslinkViewer.STATES.MOUSE_UP;
@@ -1654,6 +1578,97 @@ export class CrosslinkViewer extends Backbone.View {
         }
         this.lastMouseUp = time;
         return false;
+    }
+
+    showContextMenu(evt) {
+        const self = this;
+        const menuListSel = this.contextMenuUlSel;
+        menuListSel.selectAll("li").remove();
+
+        const renderedInteractor = this.contextMenuParticipant;
+
+        if (renderedInteractor.participant) { //protein
+            if (renderedInteractor.expanded) {
+                menuListSel.append("li").text("Collapse Protein").on("click", () => {
+                    this.collapseInteractor(renderedInteractor);
+                });
+                //scale buttons
+                const scaleButtonsListItemSel = menuListSel.append("li").text("Scale: ");
+                const scaleButtons = scaleButtonsListItemSel.selectAll("ul.custom-menu")
+                    .data(CrosslinkViewer.barScales)
+                    .enter()
+                    .append("div")
+                    .attr("class", "barScale")
+                    .append("label");
+                scaleButtons.append("span")
+                    .text(function (d) {
+                        if (d === 8) return "AA";
+                        else return d;
+                    });
+                scaleButtons.append("input")
+                    // .attr ("id", function(d) { return d*100; })
+                    .attr("class", function (d) {
+                        return "scaleButton scaleButton_" + (d * 100);
+                    })
+                    .attr("name", "scaleButtons")
+                    .attr("type", "radio")
+                    .on("change", function (d) {
+                        self.contextMenuParticipant.setStickScale(d, self.contextMenuPoint);
+                    });
+                d3.select(".scaleButton_" + (renderedInteractor.stickZoom * 100)).property("checked", true);
+
+            } else {
+                menuListSel.append("li").text("Expand Protein").on("click", () => {
+                    this.expandProtein(renderedInteractor);
+                });
+            }
+
+            menuListSel.append("li").text("Open in UniProt").on("click", () => {
+                window.open("https://www.uniprot.org/uniprot/" + renderedInteractor.participant.id);
+            });
+
+            menuListSel.append("li").text("Set Protein Colour").on("click", () => {
+                this.model.chooseInteractorColor(renderedInteractor.participant.id);
+            });
+
+            for (let pg of renderedInteractor.parentGroups){
+                menuListSel.append("li").text("Remove from group " + pg.name).on("click", () => {
+                    pg.removeParticipant(renderedInteractor.participant);
+                });
+            }
+
+        } else { // group
+            if (renderedInteractor.expanded) {
+                if (renderedInteractor.isOverlappingGroup()) {
+                    menuListSel.append("li").text("Can't collapse overlapping groups").on("click", () => {
+                        this.cantCollapseGroup(); //does nothing
+                    });
+                    menuListSel.append("li").text("Enclose Overlapping Groups").on("click", () => {
+
+                    });
+                } else {
+                    menuListSel.append("li").text("Collapse Group").on("click", () => {
+                        this.collapseInteractor(renderedInteractor);
+                    });
+                }
+            } else {
+                menuListSel.append("li").text("Expand Group").on("click", () => {
+                    renderedInteractor.setExpanded(true, this.getEventPoint(evt));
+                });
+            }
+
+            menuListSel.append("li").text("Ungroup").on("click", () => {
+                this.ungroup(renderedInteractor);
+            });
+
+            menuListSel.append("li").text("Set Group Colour").on("click", () => {
+                this.model.chooseInteractorColor(renderedInteractor.id);
+            });
+        }
+
+        const menu = d3.select(".xinet-context-menu");
+        menu.style("top", (evt.pageY - 20) + "px").style("left", (evt.pageX - 20) + "px").style("display", "block");
+
     }
 
     mouseWheel(evt) {
