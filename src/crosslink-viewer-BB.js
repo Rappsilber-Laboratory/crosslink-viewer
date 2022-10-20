@@ -15,6 +15,7 @@ import {Group} from "./interactor/group";
 import {P_PLink} from "./link/p_p-link";
 import {G_GLink} from "./link/g_g-link";
 import {ManualColourModel} from "../../xi3/js/model/color/protein-color-model";
+import * as $ from "jquery";
 
 export class CrosslinkViewer extends Backbone.View {
 
@@ -1713,10 +1714,20 @@ export class CrosslinkViewer extends Backbone.View {
             }
         }
 
-        //todo: keep menu on screen
+        //keep menu on screen
+        const width = this.svgElement.parentNode.clientWidth;
+        const height = this.svgElement.parentNode.clientHeight;
+        const pageX = evt.pageX;
+        const pageY = evt.pageY - 37; //todo: hacky, 37 is height of top bar
         const menu = d3.select(".xinet-context-menu");
-        menu.style("top", (evt.pageY - 20) + "px").style("left", (evt.pageX - 20) + "px").style("display", "block");
-
+        menu.style("display", "block");
+        const menuWidth = menu.node().getBoundingClientRect().width;
+        const menuHeight = menu.node().getBoundingClientRect().height;
+        console.log("menuWidth: " + menuWidth, "menuHeight: " + menuHeight);
+        const mouseOffset = 20;
+        const x = pageX + mouseOffset + menuWidth > width ? pageX - mouseOffset - menuWidth : pageX + mouseOffset;
+        const y = pageY + mouseOffset + menuHeight > height ? pageY - mouseOffset - menuHeight : pageY + mouseOffset;
+        menu.style("top", y + "px").style("left", x + "px");
     }
 
     mouseWheel(evt) {

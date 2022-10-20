@@ -17,7 +17,7 @@ export class RenderedProtein extends Interactor {
         this.renderedCrosslinks = [];
         this.parentGroups = new Set();
         // layout info
-        this.ix = 100;
+        this.ix = 300;
         this.iy = 40;
         this.rotation = 0;
         this.expanded = false;
