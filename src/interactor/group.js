@@ -423,6 +423,11 @@ export class Group extends Interactor {
         }
     }
 
+    setColour(colour) {
+        if (colour === "#FFFFFF") colour = "#CCCCCC";
+        this.outline.setAttribute("fill", colour);
+    }
+
     setHidden(bool) {
         d3.select(this.upperGroup).style("display", bool ? "none" : null);
         d3.select(this.labelSVG).style("display", bool ? "none" : null);

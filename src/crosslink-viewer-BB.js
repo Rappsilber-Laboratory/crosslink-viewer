@@ -14,6 +14,7 @@ import {RenderedCrosslink} from "./link/rendered-crosslink";
 import {Group} from "./interactor/group";
 import {P_PLink} from "./link/p_p-link";
 import {G_GLink} from "./link/g_g-link";
+import {ManualColourModel} from "../../xi3/js/model/color/protein-color-model";
 
 export class CrosslinkViewer extends Backbone.View {
 
@@ -238,7 +239,7 @@ export class CrosslinkViewer extends Backbone.View {
         this.listenTo(this.model, "change:selection", this.selectedLinksChanged);
 
         this.listenTo(this.model, "change:linkColourAssignment currentColourModelChanged", this.render);
-        this.listenTo(this.model, "change:proteinColourAssignment currentProteinColourModelChanged", this.proteinMetadataUpdated);
+        this.listenTo(this.model, "change:proteinColourAssignment currentProteinColourModelChanged", this.proteinColoursUpdated);
 
         this.listenTo(this.model.get("annotationTypes"), "change:shown", this.setAnnotations);
         this.listenTo(this.model.get("alignColl"), "bulkAlignChange", this.setAnnotations);
@@ -1021,6 +1022,10 @@ export class CrosslinkViewer extends Backbone.View {
 
     saveLayout(callback) {
         const layout = {};
+        const proteinColourModel = this.model.get("proteinColourAssignment");
+        if (proteinColourModel instanceof ManualColourModel) {
+            layout.manualColourAssignment = JSON.stringify(Object.fromEntries(proteinColourModel.colourAssignment));
+        }
         layout.groups = Array.from(this.groupMap.values());
         layout.proteins = Array.from(this.renderedProteins.values());
         const myJSONText = JSON.stringify(layout, null);
@@ -1100,6 +1105,11 @@ export class CrosslinkViewer extends Backbone.View {
         this.model.get("filterModel").trigger("change", this.model.get("filterModel"));
 
         this.zoomToFullExtent();
+
+        if (layout.manualColourAssignment) {
+            window.linkColor.manualProteinColoursBB.setMap(JSON.parse(layout.manualColourAssignment));
+            this.model.set("proteinColourAssignment", window.linkColor.manualProteinColoursBB);
+        }
 
         if (layoutIsDodgy) {
             alert("Looks like something went wrong with the saved layout, if you can't see your proteins click Auto layout");
@@ -1224,15 +1234,31 @@ export class CrosslinkViewer extends Backbone.View {
 
     // updates protein names and colours
     proteinMetadataUpdated() {
-        const proteinColourModel = window.compositeModelInst.get("proteinColourAssignment");
         for (let renderedParticipant of this.renderedProteins.values()) {
             renderedParticipant.updateName();
+        }
+        this.proteinColoursUpdated();
+        return this;
+    }
+
+    proteinColoursUpdated() {
+        const proteinColourModel = window.compositeModelInst.get("proteinColourAssignment");
+        for (let renderedParticipant of this.renderedProteins.values()) {
             if (proteinColourModel) {
                 const c = proteinColourModel.getColour(renderedParticipant.participant);
                 d3.select(renderedParticipant.outline)
                     .attr("fill", c);
                 d3.select(renderedParticipant.background)
                     .attr("fill", c);
+            }
+        }
+        //groups also
+        for (let g of this.groupMap.values()) {
+            if (proteinColourModel && proteinColourModel instanceof ManualColourModel) {
+                const c = proteinColourModel.getColour(g);
+                g.setColour(c);
+            } else {
+                g.setColour("#CCCCCC");
             }
         }
         return this;
@@ -1586,6 +1612,7 @@ export class CrosslinkViewer extends Backbone.View {
         menuListSel.selectAll("li").remove();
 
         const renderedInteractor = this.contextMenuParticipant;
+        const proteinColourModel = this.model.get("proteinColourAssignment");
 
         if (renderedInteractor.participant) { //protein
             if (renderedInteractor.expanded) {
@@ -1628,12 +1655,23 @@ export class CrosslinkViewer extends Backbone.View {
             });
 
             menuListSel.append("li").text("Set Protein Colour").on("click", () => {
+                //todo: set protein colour for all selected proteins?
                 this.model.chooseInteractorColor(renderedInteractor.participant.id);
             });
 
+            if (proteinColourModel instanceof ManualColourModel) {
+                if (proteinColourModel.hasManualAssignment(renderedInteractor.participant.id)) {
+                    menuListSel.append("li").text("Remove Protein Colour").on("click", () => {
+                        proteinColourModel.removeManualAssignment(renderedInteractor.participant.id);
+                        this.model.trigger("currentProteinColourModelChanged", proteinColourModel);
+                    });
+                }
+            }
+
             for (let pg of renderedInteractor.parentGroups){
                 menuListSel.append("li").text("Remove from group " + pg.name).on("click", () => {
-                    pg.removeParticipant(renderedInteractor.participant);
+                    alert("remove from group not implemented yet");
+                    //pg.removeParticipant(renderedInteractor.participant);
                 });
             }
 
@@ -1644,7 +1682,7 @@ export class CrosslinkViewer extends Backbone.View {
                         this.cantCollapseGroup(); //does nothing
                     });
                     menuListSel.append("li").text("Enclose Overlapping Groups").on("click", () => {
-
+                        alert("enclose overlapping groups not implemented yet");
                     });
                 } else {
                     menuListSel.append("li").text("Collapse Group").on("click", () => {
@@ -1664,8 +1702,18 @@ export class CrosslinkViewer extends Backbone.View {
             menuListSel.append("li").text("Set Group Colour").on("click", () => {
                 this.model.chooseInteractorColor(renderedInteractor.id);
             });
+
+            if (proteinColourModel instanceof ManualColourModel) {
+                if (proteinColourModel.hasManualAssignment(renderedInteractor.id)) {
+                    menuListSel.append("li").text("Remove Group Colour").on("click", () => {
+                        proteinColourModel.removeManualAssignment(renderedInteractor.id);
+                        this.model.trigger("currentProteinColourModelChanged", proteinColourModel);
+                    });
+                }
+            }
         }
 
+        //todo: keep menu on screen
         const menu = d3.select(".xinet-context-menu");
         menu.style("top", (evt.pageY - 20) + "px").style("left", (evt.pageX - 20) + "px").style("display", "block");
 
