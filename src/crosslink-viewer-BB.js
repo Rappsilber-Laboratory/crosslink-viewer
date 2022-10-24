@@ -15,7 +15,6 @@ import {Group} from "./interactor/group";
 import {P_PLink} from "./link/p_p-link";
 import {G_GLink} from "./link/g_g-link";
 import {ManualColourModel} from "../../xi3/js/model/color/protein-color-model";
-import * as $ from "jquery";
 
 export class CrosslinkViewer extends Backbone.View {
 
@@ -258,7 +257,6 @@ export class CrosslinkViewer extends Backbone.View {
         this.listenTo(window.vent, "expandGroups", this.expandGroups);
 
         this.listenTo(this.model, "change:xinetShowLabels", this.showLabels);
-        this.listenTo(this.model, "change:xinetShowExpandedGroupLabels", this.showExpandedGroupLabels);
         this.listenTo(this.model, "change:xinetFixedSize", this.setFixedSize);
         this.listenTo(this.model, "change:xinetThickLinks", this.render);
         this.listenTo(this.model, "change:xinetPpiSteps", this.render);
@@ -499,6 +497,8 @@ export class CrosslinkViewer extends Backbone.View {
                 group.updateCountLabel();
                 if (group.expanded) {
                     group.updateExpandedGroup();
+                } else {
+                    group.setPosition(group.ix, group.iy);
                 }
             }
         }
@@ -1084,19 +1084,26 @@ export class CrosslinkViewer extends Backbone.View {
             for (const savedGroup of groups) {
                 //gonna need to check for proteins now missing from results
                 const presentProteins = new Set();
+
                 for (let pId of savedGroup.participantIds) {
                     if (this.renderedProteins.get(pId)) {
                         presentProteins.add(pId);
                     }
                 }
-                modelGroupMap.set(savedGroup.id, presentProteins);
+                if (presentProteins.size === 0) {
+                    // layoutIsDodgy = true;
+                    // this prob happens as a result of revalidating data in lab version
+                    console.log("! group in layout but no proteins in search:" + savedGroup.id + "; " + savedGroup.participantIds);
+                } else {
+                    modelGroupMap.set(savedGroup.id, presentProteins);
+                }
             }
             this.model.set("groups", modelGroupMap);
             this.model.trigger("change:groups");
 
             for (const savedGroup of groups) {
                 const xiNetGroup = this.groupMap.get(savedGroup.id);
-                if (savedGroup.expanded === false) {
+                if (xiNetGroup && savedGroup.expanded === false) {
                     xiNetGroup.collapse(null, false);
                     xiNetGroup.setPositionFromXinet(savedGroup.x, savedGroup.y);
                 }
@@ -1269,13 +1276,6 @@ export class CrosslinkViewer extends Backbone.View {
         const show = this.model.get("xinetShowLabels");
         for (let renderedParticipant of this.renderedProteins.values()) {
             renderedParticipant.showLabel(show);
-        }
-        return this;
-    }
-
-    showExpandedGroupLabels() {
-        for (let group of this.groupMap.values()) {
-            group.setExpanded(group.expanded);
         }
         return this;
     }
@@ -1556,7 +1556,7 @@ export class CrosslinkViewer extends Backbone.View {
                 this.dragElement.setRotation(Math.round(this.dragElement.rotation / 5) * 5);
                 this.dragElement.setAllLinkCoordinates();
             } else {
-                if (this.dragElement) { // todo - issue re selection drag that started on group, in this case drag element is set
+                if (this.dragElement) {
                     if (rightClick) {
                         if (this.mouseMoved) { // move and right click
                             // ADD TO SELECT POST RIGHT CLICK DRAG -- RIGHT CLICK, HAS MOVED, NO DRAG ELEMENT
@@ -1669,12 +1669,12 @@ export class CrosslinkViewer extends Backbone.View {
                 }
             }
 
-            for (let pg of renderedInteractor.parentGroups){
-                menuListSel.append("li").text("Remove from group " + pg.name).on("click", () => {
-                    alert("remove from group not implemented yet");
-                    //pg.removeParticipant(renderedInteractor.participant);
-                });
-            }
+            // for (let pg of renderedInteractor.parentGroups){
+            //     menuListSel.append("li").text("Remove from group " + pg.name).on("click", () => {
+            //         alert("remove from group not implemented yet");
+            //         //pg.removeParticipant(renderedInteractor.participant);
+            //     });
+            // }
 
         } else { // group
             if (renderedInteractor.expanded) {

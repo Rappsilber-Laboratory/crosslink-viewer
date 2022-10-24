@@ -119,9 +119,6 @@ export class RenderedProtein extends Interactor {
             if (evt.preventDefault) {
                 evt.preventDefault();
             }
-            // if (evt.stopPropagation) {
-            //     evt.stopPropagation();
-            // }
             evt.returnValue = false;
             return false;
         };
@@ -137,12 +134,13 @@ export class RenderedProtein extends Interactor {
     //}
 
     get width(){
-        if (this.expanded) {
-            return this.upperGroup.getBBox().width + 10;
+        const approxLabelWidth = 10 * (this.labelText.length + 2);
+        if (!this.expanded) {
+            return (approxLabelWidth > this.symbolRadius)? approxLabelWidth : this.symbolRadius + 20;//this.upperGroup.getBBox().width + 10;
         } else {
-            return this.upperGroup.getBBox().width + 10;
+            return (this.participant.size * this.stickZoom) + approxLabelWidth;
         }
-        //return 60;//
+        // //return 60;//
     }
 
     get height () {
@@ -175,51 +173,12 @@ export class RenderedProtein extends Interactor {
         }
         this.showHighlight(this.isHighlighted);
         this.setSelected(this.isSelected);
-
-
-
-        // const show = this.isHighlighted;
-        // const select = this.isSelected;
-        //
-        // const d3HighSel = d3.select(this.highlight);
-        // if (show === true) {
-        //     d3HighSel
-        //         .classed("selectedProtein", false)
-        //         .classed("highlightedProtein", true)
-        //         .attr("stroke-opacity", "1");
-        // } else {
-        //     if (!this.isSelected) {
-        //         d3HighSel.attr("stroke-opacity", "0");
-        //     }
-        //     d3HighSel
-        //         .classed("selectedProtein", true)
-        //         .classed("highlightedProtein", false);
-        // }
-        // this.isHighlighted = !!show; // mjg apr 18
-        //
-        // const d3HighSel2 = d3.select(this.highlight);
-        // if (select === true) {
-        //     d3HighSel2
-        //         .classed("selectedProtein", true)
-        //         .classed("highlightedProtein", false)
-        //         .attr("stroke-opacity", "1");
-        // } else {
-        //     d3HighSel2
-        //         .attr("stroke-opacity", "0")
-        //         .classed("selectedProtein", false)
-        //         .classed("highlightedProtein", true);
-        // }
-        // this.isSelected = !!select;
-
-
-
         this.setPositionFromXinet(this.ix, this.iy);
         this.scale();
         this.setAllLinkCoordinates();
         if (this.newForm === true) { //hacky?
             this.toStickNoTransition();
         }
-
     }
 
     updateName() {
@@ -344,7 +303,7 @@ export class RenderedProtein extends Interactor {
         this.py = this.y;
         let xOffset = 0;
         if (!this.hidden) { // todo - hacky
-             xOffset = (this.width / 2 - (this.symbolRadius) + 5);
+            xOffset = (this.width / 2 - (this.symbolRadius) + 5);
         //     // if (this.expanded) {
         //     //   xOffset = xOffset + (this.participant.size / 2 * this.stickZoom );
         //     // }

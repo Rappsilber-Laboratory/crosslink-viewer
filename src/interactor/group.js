@@ -74,35 +74,17 @@ export class Group extends Interactor {
         this.upperGroup.onmouseout = function (evt) {
             self.mouseOut(evt);
         };
-
-        Object.defineProperty(this, "width", {
-            get: function width() {
-                return 60;//this.upperGroup.getBBox().width + 10;
-            }
-        });
-        Object.defineProperty(this, "height", {
-            get: function height() {
-                return 60;//this.upperGroup.getBBox().height + 10;
-            }
-        });
     }
 
-    // get width(){
-    //     // if (this.expanded) {
-    //     //     return this.upperGroup.getBBox().width + 10;
-    //     // } else {
-    //     //     return this.upperGroup.getBBox().width + 10;
-    //     // }
-    //     return 60;//
-    // }
-    //
-    // get height () {
-    //     // if (this.expanded) {
-    //     //     return this.upperGroup.getBBox().height + 10;
-    //     // } else {
-    //     return 60;//this.upperGroup.getBBox().height + 10;
-    //     // }
-    // }
+    get width() {
+        // return 60;
+        const approxLabelWidth = 10 * (this.labelText.length + 2);
+        return (approxLabelWidth > this.symbolRadius) ? approxLabelWidth : this.symbolRadius + 20;
+    }
+    get height () {
+        return 60;
+    }
+
     //
     // get BBox () {
     //     let x1 = 0, y1 = 0, x2 = 0, y2 = 0;
@@ -178,7 +160,7 @@ export class Group extends Interactor {
                 return false;
             }
         }
-        return true;
+        return true; // this.unhiddenParticipantCount() < anotherGroup.unhiddenParticipantCount();
     }
 
     contains(renderedProtein) {
@@ -315,6 +297,10 @@ export class Group extends Interactor {
             const cornerRadii = 5 * this.controller.z;
 
             const updateOutline = function (svgElement) {
+                if (!x){
+                    console.log("!x");
+                }
+
                 svgElement.setAttribute("x", x);
                 svgElement.setAttribute("y", y);
                 svgElement.setAttribute("width", scaledWidth);
@@ -324,10 +310,10 @@ export class Group extends Interactor {
             };
 
             updateOutline(this.outline);
-            // this.outline.setAttribute("stroke-width", 3 * this.controller.z);
+            this.outline.setAttribute("stroke-width", 3 * this.controller.z);
 
             updateOutline(this.highlight);
-            // this.highlight.setAttribute("stroke-width", 9 * this.controller.z);
+            this.highlight.setAttribute("stroke-width", 9 * this.controller.z);
 
             this.labelSVG.setAttribute("transform", "translate(" + this.ix + " " + this.iy + ")" +
                 " scale(" + (this.controller.z) + ")");
@@ -407,10 +393,10 @@ export class Group extends Interactor {
         };
 
         updateOutline(this.outline);
-        // this.outline.setAttribute("stroke-width", 3 * this.controller.z);
+        this.outline.setAttribute("stroke-width", 3 * this.controller.z);
 
         updateOutline(this.highlight);
-        // this.highlight.setAttribute("stroke-width", 9 * this.controller.z);
+        this.highlight.setAttribute("stroke-width", 9 * this.controller.z);
 
         //move label
         this.labelSVG.setAttribute("transform", "translate(" + (x1 - pad) + " " + (y1 - pad) + ")" +
@@ -677,7 +663,9 @@ export class Group extends Interactor {
         // transition = false;
         this.busy = true;
         const self = this;
+
         this.expanded = true;
+        this.controller.render();
 
         const proteinXPositionInterpolations = [];
         const proteinYPositionInterpolations = [];
@@ -688,7 +676,9 @@ export class Group extends Interactor {
 
         this.labelSVG.setAttribute("dominant-baseline", null);
         this.labelSVG.setAttribute("text-anchor", null);
+
         this.showSubgroups();
+
         this.controller.groupsSVG.appendChild(this.upperGroup);
         this.outline.setAttribute("fill-opacity", "0.5");
 
@@ -696,7 +686,8 @@ export class Group extends Interactor {
             rp.setHidden(rp.participant.hidden || rp.inCollapsedGroup());
         }
 
-        if (transition) {
+        //  decide on new positions for proteins and collapsed subgroups
+        if (transition) { // only if transition (not if no position, i.e. from saved layout)
             // const cBBox = this.controller.container.getBBox();
             // console.log(cBBox);
             // const centre = [cBBox.x + (cBBox.width / 2), cBBox.y + (cBBox.height / 2)]
@@ -710,6 +701,9 @@ export class Group extends Interactor {
             br.y = height;
             const topLeft = tl.matrixTransform(this.controller.container.getCTM().inverse());
             const bottomRight = br.matrixTransform(this.controller.container.getCTM().inverse());
+
+
+            
 
             let ix = this.ix, iy = this.iy;
             if (!ix) {
@@ -790,183 +784,7 @@ export class Group extends Interactor {
                 return false;
             }
         }
-
     }
-
-/*    setExpanded(expanded, svgP) {
-        // if (this.isOverlappingGroup()) {
-        //     console.error("overlapping group", this.id);
-        //     expanded = true;
-        // }
-        const self = this;
-        // this.expanded = !!expanded;
-        // const expandedGroupLabels = this.controller.model.get("xinetShowExpandedGroupLabels"); // todo - will need to look at this again (for anim)
-
-        if (!expanded) { // is collapsing
-            let newX, newY;
-            if (svgP) {
-                newX = svgP.x;
-                newY = svgP.y;
-            } else {
-                const avPos = this.getAverageParticipantPosition()
-                newX = avPos[0];
-                newY = avPos[1];
-            }
-            // this.setPositionFromXinet(newX, newY);
-            const originalPositions = [];
-            for (let rp of this.renderedParticipants) {
-                originalPositions.push([rp.ix, rp.iy]);
-            }
-
-            const xPositionInterpolations = [];
-            const yPositionInterpolations = [];
-
-            for (let rp of this.renderedParticipants) {
-                xPositionInterpolations.push(d3.interpolate(rp.ix, newX));
-                yPositionInterpolations.push(d3.interpolate(rp.iy, newY));
-            }
-
-            const cubicInOut = d3.ease("cubic-in-out");
-            // if (transition) {
-            d3.timer(function (elapsed) {
-                return updateCollapsing(elapsed / (RenderedProtein.transitionTime * 2));
-            });
-            // }
-            function updateCollapsing(interp) {
-                for (let i = 0; i < self.renderedParticipants.length; i++) {
-                    const rp = self.renderedParticipants[i];
-                    const x = xPositionInterpolations[i](cubicInOut(interp));
-                    const y = yPositionInterpolations[i](cubicInOut(interp));
-                    rp.setPositionFromXinet(x, y);
-                    rp.setAllLinkCoordinates();
-                }
-                self.updateExpandedGroup();
-                if (interp === 1) { // finished - tidy up
-                    self.expanded = !!expanded;
-                    self.setPositionFromXinet(newX, newY);
-                    self.controller.hiddenProteinsChanged();
-                    self.controller.render();
-
-                    for (let i = 0; i < self.renderedParticipants.length; i++) {
-                        const rp = self.renderedParticipants[i];
-                        rp.setHidden(true);
-                        rp.setPositionFromXinet(originalPositions[i][0], originalPositions[i][1]);
-                        // rp.setAllLinkCoordinates();
-                    }
-                    self.labelSVG.setAttribute("dominant-baseline", "central");
-                    self.labelSVG.setAttribute("text-anchor", "middle");
-
-                    self.hideSubgroups();
-
-                    self.controller.proteinUpper.appendChild(self.upperGroup);
-                    // if (!expandedGroupLabels) {
-                    //self.upperGroup.appendChild(this.labelSVG);
-                    // }
-
-                    self.outline.setAttribute("fill-opacity", "1");
-                    // self.busy = false;
-                    return true;
-                } else if (interp > 1 || isNaN(interp)) {
-                    return updateCollapsing(1);
-                } else {
-                    return false;
-                }
-            }
-
-        } else { // is expanding
-            self.expanded = !!expanded;
-            this.labelSVG.setAttribute("dominant-baseline", null);
-            this.labelSVG.setAttribute("text-anchor", null);
-
-            this.showSubgroups();
-
-            this.controller.groupsSVG.appendChild(this.upperGroup);
-            // if (!expandedGroupLabels) {
-            //     if (this.upperGroup.contains(this.labelSVG)) {
-            //         this.upperGroup.removeChild(this.labelSVG);
-            //     }
-            // } else { // this is a mess? todo
-            //this.upperGroup.appendChild(this.labelSVG);
-            // }
-
-            this.outline.setAttribute("fill-opacity", "0.5");
-
-            // const cBBox = this.controller.container.getBBox();
-            // console.log(cBBox);
-            // const centre = [cBBox.x + (cBBox.width / 2), cBBox.y + (cBBox.height / 2)]
-            const tl = this.controller.svgElement.createSVGPoint();
-            tl.x = 0;
-            tl.y =0;
-            const br = this.controller.svgElement.createSVGPoint();
-            const width = this.controller.svgElement.parentNode.clientWidth;
-            const height = this.controller.svgElement.parentNode.clientHeight;
-            br.x = width;
-            br.y = height;
-            const topLeft = tl.matrixTransform(this.controller.container.getCTM().inverse());
-            const bottomRight = br.matrixTransform(this.controller.container.getCTM().inverse());
-
-            const xPositionInterpolations = [];
-            const yPositionInterpolations = [];
-            let ix = this.ix, iy = this.iy;
-            if (!ix) {
-                const pPos = this.getAverageParticipantPosition();
-                ix = pPos[0];
-                iy = pPos[1];
-            }
-
-            for (let rp of this.renderedParticipants) {
-                let tempX = rp.ix, tempY = rp.iy;
-                if ( tempX < topLeft.x ) {
-                    tempX = topLeft.x + 200;
-                }
-                if ( tempX > bottomRight.x) {
-                    tempX = bottomRight.x - 200;
-                }
-                if ( tempY < topLeft.y ) {
-                    tempY = topLeft.y + 200;
-                }
-                if ( tempY > bottomRight.y) {
-                    tempY = bottomRight.y - 200;
-                }
-
-                // rp.setPositionFromXinet(tempX, tempY);
-                xPositionInterpolations.push(d3.interpolate(ix, tempX));
-                yPositionInterpolations.push(d3.interpolate(iy, tempY));
-
-                rp.setAllLinkCoordinates();
-                rp.setHidden(rp.participant.hidden || rp.inCollapsedGroup());
-                //rp.checkLinks();
-            }
-
-            const cubicInOut = d3.ease("cubic-out");
-            // if (transition) {
-            d3.timer(function (elapsed) {
-                return updateExpanding(elapsed / (RenderedProtein.transitionTime * 2));
-            });
-            // }
-            function updateExpanding(interp) {
-                for (let i = 0; i < self.renderedParticipants.length; i++) {
-                    const rp = self.renderedParticipants[i];
-                    const x = xPositionInterpolations[i](cubicInOut(interp));
-                    const y = yPositionInterpolations[i](cubicInOut(interp));
-                    rp.setPosition(x, y);
-                    rp.setAllLinkCoordinates();
-                }
-                self.updateExpandedGroup();
-                if (interp === 1) { // finished - tidy up
-                    self.controller.hiddenProteinsChanged();
-                    self.controller.render();
-                    // self.expanded = !!expanded;
-                    // self.busy = false;
-                    return true;
-                } else if (interp > 1 || isNaN(interp)) {
-                    return updateExpanding(1);
-                } else {
-                    return false;
-                }
-            }
-        }
-    }*/
 
     hideSubgroups() {
         for (let subgroup of this.subgroups) {
