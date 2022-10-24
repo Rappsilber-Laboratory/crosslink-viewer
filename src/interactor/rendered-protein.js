@@ -667,15 +667,13 @@ export class RenderedProtein extends Interactor {
 
                             d3.select(rectDomain).transition().attr("d", self.getAnnotationPieSliceApproximatePath(feature))
                                 .duration(transitionTime);
-                        }
-                        else {
+                        } else {
                             for (let b = 0; b < annotationCount; b++) {
                                 const annoB = annotArr[b];
                                 if (this === annoB.pieSlice) {
                                     d3.select(this).attr("d", self.getAnnotationPieSliceArcPath(annoB.feature));
                                 }
                             }
-
                         }
                     } else {
                         d3.select(pieSlice).transition().attr("d", this.getDisulfidAnnotationCircPath(feature))
@@ -1240,8 +1238,7 @@ export class RenderedProtein extends Interactor {
                     let otherEnd;
                     if (link.renderedFromProtein === this) {
                         otherEnd = link.renderedToProtein;
-                    }
-                    else {
+                    } else {
                         otherEnd = link.renderedFromProtein;
                     }
                     // if (otherEnd !== null) {
@@ -1265,8 +1262,7 @@ export class RenderedProtein extends Interactor {
         const renderedParticipantsLinkedTo = new Set();
         //let countExternal = 0;
         for (let link of this.renderedP_PLinks) {
-            if (link.crosslinks[0].isSelfLink() === false)
-            {
+            if (link.crosslinks[0].isSelfLink() === false) {
                 if (link.isPassingFilter()) {
                     //countExternal++;
                     renderedParticipantsLinkedTo.add(link.getOtherEnd(this).getRenderedParticipant());

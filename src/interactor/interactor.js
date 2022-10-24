@@ -6,6 +6,7 @@ export class Interactor {
     constructor(controller) {
         this.controller = controller;
         this.selfLink = null;
+
     }
 
     get symbolRadius() {
@@ -164,6 +165,7 @@ export class Interactor {
         // else return false;
 
 
+        // noinspection LoopStatementThatDoesntLoopJS
         for (let pg of this.parentGroups.values()) {
             if (!pg.expanded) {
                 return true;
@@ -176,7 +178,7 @@ export class Interactor {
 
     getSubgraph () {
         if (this.subgraph == null) {
-            var subgraph = {
+            const subgraph = {
                 nodes: new Map(),
                 links: new Map()
             };

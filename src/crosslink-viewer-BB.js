@@ -1575,8 +1575,7 @@ export class CrosslinkViewer extends Backbone.View {
                     } else if (this.dragElement.participant && add && this.mouseMoved) {
                         alert ("add protein to group, not implemented yet");
                         // todo: get list of groups intersecting point where protein was 'dropped'
-                    }
-                    else if (this.dragElement.type === "group" && !this.mouseMoved) { // was left-click on a group, no move mouse
+                    } else if (this.dragElement.type === "group" && !this.mouseMoved) { // was left-click on a group, no move mouse
                         //add all group proteins to selection
                         const participants = [];
                         for (let rp of this.dragElement.renderedParticipants) {

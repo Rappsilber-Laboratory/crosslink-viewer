@@ -703,7 +703,7 @@ export class Group extends Interactor {
             const bottomRight = br.matrixTransform(this.controller.container.getCTM().inverse());
 
 
-            
+
 
             let ix = this.ix, iy = this.iy;
             if (!ix) {
