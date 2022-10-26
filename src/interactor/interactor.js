@@ -169,9 +169,10 @@ export class Interactor {
         for (let pg of this.parentGroups.values()) {
             if (!pg.expanded) {
                 return true;
-            } else {
-                return pg.inCollapsedGroup();
             }
+            // else {
+            //     return pg.inCollapsedGroup();
+            // }
         }
         return false;
     }

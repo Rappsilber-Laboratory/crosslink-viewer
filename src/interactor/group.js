@@ -185,7 +185,7 @@ export class Group extends Interactor {
         for (let renderedParticipant of this.renderedParticipants) {
             if (!renderedParticipant.participant.hidden && renderedParticipant.parentGroups.size > 1) {
                 for (let parentGroup of renderedParticipant.parentGroups) {
-                    if (!parentGroup.isSubsetOf(this)) {
+                    if (!parentGroup.isSubsetOf(this) && !this.isSubsetOf(parentGroup)) {
                         return true;
                     }
                 }
@@ -194,7 +194,7 @@ export class Group extends Interactor {
         for (let subgroup of this.subgroups) {
             if (!subgroup.hidden && subgroup.parentGroups.size > 1) {
                 for (let subgroupParentGroup of subgroup.parentGroups) {
-                    if (!subgroupParentGroup.isSubsetOf(this)) {
+                    if (!subgroupParentGroup.isSubsetOf(this) && !this.isSubsetOf(subgroupParentGroup)) {
                         return true;
                     }
                 }
@@ -665,7 +665,9 @@ export class Group extends Interactor {
         const self = this;
 
         this.expanded = true;
-        this.controller.render();
+        if (transition) { // yucky, transition is being used to indicate whether this is one interactor collapsing or from 'Collapse All'
+            this.controller.render();
+        }
 
         const proteinXPositionInterpolations = [];
         const proteinYPositionInterpolations = [];
@@ -685,63 +687,98 @@ export class Group extends Interactor {
         for (let rp of this.renderedParticipants) {
             rp.setHidden(rp.participant.hidden || rp.inCollapsedGroup());
         }
+        const tl = this.controller.svgElement.createSVGPoint();
+        tl.x = 0;
+        tl.y =0;
+        const br = this.controller.svgElement.createSVGPoint();
+        const width = this.controller.svgElement.parentNode.clientWidth;
+        const height = this.controller.svgElement.parentNode.clientHeight;
+        br.x = width;
+        br.y = height;
+        const topLeft = tl.matrixTransform(this.controller.container.getCTM().inverse());
+        const bottomRight = br.matrixTransform(this.controller.container.getCTM().inverse());
+
+        //bbox of the expanded group (before moving it on screen if necessary)
+        let bboxTL = this.controller.svgElement.createSVGPoint(), bboxBR = this.controller.svgElement.createSVGPoint();
 
         //  decide on new positions for proteins and collapsed subgroups
         if (transition) { // only if transition (not if no position, i.e. from saved layout)
-            // const cBBox = this.controller.container.getBBox();
-            // console.log(cBBox);
-            // const centre = [cBBox.x + (cBBox.width / 2), cBBox.y + (cBBox.height / 2)]
-            const tl = this.controller.svgElement.createSVGPoint();
-            tl.x = 0;
-            tl.y =0;
-            const br = this.controller.svgElement.createSVGPoint();
-            const width = this.controller.svgElement.parentNode.clientWidth;
-            const height = this.controller.svgElement.parentNode.clientHeight;
-            br.x = width;
-            br.y = height;
-            const topLeft = tl.matrixTransform(this.controller.container.getCTM().inverse());
-            const bottomRight = br.matrixTransform(this.controller.container.getCTM().inverse());
-
-
-
-
             let ix = this.ix, iy = this.iy;
-            if (!ix) {
+            if (!ix) { // todo? um, check why this can be undefined (is it when loading from saved layout)
                 const pPos = this.getAverageParticipantPosition();
                 ix = pPos[0];
                 iy = pPos[1];
             }
 
+            let allOnScreen = true;
             for (let rp of this.renderedParticipants) {
+                if (!isOnScreen(rp)) {
+                    allOnScreen = false;
+                    break;
+                }
                 let tempX = rp.ix, tempY = rp.iy;
-                if ( tempX < topLeft.x ) {
-                    tempX = topLeft.x + 200;
-                }
-                if ( tempX > bottomRight.x) {
-                    tempX = bottomRight.x - 200;
-                }
-                if ( tempY < topLeft.y ) {
-                    tempY = topLeft.y + 200;
-                }
-                if ( tempY > bottomRight.y) {
-                    tempY = bottomRight.y - 200;
-                }
-
-                // rp.setPositionFromXinet(tempX, tempY);
-                proteinXPositionInterpolations.push(d3.interpolate(ix, tempX));
-                proteinYPositionInterpolations.push(d3.interpolate(iy, tempY));
-
-                // rp.setAllLinkCoordinates();
-                // rp.setHidden(rp.participant.hidden || rp.inCollapsedGroup());
-                //rp.checkLinks();
+                // // if ( tempX < topLeft.x ) {
+                // //     tempX = topLeft.x + 200;
+                // // }
+                // // if ( tempX > bottomRight.x) {
+                // //     tempX = bottomRight.x - 200;
+                // // }
+                // // if ( tempY < topLeft.y ) {
+                // //     tempY = topLeft.y + 200;
+                // // }
+                // // if ( tempY > bottomRight.y) {
+                // //     tempY = bottomRight.y - 200;
+                // // }
+                // proteinXPositionInterpolations.push(d3.interpolate(ix, tempX));
+                // proteinYPositionInterpolations.push(d3.interpolate(iy, tempY));
             }
 
             for (let sg of this.subgroups) {
                 if (!sg.expanded) {
-                    collapsedSubgroupXPositionInterpolations.push(d3.interpolate(ix, sg.ix));
-                    collapsedSubgroupYPositionInterpolations.push(d3.interpolate(iy, sg.iy));
+                    if (!isOnScreen(sg)) {
+                        allOnScreen = false;
+                        break;
+                    }
+                    // collapsedSubgroupXPositionInterpolations.push(d3.interpolate(ix, sg.ix));
+                    // collapsedSubgroupYPositionInterpolations.push(d3.interpolate(iy, sg.iy));
                 }
+            }
 
+            if (allOnScreen) {
+                for (let rp of this.renderedParticipants) {
+                    proteinXPositionInterpolations.push(d3.interpolate(ix, rp.ix));
+                    proteinYPositionInterpolations.push(d3.interpolate(iy, rp.iy));
+                }
+                for (let sg of this.subgroups) {
+                    if (!sg.expanded) {
+                        collapsedSubgroupXPositionInterpolations.push(d3.interpolate(ix, sg.ix));
+                        collapsedSubgroupYPositionInterpolations.push(d3.interpolate(iy, sg.iy));
+                    }
+                }
+            } else {
+                alert("not all on screen");
+                console.log("not all on screen", bboxTL, bboxBR);
+
+                //get good new area for the expanded group
+                this.controller.debugRectSel.attr({
+                    x: ix - ((width / 8) * this.controller.z), // need to make sure is on screen
+                    y: iy - ((width / 8) + this.controller.z),
+                    width: (width / 4) * this.controller.z,
+                    height: (width / 4) * this.controller.z
+                });
+                //
+
+                //
+                for (let rp of this.renderedParticipants) {
+                    proteinXPositionInterpolations.push(d3.interpolate(ix, rp.ix));
+                    proteinYPositionInterpolations.push(d3.interpolate(iy, rp.iy));
+                }
+                for (let sg of this.subgroups) {
+                    if (!sg.expanded) {
+                        collapsedSubgroupXPositionInterpolations.push(d3.interpolate(ix, sg.ix));
+                        collapsedSubgroupYPositionInterpolations.push(d3.interpolate(iy, sg.iy));
+                    }
+                }
             }
 
             d3.timer(function (elapsed) {
@@ -751,10 +788,26 @@ export class Group extends Interactor {
             updateExpanding(1);
         }
 
+        function isOnScreen(interactor){
+            if (!bboxTL.x ||  interactor.ix < bboxTL.x ) {
+                bboxTL.x = interactor.ix;
+            }
+            if (!bboxTL.y ||  interactor.iy < bboxTL.y ) {
+                bboxTL.y = interactor.iy;
+            }
+            if (!bboxBR ||  interactor.ix > bboxBR.x ) {
+                bboxBR.x = interactor.ix;
+            }
+            if (!bboxBR ||  interactor.iy > bboxBR.y ) {
+                bboxBR.y = interactor.iy;
+            }
+            return interactor.x > topLeft.x && interactor.x < bottomRight.x && interactor.y > topLeft.y && interactor.y < bottomRight.y;
+        }
+
         function updateExpanding(interp) {
             if (interp === 1) { // finished - tidy up
                 self.updateExpandedGroup();
-                if (transition) {
+                if (transition) { // todo: this is bit yucky
                     self.controller.hiddenProteinsChanged();
                     self.controller.render();
                 }
@@ -777,6 +830,8 @@ export class Group extends Interactor {
                         const x = collapsedSubgroupXPositionInterpolations[i](cubicInOut(interp));
                         const y = collapsedSubgroupYPositionInterpolations[i](cubicInOut(interp));
                         sg.setPosition(x, y);
+                    } else {
+                        sg.updateExpandedGroup();
                     }
                 }
                 
@@ -799,8 +854,10 @@ export class Group extends Interactor {
     showSubgroups() {
         for (let subgroup of this.subgroups) {
             // subgroup.setExpanded(subgroup.expanded);
-            subgroup.setHidden(false);
-            subgroup.showSubgroups();
+            if (!subgroup.inCollapsedGroup()) {
+                subgroup.setHidden(false);
+            }
+            // subgroup.showSubgroups();
         }
     }
 

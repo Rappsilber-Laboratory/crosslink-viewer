@@ -132,6 +132,8 @@ export class CrosslinkViewer extends Backbone.View {
 
         this.svgElement.appendChild(this.wrapper);
 
+        this.debugRectSel = d3.select(this.proteinUpper).append("rect").attr("stroke", "red").attr("fill", "none");
+
         //is a d3 selection unlike those above
         this.selectionRectSel = d3.select(this.svgElement).append("rect")
             .attr("x", 10)
@@ -310,18 +312,22 @@ export class CrosslinkViewer extends Backbone.View {
     collapseGroups() {
         for (let group of this.groupMap.values()) {
             if (group.expanded === true && !group.isOverlappingGroup()) {
-                group.setExpanded(false);
+                // group.setExpanded(false);
+                group.collapse(null, false);
             }
         }
+        this.hiddenProteinsChanged();
         this.render();
     }
 
     expandGroups() {
         for (let group of this.groupMap.values()) {
             if (group.expanded === false) {
-                group.setExpanded(true);
+                // group.setExpanded(true);
+                group.expand(false);
             }
         }
+        this.hiddenProteinsChanged();
         this.render();
     }
 
@@ -355,12 +361,17 @@ export class CrosslinkViewer extends Backbone.View {
             this.groupMap.delete(rgId);
         }
 
-        //init
         for (let g of modelGroups.entries()) {
-            if (!this.groupMap.has(g[0])) {
+            if (!this.groupMap.has(g[0])) { //if group doesn't exist
                 const group = new Group(g[0], g[1], this);
                 group.init(); // z ordering... later (todo), so is by count of visible participants
                 this.groupMap.set(group.id, group);
+            } else { // group already exists but the proteins in it may have changed
+                const group = this.groupMap.get(g[0]);
+                group.renderedParticipants = [];
+                for (let pId of g[1]) {
+                    group.renderedParticipants.push(this.renderedProteins.get(pId));
+                }
             }
         }
         this.scale();//just to update groups selection highlights
@@ -407,40 +418,41 @@ export class CrosslinkViewer extends Backbone.View {
             }
         }
 
+        // this is super confusing, better without it, new way is everyhting has all their parent and sub groups, now messes up auto layout if there are nested groups
         //remove obsolete subgroups
-        for (let gi = 0; gi < gCount; gi++) {
-            const group1 = groups[gi];
-            //if subgroup has parent also in group1.subgroups then remove it
-            const subgroupCount = group1.subgroups.length;
-            const subgroupsToRemove = [];
-            for (let gj = 0; gj < subgroupCount - 1; gj++) {
-                const subgroup1 = group1.subgroups[gj];
-                for (let gk = gj + 1; gk < subgroupCount; gk++) {
-                    const subgroup2 = group1.subgroups[gk];
-                    if (subgroup1.isSubsetOf(subgroup2)) {
-                        subgroupsToRemove.push(subgroup2);
-                    }
-                }
-            }
-            for (let sgToRemove of subgroupsToRemove) {
-                const index = group1.subgroups.indexOf(sgToRemove);
-                group1.subgroups = group1.subgroups.splice(index, 1);
-            }
-        }
+        // for (let gi = 0; gi < gCount; gi++) {
+        //     const group1 = groups[gi];
+        //     //if subgroup has parent also in group1.subgroups then remove it
+        //     const subgroupCount = group1.subgroups.length;
+        //     const subgroupsToRemove = [];
+        //     for (let gj = 0; gj < subgroupCount - 1; gj++) {
+        //         const subgroup1 = group1.subgroups[gj];
+        //         for (let gk = gj + 1; gk < subgroupCount; gk++) {
+        //             const subgroup2 = group1.subgroups[gk];
+        //             if (subgroup1.isSubsetOf(subgroup2)) {
+        //                 subgroupsToRemove.push(subgroup2);
+        //             }
+        //         }
+        //     }
+        //     for (let sgToRemove of subgroupsToRemove) {
+        //         const index = group1.subgroups.indexOf(sgToRemove);
+        //         group1.subgroups = group1.subgroups.splice(index, 1);
+        //     }
+        // }
 
         for (let g of groups) {
             g.leaves = []; // clear this, it's used by cola, gets filled by auto
             for (let rp of g.renderedParticipants) {
-                let inSubGroup = false;
-                for (let subgroup of g.subgroups) {
-                    if (subgroup.contains(rp)) {
-                        inSubGroup = true;
-                        break;
-                    }
-                }
-                if (!inSubGroup) {
-                    rp.parentGroups.add(g);
-                }
+                // let inSubGroup = false;
+                // for (let subgroup of g.getAllSubgroups()) {
+                //     if (subgroup.contains(rp)) {
+                //         inSubGroup = true;
+                //         break;
+                //     }
+                // }
+                // if (!inSubGroup) {
+                rp.parentGroups.add(g);
+                // }
             }
         }
 
@@ -825,15 +837,13 @@ export class CrosslinkViewer extends Backbone.View {
                     if (!g.hidden && g.expanded) {
                         g.groups = [];
                         // put any rp not contained in a subgroup(recursive) in group1.leaves
-
                         for (let rp of g.renderedParticipants) {
                             if (!rp.hidden) {
                                 let inSubGroup = false;
                                 for (let subgroup of g.subgroups) {
-                                    // UR HERE
                                     if (subgroup.contains(rp)) {
                                         inSubGroup = true;
-                                        // break; ?
+                                        break;
                                     }
                                 }
                                 if (!inSubGroup) {
@@ -1668,12 +1678,18 @@ export class CrosslinkViewer extends Backbone.View {
                 }
             }
 
-            // for (let pg of renderedInteractor.parentGroups){
-            //     menuListSel.append("li").text("Remove from group " + pg.name).on("click", () => {
-            //         alert("remove from group not implemented yet");
-            //         //pg.removeParticipant(renderedInteractor.participant);
-            //     });
-            // }
+            for (let pg of renderedInteractor.parentGroups) {
+                menuListSel.append("li").text("Remove from group " + pg.name)
+                    .attr("data-group", pg.name).attr("data-protein", renderedInteractor.participant.id)
+                    .node().onclick = function (evt) { //on("click", function (evt)  {
+                        const protien = evt.target.getAttribute("data-protein");
+                        const group = evt.target.getAttribute("data-group");
+                        console.log("remove protein " + protien + " from group " + group);
+                        d3.select(".xinet-context-menu").style("display", "none");
+                        self.contextMenuParticipant.showHighlight(false);
+                        self.model.removeProteinFromGroup(group, protien);
+                    };
+            }
 
         } else { // group
             if (renderedInteractor.expanded) {
@@ -1681,9 +1697,9 @@ export class CrosslinkViewer extends Backbone.View {
                     menuListSel.append("li").text("Can't collapse overlapping groups").on("click", () => {
                         this.cantCollapseGroup(); //does nothing
                     });
-                    menuListSel.append("li").text("Enclose Overlapping Groups").on("click", () => {
-                        alert("enclose overlapping groups not implemented yet");
-                    });
+                    // menuListSel.append("li").text("Enclose Overlapping Groups").on("click", () => {
+                    //     alert("enclose overlapping groups not implemented yet");
+                    // });
                 } else {
                     menuListSel.append("li").text("Collapse Group").on("click", () => {
                         this.collapseInteractor(renderedInteractor);
