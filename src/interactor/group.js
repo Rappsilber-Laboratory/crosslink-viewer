@@ -756,27 +756,48 @@ export class Group extends Interactor {
                     }
                 }
             } else {
-                alert("not all on screen");
+                // alert("not all on screen");
                 console.log("not all on screen", bboxTL, bboxBR);
 
                 //get good new area for the expanded group
-                this.controller.debugRectSel.attr({
-                    x: ix - ((width / 8) * this.controller.z), // need to make sure is on screen
-                    y: iy - ((width / 8) + this.controller.z),
-                    width: (width / 4) * this.controller.z,
-                    height: (width / 4) * this.controller.z
-                });
-                //
+                // this.controller.debugRectSel.attr({
+                //     x: ix - ((width / 8) * this.controller.z), // need to make sure is on screen
+                //     y: iy - ((width / 8) + this.controller.z),
+                //     width: (width / 4) * this.controller.z,
+                //     height: (width / 4) * this.controller.z
+                // });
 
-                //
+
+                // this.controller.debugRectSel.attr({
+                //     x: bboxTL.x ,//ix - ((width / 8) * this.controller.z), // need to make sure is on screen
+                //     y: bboxTL.y, // iy - ((width / 8) + this.controller.z),
+                //     width: bboxBR.x - bboxTL.x,   //(width / 4) * this.controller.z,
+                //     height: bboxBR.y - bboxTL.y //(width / 4) * this.controller.z
+                // });
+
+
+                const bboxMidPoint = this.controller.svgElement.createSVGPoint();
+
+                bboxMidPoint.x = (bboxTL.x + bboxBR.x) / 2;
+                bboxMidPoint.y = (bboxTL.y + bboxBR.y) / 2;
+
+                const xTrans = ix - bboxMidPoint.x;
+                const yTrans = iy - bboxMidPoint.y;
+
+                //todo: scale?
+                // if still off screen, new top left will be 1/8 screen width lefyt of mouse position and 1/6 screen height above
+
+                // const newTLx = ix - ((width / 8) * this.controller.z);
+                // const newTLy = iy - ((height / 6) * this.controller.z);
+
                 for (let rp of this.renderedParticipants) {
-                    proteinXPositionInterpolations.push(d3.interpolate(ix, rp.ix));
-                    proteinYPositionInterpolations.push(d3.interpolate(iy, rp.iy));
+                    proteinXPositionInterpolations.push(d3.interpolate(ix, rp.ix + xTrans));
+                    proteinYPositionInterpolations.push(d3.interpolate(iy, rp.iy + yTrans));
                 }
                 for (let sg of this.subgroups) {
                     if (!sg.expanded) {
-                        collapsedSubgroupXPositionInterpolations.push(d3.interpolate(ix, sg.ix));
-                        collapsedSubgroupYPositionInterpolations.push(d3.interpolate(iy, sg.iy));
+                        collapsedSubgroupXPositionInterpolations.push(d3.interpolate(ix, sg.ix + xTrans));
+                        collapsedSubgroupYPositionInterpolations.push(d3.interpolate(iy, sg.iy + yTrans));
                     }
                 }
             }

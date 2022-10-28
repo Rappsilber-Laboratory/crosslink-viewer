@@ -132,7 +132,7 @@ export class CrosslinkViewer extends Backbone.View {
 
         this.svgElement.appendChild(this.wrapper);
 
-        this.debugRectSel = d3.select(this.proteinUpper).append("rect").attr("stroke", "red").attr("fill", "none");
+        // this.debugRectSel = d3.select(this.proteinUpper).append("rect").attr("stroke", "red").attr("fill", "none");
 
         //is a d3 selection unlike those above
         this.selectionRectSel = d3.select(this.svgElement).append("rect")
@@ -1583,8 +1583,26 @@ export class CrosslinkViewer extends Backbone.View {
                         // ADD SINGLE PROTEIN TO SELECTION - LEFT CLICK, NO MOVE, IS A DRAG ELEMENT
                         this.model.setSelectedProteins([this.dragElement.participant], add);
                     } else if (this.dragElement.participant && add && this.mouseMoved) {
-                        alert ("add protein to group, not implemented yet");
-                        // todo: get list of groups intersecting point where protein was 'dropped'
+                        // alert ("add protein to group, not implemented yet");
+                        // get list of groups intersecting point where protein was 'dropped'
+                        const groupsAtPoint = [];
+                        for (let renderedGroup of this.groupMap.values()) {
+                            if (renderedGroup.hidden !== true){ // && renderedGroup.expanded === false) {
+                                const bbox = renderedGroup.upperGroup.getBBox();
+                                if (c.x > bbox.x && c.x < bbox.x + bbox.width && c.y > bbox.y && c.y < bbox.y + bbox.height) {
+                                    console.log("just dropped in" + renderedGroup.id); //to see-ee what condition my condition was in
+                                    groupsAtPoint.push(renderedGroup);
+                                }
+                            }
+                        }
+                        // if only one group, add protein to that group
+                        if (groupsAtPoint.length === 1) {
+                            const group = groupsAtPoint[0];
+                            this.model.addProteinToGroup(group.id, this.dragElement.participant.id);
+                        } else if (groupsAtPoint.length > 1) {
+                            // if more than one group, show a menu of groups to add to
+                            alert("more than one group at that point, this not implemented yet. You need a menu to confirm which group(s) to add to");
+                        }
                     } else if (this.dragElement.type === "group" && !this.mouseMoved) { // was left-click on a group, no move mouse
                         //add all group proteins to selection
                         const participants = [];
