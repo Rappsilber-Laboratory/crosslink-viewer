@@ -387,6 +387,11 @@ export class CrosslinkViewer extends Backbone.View {
         console.log("xiNET HIDDEN PROTEINS CHANGED");
         this.d3cola.stop();
 
+        //clear parent groups of all proteins
+        for (let rp of this.renderedProteins.values()) {
+            rp.parentGroups = new Set();//[];
+        }
+
         // parent groups may change, so clear
         for (let g of this.groupMap.values()) {
             g.subgroups = []; // subgroups as xiNET.Groups
