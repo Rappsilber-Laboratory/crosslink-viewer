@@ -116,22 +116,22 @@ export class RenderedProtein extends Interactor {
 
         //going to use right click ourselves
         this.upperGroup.oncontextmenu = function (evt) {
-            if (evt.preventDefault) {
-                evt.preventDefault();
-            }
-            evt.returnValue = false;
+            // if (evt.preventDefault) {
+            evt.preventDefault();
+            // }
             return false;
         };
     }
 
-    //get BBox () {
-    //    return {
-    //        x:this.ix - 30,
-    //        y: this.iy - 30,
-    //        width: 60,
-    //        height: 60
-    //    };
-    //}
+    get bBox () {
+        return this.upperGroup.getBBox();
+        // return {
+        //     x:this.ix - 30,
+        //     y: this.iy - 30,
+        //     width: this.width,
+        //     height: this.height
+        // };
+    }
 
     get width(){
         const approxLabelWidth = 10 * (this.labelText.length + 2);
@@ -140,15 +140,9 @@ export class RenderedProtein extends Interactor {
         } else {
             return (this.participant.size * this.stickZoom) + approxLabelWidth;
         }
-        // //return 60;//
     }
 
     get height () {
-        // if (this.expanded) {
-        //      return this.upperGroup.getBBox().height + 10;
-        //  } else {
-        //     return this.upperGroup.getBBox().height + 10;
-        // }
         return 60;
     }
 
@@ -707,6 +701,7 @@ export class RenderedProtein extends Interactor {
             const k = self.controller.svgElement.createSVGMatrix().rotate(labelTransform.rotate).translate(labelTranslateInterpol(cubicInOut(interp)), 0);
             if (self.labelSVG.transform) self.labelSVG.transform.baseVal.initialize(self.controller.svgElement.createSVGTransformFromMatrix(k));
             if (xInterpol !== null) {
+                // noinspection JSValidateTypes
                 self.setPositionFromXinet(xInterpol(cubicInOut(interp)), yInterpol(cubicInOut(interp)));
             }
             const rot = rotationInterpol(cubicInOut(interp));
@@ -883,7 +878,7 @@ export class RenderedProtein extends Interactor {
             .delay(transitionTime * 0.8).duration(transitionTime / 2);
     }
 
-    toStickNoTransition() { //TODo - tidy this mess
+    toStickNoTransition() {
         this.toStick(false);
     }
 
@@ -964,31 +959,6 @@ export class RenderedProtein extends Interactor {
     getResXwithStickZoom(r) {
         return (r - (this.participant.size / 2)) * this.stickZoom;
     }
-
-    //calculate the  coordinates of a residue (relative to this.controller.container)
-    // xiNET.RenderedProtein.prototype.getResidueCoordinates = function (r, yOff) {
-    //     if (typeof r === "undefined") {
-    //         alert("Error: residue number is undefined");
-    //     }
-    //     let x = this.getResXwithStickZoom(r * 1) * this.controller.z;
-    //     let y = 0;
-    //     if (x !== 0) {
-    //         const l = Math.abs(x);
-    //         const a = Math.acos(x / l);
-    //         const rotRad = (this.rotation / 360) * Math.PI * 2;
-    //         x = l * Math.cos(rotRad + a);
-    //         y = l * Math.sin(rotRad + a);
-    //         if (typeof yOff !== 'undefined') {
-    //             x += yOff * this.controller.z * Math.cos(rotRad + (Math.PI / 2));
-    //             y += yOff * this.controller.z * Math.sin(rotRad + (Math.PI / 2));
-    //         }
-    //     } else {
-    //         y = yOff;
-    //     }
-    //     x = x + this.ix;
-    //     y = y + this.iy;
-    //     return [x, y];
-    // };
 
     checkLinks() {
         for (let p_pLink of this.renderedP_PLinks) {
@@ -1229,49 +1199,49 @@ export class RenderedProtein extends Interactor {
         return this.participant.id;
     }
 
-    addConnectedNodes (subgraph) {
-        for (let link of this.renderedP_PLinks.values()) {
-            //visible, non-self links only
-            if (link.renderedFromProtein !== link.renderedToProtein && link.isPassingFilter()) {
-                if (!subgraph.links.has(link.id)) {
-                    subgraph.links.set(link.id, link);
-                    let otherEnd;
-                    if (link.renderedFromProtein === this) {
-                        otherEnd = link.renderedToProtein;
-                    } else {
-                        otherEnd = link.renderedFromProtein;
-                    }
-                    // if (otherEnd !== null) {
-                    const renderedOtherEnd = otherEnd.getRenderedParticipant();
-                    renderedOtherEnd.subgraph = subgraph;
-                    //if (!subgraph.nodes.has(renderedOtherEnd.id)) {
-                    subgraph.nodes.set(renderedOtherEnd.id, renderedOtherEnd);
-                    otherEnd.subgraph = subgraph;
-                    otherEnd.addConnectedNodes(subgraph);
-                    //}
-                    // }
-                }
-            }
-        }
-        return subgraph;
-    }
-
-
-    countExternalLinks () {
-        // return this.renderedP_PLinks.length;
-        const renderedParticipantsLinkedTo = new Set();
-        //let countExternal = 0;
-        for (let link of this.renderedP_PLinks) {
-            if (link.crosslinks[0].isSelfLink() === false) {
-                if (link.isPassingFilter()) {
-                    //countExternal++;
-                    renderedParticipantsLinkedTo.add(link.getOtherEnd(this).getRenderedParticipant());
-                }
-            }
-        }
-        return renderedParticipantsLinkedTo.size;
-
-    }
+    // addConnectedNodes (subgraph) {
+    //     for (let link of this.renderedP_PLinks.values()) {
+    //         //visible, non-self links only
+    //         if (link.renderedFromProtein !== link.renderedToProtein && link.isPassingFilter()) {
+    //             if (!subgraph.links.has(link.id)) {
+    //                 subgraph.links.set(link.id, link);
+    //                 let otherEnd;
+    //                 if (link.renderedFromProtein === this) {
+    //                     otherEnd = link.renderedToProtein;
+    //                 } else {
+    //                     otherEnd = link.renderedFromProtein;
+    //                 }
+    //                 // if (otherEnd !== null) {
+    //                 const renderedOtherEnd = otherEnd.getRenderedParticipant();
+    //                 renderedOtherEnd.subgraph = subgraph;
+    //                 //if (!subgraph.nodes.has(renderedOtherEnd.id)) {
+    //                 subgraph.nodes.set(renderedOtherEnd.id, renderedOtherEnd);
+    //                 otherEnd.subgraph = subgraph;
+    //                 otherEnd.addConnectedNodes(subgraph);
+    //                 //}
+    //                 // }
+    //             }
+    //         }
+    //     }
+    //     return subgraph;
+    // }
+    //
+    //
+    // countExternalLinks () {
+    //     // return this.renderedP_PLinks.length;
+    //     const renderedParticipantsLinkedTo = new Set();
+    //     //let countExternal = 0;
+    //     for (let link of this.renderedP_PLinks) {
+    //         if (link.crosslinks[0].isSelfLink() === false) {
+    //             if (link.isPassingFilter()) {
+    //                 //countExternal++;
+    //                 renderedParticipantsLinkedTo.add(link.getOtherEnd(this).getRenderedParticipant());
+    //             }
+    //         }
+    //     }
+    //     return renderedParticipantsLinkedTo.size;
+    //
+    // }
 
 }
 

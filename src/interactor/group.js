@@ -33,7 +33,6 @@ export class Group extends Interactor {
         this.highlight.setAttribute("stroke-width", "3");
         this.highlight.setAttribute("fill", "none");
         this.highlight.setAttribute("stroke-opacity", "0");
-        // this.highlight.setAttribute("stroke", "white");
 
         //create label - we will move this svg element around when expand / collapse
         this.labelSVG = document.createElementNS(CrosslinkViewer.svgns, "text");
@@ -41,12 +40,13 @@ export class Group extends Interactor {
         this.labelSVG.setAttribute("x", "0");
         this.labelSVG.setAttribute("y", "0");
         this.labelSVG.setAttribute("class", "xlv_text proteinLabel");
-        // this.labelSVG.setAttribute("alignment-baseline", "central");
-        // this.labelSVG.setAttribute("text-anchor", "middle");
         this.labelSVG.setAttribute("text-decoration", "underline");
         this.labelText = this.name;
         this.labelTextNode = document.createTextNode(this.labelText);
         this.labelSVG.appendChild(this.labelTextNode);
+
+        this.labelXOffset = 0;
+        this.labelYOffset = 0;
 
         //make blob
         this.outline = document.createElementNS(CrosslinkViewer.svgns, "rect");
@@ -85,38 +85,39 @@ export class Group extends Interactor {
         return 60;
     }
 
-    //
-    // get BBox () {
-    //     let x1 = 0, y1 = 0, x2 = 0, y2 = 0;
-    //     const z = this.controller.z, pad = 5 * z;
-    //
-    //     for (let rp of this.renderedParticipants) {
-    //         if (!rp.hidden && !this.containsInSubgroup(rp)) {
-    //             const rpBbox = rp.BBox;
-    //             if (!x1 || (rpBbox.x * z) + rp.ix < x1) {
-    //                 x1 = (rpBbox.x * z) + rp.ix;
-    //             }
-    //             if (!y1 || (rpBbox.y * z) + rp.iy < y1) {
-    //                 y1 = (rpBbox.y * z) + rp.iy;
-    //             }
-    //             if (!x2 || ((rpBbox.x + rpBbox.width) * z) + rp.ix > x2) {
-    //                 x2 = ((rpBbox.x + rpBbox.width) * z) + rp.ix;
-    //             }
-    //             if (!y2 || ((rpBbox.y + rpBbox.height) * z) + rp.iy > y2) {
-    //                 y2 = ((rpBbox.y + rpBbox.height) * z) + rp.iy;
-    //             }
-    //         }
-    //     }
-    //
-    //     const w = x2 - x1, h = y2 -y1;
-    //
-    //     return {
-    //         x: x1,
-    //         y: y1,
-    //         width: w,
-    //         height: h
-    //     };
-    // }
+
+    get bBox () {
+        return this.upperGroup.getBBox();
+        // let x1 = 0, y1 = 0, x2 = 0, y2 = 0;
+        // const z = this.controller.z;//, pad = 5 * z;
+        //
+        // for (let rp of this.renderedParticipants) {
+        //     if (!rp.hidden && !this.containsInSubgroup(rp)) {
+        //         const rpBbox = rp.bBox;
+        //         if (!x1 || (rpBbox.x * z) + rp.ix < x1) {
+        //             x1 = (rpBbox.x * z) + rp.ix;
+        //         }
+        //         if (!y1 || (rpBbox.y * z) + rp.iy < y1) {
+        //             y1 = (rpBbox.y * z) + rp.iy;
+        //         }
+        //         if (!x2 || ((rpBbox.x + rpBbox.width) * z) + rp.ix > x2) {
+        //             x2 = ((rpBbox.x + rpBbox.width) * z) + rp.ix;
+        //         }
+        //         if (!y2 || ((rpBbox.y + rpBbox.height) * z) + rp.iy > y2) {
+        //             y2 = ((rpBbox.y + rpBbox.height) * z) + rp.iy;
+        //         }
+        //     }
+        // }
+        //
+        // const w = x2 - x1, h = y2 -y1;
+        //
+        // return {
+        //     x: x1,
+        //     y: y1,
+        //     width: w,
+        //     height: h
+        // };
+    }
 
     //only output the info needed to reproduce the layout, used by save layout function
     toJSON() {
@@ -348,7 +349,7 @@ export class Group extends Interactor {
 
         for (let rp of this.renderedParticipants) {
             if (!rp.hidden && !this.containsInSubgroup(rp)) {
-                const rpBbox = rp.upperGroup.getBBox();
+                const rpBbox = rp.bBox;
                 if (!x1 || (rpBbox.x * z) + rp.ix < x1) {
                     x1 = (rpBbox.x * z) + rp.ix;
                 }
@@ -365,21 +366,20 @@ export class Group extends Interactor {
         }
 
         for (let sg of this.subgroups) {
-            // sg.updateExpandedGroup();
-            const sgBbox = sg.upperGroup.getBBox();
-            //const sgBbox = sg.BBox();
-            //console.log("SG", sgBbox);
-            if (!x1 || (sgBbox.x) < x1) {
-                x1 = (sgBbox.x);
-            }
-            if (!y1 || (sgBbox.y) < y1) {
-                y1 = (sgBbox.y);
-            }
-            if (!x2 || ((sgBbox.x + sgBbox.width)) > x2) {
-                x2 = ((sgBbox.x + sgBbox.width));
-            }
-            if (!y2 || ((sgBbox.y + sgBbox.height)) > y2) {
-                y2 = ((sgBbox.y + sgBbox.height));
+            if (!sg.hidden) {
+                const sgBbox = sg.bBox;
+                if (!x1 || (sgBbox.x) < x1) {
+                    x1 = (sgBbox.x);
+                }
+                if (!y1 || (sgBbox.y) < y1) {
+                    y1 = (sgBbox.y);
+                }
+                if (!x2 || ((sgBbox.x + sgBbox.width)) > x2) {
+                    x2 = ((sgBbox.x + sgBbox.width));
+                }
+                if (!y2 || ((sgBbox.y + sgBbox.height)) > y2) {
+                    y2 = ((sgBbox.y + sgBbox.height));
+                }
             }
         }
 
@@ -417,50 +417,33 @@ export class Group extends Interactor {
     setHidden(bool) {
         d3.select(this.upperGroup).style("display", bool ? "none" : null);
         d3.select(this.labelSVG).style("display", bool ? "none" : null);
-
-        //changing display cuases DOM reflow but visibility does not
-        // ...BUT they do need display none so they don't affect boundingbox of container
-        // if (bool){
-        //     this.upperGroup.style.visibility = "hidden";
-        //     this.labelSVG.style.visibility = "hidden";
-        // } else {
-        //     this.upperGroup.style.visibility = null;
-        //     this.labelSVG.style.visibility = null;
-        // }
-
         this.hidden = !!bool;
     }
 
     updateHighlight() {
-        // for (let rp of this.renderedParticipants) {
-        //     if (rp.isHighlighted) {
-        //         this.dashedOutline(false);
-        //         this.showHighlight(true);
-        //         return;
-        //     }
-        // }
-        // this.updateSelected();
-        // this.showHighlight(false);
-
-        let someHighlighted = false, allHighlighted = true;
-        for (let rp of this.renderedParticipants) {
-            if (rp.isHighlighted) {
-                someHighlighted = true;
-            } else {
-                allHighlighted = false;
+        if (this.expanded) {
+            let someHighlighted = false, allHighlighted = true;
+            for (let rp of this.renderedParticipants) {
+                if (!rp.hidden) {
+                    if (rp.isHighlighted) {
+                        someHighlighted = true;
+                    } else {
+                        allHighlighted = false;
+                    }
+                }
             }
-        }
-        if (someHighlighted) {
-            if (!allHighlighted) {
-                this.dashedOutline(true);
+            if (someHighlighted) {
+                if (!allHighlighted) {
+                    this.dashedOutline(true);
+                } else {
+                    this.dashedOutline(false);
+                }
+                this.showHighlight(true);
             } else {
                 this.dashedOutline(false);
+                this.showHighlight(false);
+                this.updateSelected();
             }
-            this.showHighlight(true);
-        } else {
-            this.dashedOutline(false);
-            this.showHighlight(false);
-            this.updateSelected();
         }
     }
 
@@ -483,42 +466,6 @@ export class Group extends Interactor {
             this.setSelected(false);
         }
     }
-
-    /*
-    xiNET.Group.prototype.showHighlight = function (show) {
-        const d3HighSel = d3.select(this.highlight);
-        if (show === true) {
-            d3HighSel
-                .classed("selectedProtein", false)
-                .classed("highlightedProtein", true)
-                .attr("stroke-opacity", "1");
-        } else {
-            if (!this.isSelected) {
-                d3HighSel.attr("stroke-opacity", "0");
-            }
-            d3HighSel
-                .classed("selectedProtein", true)
-                .classed("highlightedProtein", false);
-        }
-        this.isHighlighted = !!show; // mjg apr 18
-    };
-
-    xiNET.Group.prototype.setSelected = function (select) {
-        const d3HighSel = d3.select(this.highlight);
-        if (select === true) {
-            d3HighSel
-                .classed("selectedProtein", true)
-                .classed("highlightedProtein", false)
-                .attr("stroke-opacity", "1");
-        } else {
-            d3HighSel
-                .attr("stroke-opacity", "0")
-                .classed("selectedProtein", false)
-                .classed("highlightedProtein", true);
-        }
-        this.isSelected = !!select;
-    };
-    */
 
     dashedOutline(dash) {
         if (dash) {
@@ -714,33 +661,16 @@ export class Group extends Interactor {
             for (let rp of this.renderedParticipants) {
                 if (!isOnScreen(rp)) {
                     allOnScreen = false;
-                    break;
+                    // can't break here because we need to get the bbox of the expanded group
                 }
-                let tempX = rp.ix, tempY = rp.iy;
-                // // if ( tempX < topLeft.x ) {
-                // //     tempX = topLeft.x + 200;
-                // // }
-                // // if ( tempX > bottomRight.x) {
-                // //     tempX = bottomRight.x - 200;
-                // // }
-                // // if ( tempY < topLeft.y ) {
-                // //     tempY = topLeft.y + 200;
-                // // }
-                // // if ( tempY > bottomRight.y) {
-                // //     tempY = bottomRight.y - 200;
-                // // }
-                // proteinXPositionInterpolations.push(d3.interpolate(ix, tempX));
-                // proteinYPositionInterpolations.push(d3.interpolate(iy, tempY));
             }
 
             for (let sg of this.subgroups) {
                 if (!sg.expanded) {
                     if (!isOnScreen(sg)) {
                         allOnScreen = false;
-                        break;
+                        // can't break here because we need to get the bbox of the expanded group
                     }
-                    // collapsedSubgroupXPositionInterpolations.push(d3.interpolate(ix, sg.ix));
-                    // collapsedSubgroupYPositionInterpolations.push(d3.interpolate(iy, sg.iy));
                 }
             }
 
@@ -768,12 +698,7 @@ export class Group extends Interactor {
                 // });
 
 
-                // this.controller.debugRectSel.attr({
-                //     x: bboxTL.x ,//ix - ((width / 8) * this.controller.z), // need to make sure is on screen
-                //     y: bboxTL.y, // iy - ((width / 8) + this.controller.z),
-                //     width: bboxBR.x - bboxTL.x,   //(width / 4) * this.controller.z,
-                //     height: bboxBR.y - bboxTL.y //(width / 4) * this.controller.z
-                // });
+
 
 
                 const bboxMidPoint = this.controller.svgElement.createSVGPoint();
@@ -789,6 +714,19 @@ export class Group extends Interactor {
 
                 // const newTLx = ix - ((width / 8) * this.controller.z);
                 // const newTLy = iy - ((height / 6) * this.controller.z);
+
+                // this.controller.debugRectSel2.attr({
+                //     x: bboxTL.x ,//ix - ((width / 8) * this.controller.z), // need to make sure is on screen
+                //     y: bboxTL.y, // iy - ((width / 8) + this.controller.z),
+                //     width: (bboxBR.x - bboxTL.x),// * self.controller.z,   //(width / 4) * this.controller.z,
+                //     height: (bboxBR.y - bboxTL.y),// * self.controller.z, //(width / 4) * this.controller.z
+                // });
+                // this.controller.debugRectSel.attr({
+                //     x: ix ,//ix - ((width / 8) * this.controller.z), // need to make sure is on screen
+                //     y: iy , // iy - ((width / 8) + this.controller.z),
+                //     width: 10,//bboxBR.x - bboxTL.x,   //(width / 4) * this.controller.z,
+                //     height: 10 // bboxBR.y - bboxTL.y //(width / 4) * this.controller.z
+                // });
 
                 for (let rp of this.renderedParticipants) {
                     proteinXPositionInterpolations.push(d3.interpolate(ix, rp.ix + xTrans));
@@ -810,19 +748,26 @@ export class Group extends Interactor {
         }
 
         function isOnScreen(interactor){
-            if (!bboxTL.x ||  interactor.ix < bboxTL.x ) {
-                bboxTL.x = interactor.ix;
+            if (!interactor.hidden) {
+                console.log("TESTING", interactor);
+                if (!bboxTL.x || interactor.ix < bboxTL.x) {
+                    bboxTL.x = interactor.ix;
+                    console.log("SETTING BBOX TL X", bboxTL.x);
+                }
+                if (!bboxTL.y || interactor.iy < bboxTL.y) {
+                    bboxTL.y = interactor.iy;
+                    console.log("SETTING BBOX TL Y", bboxTL.y);
+                }
+                if (!bboxBR.x || interactor.ix > bboxBR.x) {
+                    bboxBR.x = interactor.ix;
+                    console.log("SETTING BBOX BR X", bboxBR.x);
+                }
+                if (!bboxBR.y || interactor.iy > bboxBR.y) {
+                    bboxBR.y = interactor.iy;
+                    console.log("SETTING BBOX BR Y", bboxBR.y);
+                }
             }
-            if (!bboxTL.y ||  interactor.iy < bboxTL.y ) {
-                bboxTL.y = interactor.iy;
-            }
-            if (!bboxBR ||  interactor.ix > bboxBR.x ) {
-                bboxBR.x = interactor.ix;
-            }
-            if (!bboxBR ||  interactor.iy > bboxBR.y ) {
-                bboxBR.y = interactor.iy;
-            }
-            return interactor.x > topLeft.x && interactor.x < bottomRight.x && interactor.y > topLeft.y && interactor.y < bottomRight.y;
+            return interactor.ix > topLeft.x && interactor.ix < bottomRight.x && interactor.iy > topLeft.y && interactor.iy < bottomRight.y;
         }
 
         function updateExpanding(interp) {
@@ -864,7 +809,7 @@ export class Group extends Interactor {
 
     hideSubgroups() {
         for (let subgroup of this.subgroups) {
-            subgroup.hideSubgroups();
+            // subgroup.hideSubgroups();
             // if (subgroup.upperGroup.parentNode) {
             //      subgroup.upperGroup.parentNode.removeChild(subgroup.upperGroup);
             // }
@@ -897,57 +842,57 @@ export class Group extends Interactor {
         this._id = id;
     }
 
-    addConnectedNodes (subgraph) {
-        for (let p of this.renderedParticipants) {
-            for (let link of p.renderedP_PLinks.values()) {
-                //visible, non-self links only
-                if (link.renderedFromProtein !== link.renderedToProtein && link.isPassingFilter()) {
-                    if (!subgraph.links.has(link.id)) {
-                        subgraph.links.set(link.id, link);
-                        let otherEnd;
-                        if (link.renderedFromProtein === this) {
-                            otherEnd = link.renderedToProtein;
-                        } else {
-                            otherEnd = link.renderedFromProtein;
-                        }
-                        // if (otherEnd !== null) {
-                        const renderedOtherEnd = otherEnd.getRenderedParticipant();
-                        renderedOtherEnd.subgraph = subgraph;
-                        //if (!subgraph.nodes.has(renderedOtherEnd.id)) {
-                        subgraph.nodes.set(renderedOtherEnd.id, renderedOtherEnd);
-                        otherEnd.subgraph = subgraph;
-                        otherEnd.addConnectedNodes(subgraph);
-                        //}
-                        // }
-                    }
-                }
-            }
-        }
-        return subgraph;
-    }
+    // addConnectedNodes (subgraph) {
+    //     for (let p of this.renderedParticipants) {
+    //         for (let link of p.renderedP_PLinks.values()) {
+    //             //visible, non-self links only
+    //             if (link.renderedFromProtein !== link.renderedToProtein && link.isPassingFilter()) {
+    //                 if (!subgraph.links.has(link.id)) {
+    //                     subgraph.links.set(link.id, link);
+    //                     let otherEnd;
+    //                     if (link.renderedFromProtein === this) {
+    //                         otherEnd = link.renderedToProtein;
+    //                     } else {
+    //                         otherEnd = link.renderedFromProtein;
+    //                     }
+    //                     // if (otherEnd !== null) {
+    //                     const renderedOtherEnd = otherEnd.getRenderedParticipant();
+    //                     renderedOtherEnd.subgraph = subgraph;
+    //                     //if (!subgraph.nodes.has(renderedOtherEnd.id)) {
+    //                     subgraph.nodes.set(renderedOtherEnd.id, renderedOtherEnd);
+    //                     otherEnd.subgraph = subgraph;
+    //                     otherEnd.addConnectedNodes(subgraph);
+    //                     //}
+    //                     // }
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     return subgraph;
+    // }
 
-    countExternalLinks () {
-        // return this.renderedP_PLinks.length;
-        const renderedParticipantsLinkedTo = new Set();
-
-        for (let link of this.subgraph.links.values()) {
-            const rp = link.getOtherEnd(this);
-            renderedParticipantsLinkedTo.add(rp);
-        }
-
-
-
-        // //let countExternal = 0;
-        // for (let link of this.renderedP_PLinks) {
-        //     if (link.crosslinks[0].isSelfLink() === false)
-        //     {
-        //         if (link.isPassingFilter()) {
-        //             //countExternal++;
-        //             renderedParticipantsLinkedTo.add(link.getOtherEnd(this).getRenderedParticipant());
-        //         }
-        //     }
-        // }
-        return renderedParticipantsLinkedTo.size;
-
-    }
+    // countExternalLinks () {
+    //     // return this.renderedP_PLinks.length;
+    //     const renderedParticipantsLinkedTo = new Set();
+    //
+    //     for (let link of this.subgraph.links.values()) {
+    //         const rp = link.getOtherEnd(this);
+    //         renderedParticipantsLinkedTo.add(rp);
+    //     }
+    //
+    //
+    //
+    //     // //let countExternal = 0;
+    //     // for (let link of this.renderedP_PLinks) {
+    //     //     if (link.crosslinks[0].isSelfLink() === false)
+    //     //     {
+    //     //         if (link.isPassingFilter()) {
+    //     //             //countExternal++;
+    //     //             renderedParticipantsLinkedTo.add(link.getOtherEnd(this).getRenderedParticipant());
+    //     //         }
+    //     //     }
+    //     // }
+    //     return renderedParticipantsLinkedTo.size;
+    //
+    // }
 }

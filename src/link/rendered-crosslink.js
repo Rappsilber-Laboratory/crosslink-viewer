@@ -358,34 +358,6 @@ export class RenderedCrosslink extends Link {
 
             }
         }
-
-        /*    if (this.renderedToProtein && this.renderedFromProtein != this.renderedToProtein) {
-                if (this.shown) {
-                    var target = this.renderedFromProtein.getRenderedParticipant();
-                    var source = this.renderedToProtein.getRenderedParticipant();
-                    if (!target.ix || !target.iy) {
-                        console.log("NOT");
-                    }
-
-                    //     if (this.renderedFromProtein === participant) {
-                    this.line.setAttribute("x1", source.ix);
-                    this.line.setAttribute("y1", source.iy);
-                    this.highlightLine.setAttribute("x1", source.ix);
-                    this.highlightLine.setAttribute("y1", source.iy);
-                    this.thickLine.setAttribute("x1", source.ix);
-                    this.thickLine.setAttribute("y1", source.iy);
-                    // } else if (this.renderedToProtein === participant) {
-                    this.line.setAttribute("x2", target.ix);
-                    this.line.setAttribute("y2", target.iy);
-                    this.highlightLine.setAttribute("x2", target.ix);
-                    this.highlightLine.setAttribute("y2", target.iy);
-                    this.thickLine.setAttribute("x2", target.ix);
-                    this.thickLine.setAttribute("y2", target.iy);
-                    // }
-                }
-            }
-        */
-
     }
 
     //calculate the  coordinates of a residue (relative to this.controller.container)

@@ -5,7 +5,7 @@ import * as _ from "underscore";
 import Backbone from "backbone";
 import * as cola from "../vendor/cola";
 
-import {svgUtils} from "../../xi3/vendor/svgexp";
+import {capture, makeXMLStr} from "../../xi3/js/svgexp";
 import {filterStateToString, makeLegalFileName, searchesToString} from "../../xi3/js/utils";
 import {download} from "../../xi3/js/downloads";
 
@@ -18,21 +18,15 @@ import {ManualColourModel} from "../../xi3/js/model/color/protein-color-model";
 
 export class CrosslinkViewer extends Backbone.View {
 
-    constructor(attributes, options) {
-        super(_.extend(attributes, {
-            events: {
-                // "click .expandProtein": "expandProtein",
-                // "click .uniprot": "openUniprot",
-                // "click .collapse": "collapseParticipant",
-                // "click .collapse-group": "collapseParticipant",
-                // "click .cant-collapse-group": "cantCollapseGroup",
-                // "click .ungroup": "ungroup"
-            }
-        }), options);
-    }
+    // constructor(attributes, options) {
+    //     super(_.extend(attributes, {
+    //         events: {
+    //         }
+    //     }), options);
+    // }
 
     initialize() {
-        this.debug = false;
+        this.debug = true;
         this.fixedSize = this.model.get("xinetFixedSize");
         const self = this;
 
@@ -132,7 +126,8 @@ export class CrosslinkViewer extends Backbone.View {
 
         this.svgElement.appendChild(this.wrapper);
 
-        // this.debugRectSel = d3.select(this.proteinUpper).append("rect").attr("stroke", "red").attr("fill", "none");
+        // this.debugRectSel = d3.select(this.proteinUpper).append("rect").attr("stroke", "green").attr("fill", "none").style("pointer-events", "none");
+        // this.debugRectSel2 = d3.select(this.proteinUpper).append("rect").attr("stroke", "blue").attr("fill", "none").style("pointer-events", "none");
 
         //is a d3 selection unlike those above
         this.selectionRectSel = d3.select(this.svgElement).append("rect")
@@ -289,13 +284,6 @@ export class CrosslinkViewer extends Backbone.View {
         this.contextMenuParticipant = null;
     }
 
-    openUniprot(){
-        d3.select(".xinet-context-menu").style("display", "none");
-        this.contextMenuParticipant.showHighlight(false);
-        const acc = this.contextMenuParticipant.participant.accession;
-        window.open("https://www.uniprot.org/uniprotkb/" + acc + "/entry", "_blank");
-    }
-
     cantCollapseGroup() {
         // d3.select(".custom-menu-margin").style("display", "none");
         // d3.select(".group-custom-menu-margin").style("display", "none");
@@ -392,7 +380,7 @@ export class CrosslinkViewer extends Backbone.View {
             rp.parentGroups = new Set();//[];
         }
 
-        // parent groups may change, so clear
+        // parent groups may change, so clear groups
         for (let g of this.groupMap.values()) {
             g.subgroups = []; // subgroups as xiNET.Groups
             g.parentGroups = new Set();
@@ -423,47 +411,16 @@ export class CrosslinkViewer extends Backbone.View {
             }
         }
 
-        // this is super confusing, better without it, new way is everyhting has all their parent and sub groups, now messes up auto layout if there are nested groups
-        //remove obsolete subgroups
-        // for (let gi = 0; gi < gCount; gi++) {
-        //     const group1 = groups[gi];
-        //     //if subgroup has parent also in group1.subgroups then remove it
-        //     const subgroupCount = group1.subgroups.length;
-        //     const subgroupsToRemove = [];
-        //     for (let gj = 0; gj < subgroupCount - 1; gj++) {
-        //         const subgroup1 = group1.subgroups[gj];
-        //         for (let gk = gj + 1; gk < subgroupCount; gk++) {
-        //             const subgroup2 = group1.subgroups[gk];
-        //             if (subgroup1.isSubsetOf(subgroup2)) {
-        //                 subgroupsToRemove.push(subgroup2);
-        //             }
-        //         }
-        //     }
-        //     for (let sgToRemove of subgroupsToRemove) {
-        //         const index = group1.subgroups.indexOf(sgToRemove);
-        //         group1.subgroups = group1.subgroups.splice(index, 1);
-        //     }
-        // }
-
         for (let g of groups) {
-            g.leaves = []; // clear this, it's used by cola, gets filled by auto
             for (let rp of g.renderedParticipants) {
-                // let inSubGroup = false;
-                // for (let subgroup of g.getAllSubgroups()) {
-                //     if (subgroup.contains(rp)) {
-                //         inSubGroup = true;
-                //         break;
-                //     }
-                // }
-                // if (!inSubGroup) {
                 rp.parentGroups.add(g);
-                // }
             }
         }
 
         //sort out parentGroups
         for (let group1 of groups.reverse()) {
             if (group1.upperGroup.parentNode) {
+                // z-ordering (?)
                 const pn = group1.upperGroup.parentNode;
                 pn.removeChild(group1.upperGroup);
                 pn.appendChild(group1.upperGroup);
@@ -500,7 +457,7 @@ export class CrosslinkViewer extends Backbone.View {
                 group.setExpanded(true);
             }
         }
-        for (let group of groups) { // todo z-ordering
+        for (let group of groups) {
             let hasVisible = false;
             for (let p of group.renderedParticipants) {
                 if (p.participant.hidden === false) {
@@ -771,12 +728,36 @@ export class CrosslinkViewer extends Backbone.View {
         //remember edge of gridded proteins
         const layoutXOffset = this.xForColumn(column + 1);*/
 
+        //omething like following is still needed in autolayout to fix nested groups
+
+        // this is super confusing, better without it, new way is everyhting has all their parent and sub groups, now messes up auto layout if there are nested groups
+        //remove obsolete subgroups
+        // for (let gi = 0; gi < gCount; gi++) {
+        //     const group1 = groups[gi];
+        //     //if subgroup has parent also in group1.subgroups then remove it
+        //     const subgroupCount = group1.subgroups.length;
+        //     const subgroupsToRemove = [];
+        //     for (let gj = 0; gj < subgroupCount - 1; gj++) {
+        //         const subgroup1 = group1.subgroups[gj];
+        //         for (let gk = gj + 1; gk < subgroupCount; gk++) {
+        //             const subgroup2 = group1.subgroups[gk];
+        //             if (subgroup1.isSubsetOf(subgroup2)) {
+        //                 subgroupsToRemove.push(subgroup2);
+        //             }
+        //         }
+        //     }
+        //     for (let sgToRemove of subgroupsToRemove) {
+        //         const index = group1.subgroups.indexOf(sgToRemove);
+        //         group1.subgroups = group1.subgroups.splice(index, 1);
+        //     }
+        // }
+
 
         for (let renderedProtein of this.renderedProteins.values()) {
             if (fixedParticipants.length === 0) {
                 delete renderedProtein.x;
                 delete renderedProtein.y;
-                delete renderedProtein.px; // todo - check if this is necessary
+                delete renderedProtein.px;
                 delete renderedProtein.py;
             }
             renderedProtein.fixed = fixedParticipants.indexOf(renderedProtein.participant) !== -1;
@@ -786,14 +767,13 @@ export class CrosslinkViewer extends Backbone.View {
             if (fixedParticipants.length === 0) { // todo - some issues here (select a collapsed group and select fixed selected)
                 delete g.x;
                 delete g.y;
-                delete g.px; // todo - check if this is necessary
+                delete g.px;
                 delete g.py;
             }
             delete g.index;
             delete g.parent;
             g.leaves = []; // clear this, it's used by cola, gets filled by auto
         }
-
 
         this.d3cola.size([height - /*layoutXOffset -*/ 40, width - 40]).symmetricDiffLinkLengths(linkLength);
 
@@ -856,7 +836,8 @@ export class CrosslinkViewer extends Backbone.View {
                                 }
                             }
                         }
-                        groups.push(g);
+                        // todo - if group has no leaves, then it's not in the layout - dont push, (need to add it's subgroups to the layout?)?
+                        if (g.leaves) groups.push(g);
                     }
                 }
                 //need to use indexes of groups
@@ -881,7 +862,8 @@ export class CrosslinkViewer extends Backbone.View {
                         ry: 5
                     })
                     .style("stroke", "red")
-                    .style("fill", "none");
+                    .style("fill", "none")
+                    .style("pointer-events", "none");
                 groupDebugSel = d3.select(self.groupsSVG).selectAll(".group")
                     .data(groups);
                 groupDebugSel.enter().append("rect")
@@ -891,7 +873,8 @@ export class CrosslinkViewer extends Backbone.View {
                         ry: 5
                     })
                     .style("stroke", "blue")
-                    .style("fill", "none");
+                    .style("fill", "none")
+                    .style("pointer-events", "none");
                 groupDebugSel.exit().remove();
                 participantDebugSel.exit().remove();
             }
@@ -966,75 +949,75 @@ export class CrosslinkViewer extends Backbone.View {
         }
     }
 
-    //functions used...
-    xForColumn(c) {
-        const maxBlobRadius = 40;
-        // var LABELMAXLENGTH = 0;
-        // return (c * ((2 * maxBlobRadius) + LABELMAXLENGTH)) - maxBlobRadius;
-        return c * maxBlobRadius - (maxBlobRadius / 2);
-    }
-
-    yForRow(r) {
-        const maxBlobRadius = 50;
-        return (r * maxBlobRadius) - 10;
-    }
-
-    reorderedNodes(linearGraph) {
-        const reorderedNodes = [];
-        appendNode(getStartNode(), new Set ());
-        return reorderedNodes;
-
-        function getStartNode() {
-            // var ns = Array.from(linearGraph.nodes.values());
-            // var count = ns.length;
-            // //                    alert (nodeCount);
-            // for (var n = 0; n < count; n++) {
-            //     if (ns[n].countExternalLinks() < 2) {
-            //         //                            alert("got start");
-            //         return ns[n];
-            //     }
-            // }
-            for (let node of linearGraph.nodes.values()) {
-                if (node.countExternalLinks() < 2) {
-                    console.log("StartNode", node.id);
-                    return node;
-                }
-            }
-            console.error("missed linear subgraph start");
-            return null;
-        }
-
-        function appendNode(currentNode, checkedNodes) {
-            checkedNodes.add(currentNode.id); // yeah, wierdness, this all needs tidied up
-            if (!currentNode.hidden) {
-                reorderedNodes.push(currentNode.participant.id);
-            }
-
-            // var proteinLinksArr = Array.from(currentNode.renderedP_PLinks.values());
-            // for (var l = 0; l < proteinLinksArr.length; l++) {
-            //     var link = proteinLinksArr[l];
-            //     if (link.isPassingFilter()) {
-            //         var nextNode = link.getOtherEnd(currentNode);
-            //         if (reorderedNodes.indexOf(nextNode.participant.id) === -1) {
-            //             //                    alert("here");
-            //             appendNode(nextNode);
-            //             break;
-            //         }
-            //     }
-            // }
-
-            for (let link of currentNode.renderedP_PLinks.values()) {
-                if (link.isPassingFilter()) {
-                    const nextNode = link.getOtherEnd(currentNode);
-                    if (!checkedNodes.has(nextNode.id)) {
-                        console.log("nextNode", nextNode.id);
-                        appendNode(nextNode, checkedNodes);
-                        break;
-                    }
-                }
-            }
-        }
-    }
+    // //functions used...
+    // xForColumn(c) {
+    //     const maxBlobRadius = 40;
+    //     // var LABELMAXLENGTH = 0;
+    //     // return (c * ((2 * maxBlobRadius) + LABELMAXLENGTH)) - maxBlobRadius;
+    //     return c * maxBlobRadius - (maxBlobRadius / 2);
+    // }
+    //
+    // yForRow(r) {
+    //     const maxBlobRadius = 50;
+    //     return (r * maxBlobRadius) - 10;
+    // }
+    //
+    // reorderedNodes(linearGraph) {
+    //     const reorderedNodes = [];
+    //     appendNode(getStartNode(), new Set ());
+    //     return reorderedNodes;
+    //
+    //     function getStartNode() {
+    //         // var ns = Array.from(linearGraph.nodes.values());
+    //         // var count = ns.length;
+    //         // //                    alert (nodeCount);
+    //         // for (var n = 0; n < count; n++) {
+    //         //     if (ns[n].countExternalLinks() < 2) {
+    //         //         //                            alert("got start");
+    //         //         return ns[n];
+    //         //     }
+    //         // }
+    //         for (let node of linearGraph.nodes.values()) {
+    //             if (node.countExternalLinks() < 2) {
+    //                 console.log("StartNode", node.id);
+    //                 return node;
+    //             }
+    //         }
+    //         console.error("missed linear subgraph start");
+    //         return null;
+    //     }
+    //
+    //     function appendNode(currentNode, checkedNodes) {
+    //         checkedNodes.add(currentNode.id); // yeah, wierdness, this all needs tidied up
+    //         if (!currentNode.hidden) {
+    //             reorderedNodes.push(currentNode.participant.id);
+    //         }
+    //
+    //         // var proteinLinksArr = Array.from(currentNode.renderedP_PLinks.values());
+    //         // for (var l = 0; l < proteinLinksArr.length; l++) {
+    //         //     var link = proteinLinksArr[l];
+    //         //     if (link.isPassingFilter()) {
+    //         //         var nextNode = link.getOtherEnd(currentNode);
+    //         //         if (reorderedNodes.indexOf(nextNode.participant.id) === -1) {
+    //         //             //                    alert("here");
+    //         //             appendNode(nextNode);
+    //         //             break;
+    //         //         }
+    //         //     }
+    //         // }
+    //
+    //         for (let link of currentNode.renderedP_PLinks.values()) {
+    //             if (link.isPassingFilter()) {
+    //                 const nextNode = link.getOtherEnd(currentNode);
+    //                 if (!checkedNodes.has(nextNode.id)) {
+    //                     console.log("nextNode", nextNode.id);
+    //                     appendNode(nextNode, checkedNodes);
+    //                     break;
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
 
     saveLayout(callback) {
         const layout = {};
@@ -1086,7 +1069,7 @@ export class CrosslinkViewer extends Backbone.View {
 
             } else {
                 layoutIsDodgy = true;
-                console.log("! protein in layout but not search:" + protLayout.id);
+                // console.log("! protein in layout but not search:" + protLayout.id);
             }
         }
 
@@ -1134,9 +1117,9 @@ export class CrosslinkViewer extends Backbone.View {
             this.model.set("proteinColourAssignment", window.linkColor.manualProteinColoursBB);
         }
 
-        if (layoutIsDodgy) {
-            alert("Looks like something went wrong with the saved layout, if you can't see your proteins click Auto layout");
-        }
+        // if (layoutIsDodgy) {
+        //     alert("Looks like something went wrong with the saved layout, if you can't see your proteins click Auto layout");
+        // }
 
         if (namesChanged) {
             // vent.trigger("proteinMetadataUpdated", {}); //ain't gonna work
@@ -1148,8 +1131,8 @@ export class CrosslinkViewer extends Backbone.View {
 
     downloadSVG() {
         const svgArr = [this.svgElement];
-        const svgStrings = svgUtils.capture(svgArr);
-        let svgXML = svgUtils.makeXMLStr(new XMLSerializer(), svgStrings[0]);
+        const svgStrings = capture(svgArr);
+        let svgXML = makeXMLStr(new XMLSerializer(), svgStrings[0]);
         //bit of a hack
         const bBox = this.svgElement.getBoundingClientRect();
         const width = Math.round(bBox.width);

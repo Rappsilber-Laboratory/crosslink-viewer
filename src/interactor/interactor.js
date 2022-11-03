@@ -6,7 +6,7 @@ export class Interactor {
     constructor(controller) {
         this.controller = controller;
         this.selfLink = null;
-
+        this.parentGroups = new Set();
     }
 
     get symbolRadius() {
@@ -62,23 +62,6 @@ export class Interactor {
         this.isSelected = !!select;
     }
 
-    // setHidden(bool) {
-    //     // MJG
-    //     // d3.select(this.upperGroup).style("display", bool ? "none" : null);
-    //     // d3.select(this.lowerGroup).style("display", bool ? "none" : null);
-    //
-    //     //changing display causes DOM reflow but visibility does not
-    //     if (bool){
-    //         this.upperGroup.style.visibility = "hidden";
-    //         this.lowerGroup.style.visibility = "hidden";
-    //     } else {
-    //         this.upperGroup.style.visibility = null;
-    //         this.lowerGroup.style.visibility = null;
-    //     }
-    //
-    //     this.hidden = !!bool;
-    // }
-
     getAggregateSelfLinkPath() {
         const intraR = this.symbolRadius + 7;
         const sectorSize = 45;
@@ -92,26 +75,6 @@ export class Interactor {
             " Q " + cp2.x + "," + -cp2.y + " 0,0";
     }
 
-
-    //// TODO:
-    /*
-    xiNET.Interactor.prototype.checkLinks = function() {
-        function checkAll(linkMap) {
-            var links = linkMap.values();
-            var c = links.length;
-            for (var l = 0; l < c; l++) {
-                links[l].check();
-            }
-        }
-        checkAll(this.naryLinks);
-        checkAll(this.binaryLinks);
-        checkAll(this.sequenceLinks);
-        if (this.selfLink !== null) {
-            this.selfLink.check();
-        }
-    }*/
-
-
     // update all lines (e.g after a move)
     setAllLinkCoordinates() {
         for (let pl of this.renderedP_PLinks) {
@@ -122,76 +85,53 @@ export class Interactor {
         }
     }
 
-    // xiNET.Interactor.prototype.getX = function() {
-    //     return this.ix;
-    // }
-    //
-    // xiNET.Interactor.prototype.getY = function() {
-    //     return this.iy;
-    // }
-
-
     showLabel(show) {
         d3.select(this.labelSVG).attr("display", show ? null : "none");
     }
 
     getRenderedParticipant(caller) {
         caller = caller ? caller : this;
-        //get highest collapsed group
-        const groupIt = this.parentGroups.values();
-        const firstGroup = groupIt.next().value;
-        if (firstGroup) {
-            if (!firstGroup.expanded) {
-                caller = firstGroup;
+        // //get highest collapsed group
+        // const groupIt = this.parentGroups.values();
+        // const firstGroup = groupIt.next().value;
+        // if (firstGroup) {
+        //     if (!firstGroup.expanded) {
+        //         caller = firstGroup;
+        //     }
+        //     return firstGroup.getRenderedParticipant(caller);
+        // } else return caller;
+        for (let pg of this.parentGroups.values()) {
+            if (!pg.expanded) {
+                return pg.getRenderedParticipant(pg);
             }
-            return firstGroup.getRenderedParticipant(caller);
-        } else return caller;
+        }
+        return this;
     }
 
     inCollapsedGroup() {
-        // //
-        // // caller = caller? caller: false;
-        // // // if (this.inCollapsedGroup()) {
-        // const groupIt = this.parentGroups.values();
-        // const firstGroup = groupIt.next().value;
-        // // // return firstGroup.getRenderedParticipant();
-        // //
-        // if (firstGroup) {
-        //     if (!firstGroup.expanded) {
-        //         caller = true;
-        //     }
-        //     return firstGroup.getRenderedParticipant(caller);
-        // }
-        // else return false;
-
-
         // noinspection LoopStatementThatDoesntLoopJS
         for (let pg of this.parentGroups.values()) {
             if (!pg.expanded) {
                 return true;
             }
-            // else {
-            //     return pg.inCollapsedGroup();
-            // }
         }
         return false;
     }
 
-    getSubgraph () {
-        if (this.subgraph == null) {
-            const subgraph = {
-                nodes: new Map(),
-                links: new Map()
-            };
-            const thisNode = this.getRenderedParticipant();
-            subgraph.nodes.set(thisNode.id, thisNode);
-            this.subgraph = this.addConnectedNodes(subgraph);
-            thisNode.subgraph = subgraph;
-            this.controller.subgraphs.push(subgraph);
-        }
-        return this.subgraph;
-    }
-
+    // getSubgraph () {
+    //     if (this.subgraph == null) {
+    //         const subgraph = {
+    //             nodes: new Map(),
+    //             links: new Map()
+    //         };
+    //         const thisNode = this.getRenderedParticipant();
+    //         subgraph.nodes.set(thisNode.id, thisNode);
+    //         this.subgraph = this.addConnectedNodes(subgraph);
+    //         thisNode.subgraph = subgraph;
+    //         this.controller.subgraphs.push(subgraph);
+    //     }
+    //     return this.subgraph;
+    // }
 }
 
 //
