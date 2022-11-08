@@ -1689,7 +1689,7 @@ export class CrosslinkViewer extends Backbone.View {
             }
 
             menuListSel.append("li").text("Open in UniProt").on("click", () => {
-                window.open("https://www.uniprot.org/uniprot/" + renderedInteractor.participant.id);
+                window.open("https://www.uniprot.org/uniprot/" + renderedInteractor.participant.accession);
             });
 
             menuListSel.append("li").text("Set Protein Colour").on("click", () => {
