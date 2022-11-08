@@ -1,7 +1,7 @@
 import "../css/xiNET.css";
 
 import * as d3 from "d3";
-import * as _ from "underscore";
+// import * as _ from "underscore";
 import Backbone from "backbone";
 import * as cola from "../vendor/cola";
 
@@ -26,7 +26,7 @@ export class CrosslinkViewer extends Backbone.View {
     // }
 
     initialize() {
-        this.debug = true;
+        // this.debug = true;
         this.fixedSize = this.model.get("xinetFixedSize");
         const self = this;
 
@@ -37,7 +37,8 @@ export class CrosslinkViewer extends Backbone.View {
             const menuUL = contextMenuSel.append("div").classed("custom-menu", true)
                 .append("ul");
             contextMenuSel.node().onmouseover = function () {
-                self.contextMenuParticipant.showHighlight(true);
+                // self.contextMenuParticipant.highlighted = true; // todo - look at - change hidden proteins in model
+                self.model.setHighlightedProteins(self.contextMenuParticipant.proteins);
             };
             contextMenuSel.node().onmouseout = function (evt) {
                 let e = evt.toElement || evt.relatedTarget;
@@ -46,7 +47,7 @@ export class CrosslinkViewer extends Backbone.View {
                     if (e) e = e.parentNode; // seems like tab changing when uniprot opens can cause e to become null
                 } while (e);
                 if (self.contextMenuParticipant){
-                    self.contextMenuParticipant.showHighlight(false);
+                    self.model.setHighlightedProteins([]); // todo - look at
                 }
                 self.contextMenuParticipant = null;
                 d3.select(this).style("display", "none");
@@ -263,18 +264,14 @@ export class CrosslinkViewer extends Backbone.View {
 
     expandProtein() {
         d3.select(".xinet-context-menu").style("display", "none");
-        this.contextMenuParticipant.setExpanded(true);//, this.contextMenuPoint);
-        // if (this.contextMenuParticipant.type === "group") {
-        //     this.render();
-        // }
-        // this.hiddenProteinsChanged();
+        this.contextMenuParticipant.setExpanded(true);
         this.render();
         this.contextMenuParticipant = null;
     }
 
     collapseInteractor() {
         d3.select(".xinet-context-menu").style("display", "none");
-        this.contextMenuParticipant.showHighlight(false);
+        this.model.setHighlightedProteins([]);
         this.contextMenuParticipant.setExpanded(false, this.contextMenuPoint);
         // if (this.contextMenuParticipant.type === "group") {
         //     this.render();
@@ -291,7 +288,7 @@ export class CrosslinkViewer extends Backbone.View {
 
     ungroup() {
         d3.select(".xinet-context-menu").style("display", "none");
-        this.contextMenuParticipant.showHighlight(false);
+        this.model.setHighlightedProteins([]);
         this.model.get("groups").delete(this.contextMenuParticipant.id);
         this.model.trigger("change:groups");
         this.contextMenuParticipant = null;
@@ -312,7 +309,7 @@ export class CrosslinkViewer extends Backbone.View {
         for (let group of this.groupMap.values()) {
             if (group.expanded === false) {
                 // group.setExpanded(true);
-                group.expand(false);
+                group.expand(false);// todo: reanme this to expandNoTransition
             }
         }
         this.hiddenProteinsChanged();
@@ -358,7 +355,10 @@ export class CrosslinkViewer extends Backbone.View {
                 const group = this.groupMap.get(g[0]);
                 group.renderedParticipants = [];
                 for (let pId of g[1]) {
-                    group.renderedParticipants.push(this.renderedProteins.get(pId));
+                    const p = this.renderedProteins.get(pId);
+                    if (p) { // no decoys in this.renderedProteins
+                        group.renderedParticipants.push(this.renderedProteins.get(pId));
+                    }
                 }
             }
         }
@@ -393,14 +393,14 @@ export class CrosslinkViewer extends Backbone.View {
         }
 
         //sort it by count not hidden (not manually hidden and not filtered)
-        const sortedGroupMap = new Map([...this.groupMap.entries()].sort((a, b) => a[1].unhiddenParticipantCount() - b[1].unhiddenParticipantCount()));
+        const sortedGroupMap = new Map([...this.groupMap.entries()].sort((a, b) => a[1].unhiddenParticipantCount - b[1].unhiddenParticipantCount));
 
         // get maximal set of possible subgroups
         const groups = Array.from(sortedGroupMap.values());
         const gCount = groups.length; // contains xiNET.Groups
         for (let gi = 0; gi < gCount - 1; gi++) {
             const group1 = groups[gi];
-            if (group1.unhiddenParticipantCount() > 0) {
+            if (group1.unhiddenParticipantCount > 0) {
                 for (let gj = gi + 1; gj < gCount; gj++) {
                     const group2 = groups[gj];
                     if (group1.isSubsetOf(group2)) {
@@ -609,8 +609,8 @@ export class CrosslinkViewer extends Backbone.View {
                 } else {
                     ppLink.ambiguous = altP_PLinks.size > 1;
                     if (fromProtInCollapsedGroup && toProtInCollapsedGroup) {
-                        const source = ppLink.renderedFromProtein.getRenderedParticipant();
-                        const target = ppLink.renderedToProtein.getRenderedParticipant();
+                        const source = ppLink.renderedFromProtein.getRenderedInteractor();
+                        const target = ppLink.renderedToProtein.getRenderedInteractor();
                         let ggId;
                         if (source.id < target.id) {
                             ggId = source.id + "_" + target.id;
@@ -784,10 +784,10 @@ export class CrosslinkViewer extends Backbone.View {
         for (let crosslink of self.model.getFilteredCrossLinks()) {
         // for (let graph of this.nonLinearGraphs) {
         //     for (let link of graph.links.values()) {
-            if (crosslink.toProtein) { //?
+            if (crosslink.toProtein) { // not linears
             // if (link.crosslinks[0].isSelfLink() === false) {
-                const source = self.renderedProteins.get(crosslink.fromProtein.id).getRenderedParticipant();
-                const target = self.renderedProteins.get(crosslink.toProtein.id).getRenderedParticipant();
+                const source = self.renderedProteins.get(crosslink.fromProtein.id).getRenderedInteractor();
+                const target = self.renderedProteins.get(crosslink.toProtein.id).getRenderedInteractor();
                 nodeSet.add(source);
                 const fromId = crosslink.fromProtein.id;
                 const toId = crosslink.toProtein.id;
@@ -818,10 +818,10 @@ export class CrosslinkViewer extends Backbone.View {
             const groups = [];
             if (self.groupMap) {
                 for (let g of self.groupMap.values()) {
-                    // delete g.index;
+                    delete g.index;
                     if (!g.hidden && g.expanded) {
                         g.groups = [];
-                        // put any rp not contained in a subgroup(recursive) in group1.leaves
+                        // put any rp not contained in a subgroup in group1.leaves
                         for (let rp of g.renderedParticipants) {
                             if (!rp.hidden) {
                                 let inSubGroup = false;
@@ -836,17 +836,33 @@ export class CrosslinkViewer extends Backbone.View {
                                 }
                             }
                         }
-                        // todo - if group has no leaves, then it's not in the layout - dont push, (need to add it's subgroups to the layout?)?
-                        if (g.leaves) groups.push(g);
+                        groups.push(g);
                     }
                 }
                 //need to use indexes of groups
                 for (let g of groups) {
+                    console.log("GROUP ", g.unhiddenParticipantCount, g.id);
                     for (let i = 0; i < g.subgroups.length; i++) {
-                        if (g.subgroups[i].expanded) {
-                            g.groups.push(groups.indexOf(g.subgroups[i]));
-                        } else {
-                            g.leaves.push(g.subgroups[i]);
+                        console.log("\tSUBGROUP ", g.subgroups[i].unhiddenParticipantCount, g.subgroups[i].id);
+                        if (!g.subgroups[i].hidden) {
+                            // todo - this is where you need to sort out issue of nested subgroups...
+                            // the problem is when the same subgroup gets added to multiple parent groups
+                            // the following seems to be working but not convinced it's totally reliable (depends on order groups end up in?)
+                            let isSubset = false;
+                            for (let j = i + 1; j < g.subgroups.length; j++) {
+                                if (g.subgroups[i].isSubsetOf(g.subgroups[j])) {
+                                    isSubset = true;
+                                    break;
+                                }
+                            }
+                            if (!isSubset) {
+                                if (g.subgroups[i].expanded) {
+                                    g.groups.push(groups.indexOf(g.subgroups[i]));
+
+                                } else {
+                                    g.leaves.push(g.subgroups[i]);
+                                }
+                            }
                         }
                     }
                 }
@@ -1043,13 +1059,13 @@ export class CrosslinkViewer extends Backbone.View {
         } else {
             proteinPositions = layout;
         }
-        let layoutIsDodgy = false;
         let namesChanged = false;
         for (let protLayout of proteinPositions) {
             const protein = this.renderedProteins.get(protLayout.id);
             if (protein !== undefined) {
                 protein.setPositionFromXinet(protLayout["x"], protLayout["y"]);
                 if (typeof protLayout["rot"] !== "undefined") {
+                    // noinspection PointlessArithmeticExpressionJS
                     protein.rotation = protLayout["rot"] - 0;
                 }
                 protein.ix = protLayout["x"];
@@ -1058,6 +1074,7 @@ export class CrosslinkViewer extends Backbone.View {
                 if (CrosslinkViewer.barScales.indexOf(+protLayout["stickZoom"]) > -1) {
                     protein.stickZoom = protLayout["stickZoom"];
                 }
+                // noinspection PointlessArithmeticExpressionJS
                 protein.rotation = protLayout["rot"] - 0;
                 protein.flipped = protLayout["flipped"];
                 protein.participant.manuallyHidden = protLayout["manuallyHidden"];
@@ -1067,9 +1084,6 @@ export class CrosslinkViewer extends Backbone.View {
                     namesChanged = true;
                 }
 
-            } else {
-                layoutIsDodgy = true;
-                // console.log("! protein in layout but not search:" + protLayout.id);
             }
         }
 
@@ -1194,16 +1208,13 @@ export class CrosslinkViewer extends Backbone.View {
     selectedProteinsChanged() {
         const selectedProteins = this.model.get("selectedProteins");
         for (let renderedProtein of this.renderedProteins.values()) {
-            if (selectedProteins.indexOf(renderedProtein.participant) === -1 && renderedProtein.isSelected === true) {
-                renderedProtein.setSelected(false);
+            if (selectedProteins.indexOf(renderedProtein.participant) === -1 ){//&& renderedProtein.isSelected === true) {
+                renderedProtein.selected = false;
             }
         }
         for (let selectedProtein of selectedProteins) {
             if (selectedProtein.is_decoy !== true) {
-                const renderedProtein = this.renderedProteins.get(selectedProtein.id);
-                if (renderedProtein.isSelected === false) {
-                    renderedProtein.setSelected(true);
-                }
+                this.renderedProteins.get(selectedProtein.id).selected = true;
             }
         }
         if (this.groupMap) {
@@ -1216,25 +1227,40 @@ export class CrosslinkViewer extends Backbone.View {
 
     highlightedProteinsChanged() {
         const highlightedProteins = this.model.get("highlightedProteins");
+
         for (let renderedProtein of this.renderedProteins.values()) {
-            if (highlightedProteins.indexOf(renderedProtein.participant) === -1 && renderedProtein.isHighlighted === true) {
-                renderedProtein.showHighlight(false);
-                renderedProtein.isHighlighted = false; // todo - this is a bit wierd
+            if (highlightedProteins.indexOf(renderedProtein.participant) === -1){//} && renderedProtein.highlight === true) {
+                renderedProtein.highlighted = false;
             }
         }
         for (let highlightedProtein of highlightedProteins) {
             if (highlightedProtein.is_decoy !== true) {
                 const renderedProtein = this.renderedProteins.get(highlightedProtein.id);
-                if (renderedProtein.isHighlighted === false) {
-                    renderedProtein.showHighlight(true);
+                renderedProtein.highlighted = true;
+            }
+
+        }
+
+        if (this.groupMap) {
+            for (let g of this.groupMap.values()) {
+                let someHighlighted = false, allHighlighted = true;
+                for (let rp of g.renderedParticipants) {
+                    if (rp.highlighted) {
+                        someHighlighted = true;
+                    } else {
+                        allHighlighted = false;
+                    }
+                }
+                if (someHighlighted) {
+                    g.dashed = !allHighlighted;
+                    g.highlighted = true;
+                } else {
+                    g.highlighted = false;
+                    g.updateSelected();
                 }
             }
         }
-        if (this.groupMap) {
-            for (let g of this.groupMap.values()) {
-                g.updateHighlight();
-            }
-        }
+
         return this;
     }
 
@@ -1358,7 +1384,7 @@ export class CrosslinkViewer extends Backbone.View {
                 } else {
                     g.setPositionFromXinet(g.ix, g.iy);
                 }
-                g.updateSelected();
+                g.dashed = g._dashed; // rescale dashes
             }
         }
     }
@@ -1486,10 +1512,10 @@ export class CrosslinkViewer extends Backbone.View {
                         if (renderedParticipant.hidden !== true) {
                             const intersects = this.svgElement.getIntersectionList(svgRect, renderedParticipant.upperGroup);
                             if (intersects.length > 0) {
-                                renderedParticipant.showHighlight(true);
+                                renderedParticipant.highlighted = true; // todo - use model
                                 this.toSelect.push(renderedParticipant.participant);
                             } else {
-                                renderedParticipant.showHighlight(false);
+                                renderedParticipant.highlighted = false; // todo - use model
                             }
                         }
 
@@ -1498,12 +1524,12 @@ export class CrosslinkViewer extends Backbone.View {
                         if (renderedGroup.hidden !== true && renderedGroup.expanded === false) {
                             const intersects = this.svgElement.getIntersectionList(svgRect, renderedGroup.upperGroup);
                             if (intersects.length > 0) {
-                                renderedGroup.showHighlight(true);
+                                renderedGroup.highlighted = true;  // todo - use model
                                 for (let renderedParticipant of renderedGroup.renderedParticipants) {
                                     this.toSelect.push(renderedParticipant.participant);
                                 }
                             } else {
-                                renderedGroup.showHighlight(false);
+                                renderedGroup.highlighted = false;  // todo - use model
                             }
                         }
                     }
@@ -1592,12 +1618,8 @@ export class CrosslinkViewer extends Backbone.View {
                             alert("more than one group at that point, this not implemented yet. You need a menu to confirm which group(s) to add to");
                         }
                     } else if (this.dragElement.type === "group" && !this.mouseMoved) { // was left-click on a group, no move mouse
-                        //add all group proteins to selection
-                        const participants = [];
-                        for (let rp of this.dragElement.renderedParticipants) {
-                            participants.push(rp.participant);
-                        }
-                        this.model.setSelectedProteins(participants, add);
+                        //add all group's proteins to selection
+                        this.model.setSelectedProteins(this.dragElement.proteins, add);
                     }
                 } else { //no drag element
                     if (rightClick) {
@@ -1756,6 +1778,7 @@ export class CrosslinkViewer extends Backbone.View {
         this.d3cola.stop();
         let delta;
         //see http://stackoverflow.com/questions/5527601/normalizing-mousewheel-speed-across-browsers
+        // noinspection JSUnresolvedVariable
         if (evt.wheelDelta) {
             delta = evt.wheelDelta / 3600; // Chrome/Safari
         } else {

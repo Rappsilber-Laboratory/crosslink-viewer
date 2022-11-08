@@ -7,6 +7,9 @@ export class Interactor {
         this.controller = controller;
         this.selfLink = null;
         this.parentGroups = new Set();
+
+        this._selected = false;
+        this._highlight = false;
     }
 
     get symbolRadius() {
@@ -28,38 +31,47 @@ export class Interactor {
         this.controller.model.get("tooltipModel").set("contents", null);
     }
 
-    showHighlight(show) {
-        const d3HighSel = d3.select(this.highlight);
-        if (show === true) {
+    set highlighted(show) {
+        if (show === true && !this._highlight) {
+            const d3HighSel = d3.select(this.highlight);
             d3HighSel
                 .classed("selectedProtein", false)
                 .classed("highlightedProtein", true)
                 .attr("stroke-opacity", "1");
-        } else {
-            if (!this.isSelected) {
+        } else if (show === false && this._highlight) {
+            const d3HighSel = d3.select(this.highlight);
+            if (!this._selected) {
                 d3HighSel.attr("stroke-opacity", "0");
             }
             d3HighSel
                 .classed("selectedProtein", true)
                 .classed("highlightedProtein", false);
         }
-        this.isHighlighted = !!show; // mjg apr 18
+        this._highlight = !!show;
     }
 
-    setSelected(select) {
+    get highlighted() {
+        return this._highlight;
+    }
+
+    set selected(select) {
         const d3HighSel = d3.select(this.highlight);
-        if (select === true) {
+        if (select === true && !this._selected) {
             d3HighSel
                 .classed("selectedProtein", true)
                 .classed("highlightedProtein", false)
                 .attr("stroke-opacity", "1");
-        } else {
+        } else if (select === false && this._selected) {
             d3HighSel
                 .attr("stroke-opacity", "0")
                 .classed("selectedProtein", false)
                 .classed("highlightedProtein", true);
         }
-        this.isSelected = !!select;
+        this._selected = !!select;
+    }
+
+    get selected() {
+        return this._selected;
     }
 
     getAggregateSelfLinkPath() {
@@ -83,26 +95,18 @@ export class Interactor {
         for (let rcl of this.renderedCrosslinks) {
             rcl.setLineCoordinates(this);
         }
+        // yes... the group-to-group links are updated separately
     }
 
     showLabel(show) {
         d3.select(this.labelSVG).attr("display", show ? null : "none");
     }
 
-    getRenderedParticipant(caller) {
-        caller = caller ? caller : this;
-        // //get highest collapsed group
-        // const groupIt = this.parentGroups.values();
-        // const firstGroup = groupIt.next().value;
-        // if (firstGroup) {
-        //     if (!firstGroup.expanded) {
-        //         caller = firstGroup;
-        //     }
-        //     return firstGroup.getRenderedParticipant(caller);
-        // } else return caller;
+    getRenderedInteractor() {
+        // get highest collapsed group
         for (let pg of this.parentGroups.values()) {
             if (!pg.expanded) {
-                return pg.getRenderedParticipant(pg);
+                return pg.getRenderedInteractor();
             }
         }
         return this;
@@ -124,7 +128,7 @@ export class Interactor {
     //             nodes: new Map(),
     //             links: new Map()
     //         };
-    //         const thisNode = this.getRenderedParticipant();
+    //         const thisNode = this.getRenderedInteractor();
     //         subgraph.nodes.set(thisNode.id, thisNode);
     //         this.subgraph = this.addConnectedNodes(subgraph);
     //         thisNode.subgraph = subgraph;
@@ -133,20 +137,3 @@ export class Interactor {
     //     return this.subgraph;
     // }
 }
-
-//
-// xiNET.Interactor.prototype.getTopParentGroups = function(results) {
-//     if (!results) {
-//         results = new Set();
-//     }
-//     for (let pg of this.parentGroups) {
-//         if (pg.parentGroups.size) {
-//             pg.getTopParentGroups(results);
-//         } else {
-//             results.add(pg);
-//         }
-//     }
-//     return results;
-// }
-
-

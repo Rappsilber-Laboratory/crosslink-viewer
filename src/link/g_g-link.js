@@ -358,8 +358,8 @@ export class G_GLink extends Link {
     setLineCoordinates() {
         if (this.group1 !== this.group2) {
             if (this.shown) {
-                const source = this.group1;//.getRenderedParticipant();
-                const target = this.group2;//renderedToProtein.getRenderedParticipant();
+                const source = this.group1;//.getRenderedInteractor();
+                const target = this.group2;//renderedToProtein.getRenderedInteractor();
                 if (!source.ix || !source.iy) {
                     console.log("NOT");
                 }

@@ -13,7 +13,10 @@ export class Group extends Interactor {
 
         this.renderedParticipants = [];
         for (let pId of participantIds) {
-            this.renderedParticipants.push(this.controller.renderedProteins.get(pId));
+            const p = this.controller.renderedProteins.get(pId);
+            if (p) { // no decoys in this.controller.renderedProteins
+                this.renderedParticipants.push(p);
+            }
         }
         this.parentGroups = new Set();
         this.subgroups = [];
@@ -45,9 +48,6 @@ export class Group extends Interactor {
         this.labelTextNode = document.createTextNode(this.labelText);
         this.labelSVG.appendChild(this.labelTextNode);
 
-        this.labelXOffset = 0;
-        this.labelYOffset = 0;
-
         //make blob
         this.outline = document.createElementNS(CrosslinkViewer.svgns, "rect");
         this.outline.setAttribute("stroke", "white");
@@ -76,15 +76,31 @@ export class Group extends Interactor {
         };
     }
 
+    get id () {
+        return this._id;
+    }
+
+    set id (id){
+        this._id = id;
+    }
+
+    get proteins () {
+        const proteins = [];
+        for (let renderedParticipant of this.renderedParticipants) {
+            proteins.push(renderedParticipant.participant);
+        }
+        return proteins;
+    }
+
     get width() {
         // return 60;
         const approxLabelWidth = 10 * (this.labelText.length + 2);
         return (approxLabelWidth > this.symbolRadius) ? approxLabelWidth : this.symbolRadius + 20;
     }
+
     get height () {
         return 60;
     }
-
 
     get bBox () {
         return this.upperGroup.getBBox();
@@ -134,7 +150,7 @@ export class Group extends Interactor {
         };
     }
 
-    unhiddenParticipantCount() {
+    get unhiddenParticipantCount () {
         let count = 0;
         for (let renderedParticipant of this.renderedParticipants) {
             if (!renderedParticipant.participant.hidden) {
@@ -144,14 +160,32 @@ export class Group extends Interactor {
         return count;
     }
 
-    get selected () {
-        const selectedProteins = this.controller.model.get("selectedProteins");
-        for (let rp of this.renderedParticipants) {
-            if (selectedProteins.indexOf(rp.participant) === -1) {
-                return false;
-            }
+    // get selected () {
+    //     const selectedProteins = this.controller.model.get("selectedProteins");
+    //     for (let rp of this.renderedParticipants) {
+    //         if (selectedProteins.indexOf(rp.participant) === -1) {
+    //             return false;
+    //         }
+    //     }
+    //     return true;
+    // }
+
+    set selected (selected) {
+        super.selected = selected;
+        if (selected) {
+            this.outline.setAttribute("stroke", "none");
+        } else {
+            this.outline.setAttribute("stroke", "white");
         }
-        return true;
+    }
+
+    set highlighted (highlight) {
+        super.highlighted = highlight;
+        if (highlight) {
+            this.outline.setAttribute("stroke", "none");
+        } else {
+            this.outline.setAttribute("stroke", "white");
+        }
     }
 
     // result depends on whats hidden
@@ -161,7 +195,7 @@ export class Group extends Interactor {
                 return false;
             }
         }
-        return true; // this.unhiddenParticipantCount() < anotherGroup.unhiddenParticipantCount();
+        return true;
     }
 
     contains(renderedProtein) {
@@ -218,12 +252,13 @@ export class Group extends Interactor {
     }
 
     mouseOver(evt) {
-        this.showHighlight(true);
+        // this.showHighlight(true);
         const toHighlight = [];
         for (let rp of this.renderedParticipants) {
             toHighlight.push(rp.participant);
         }
         this.controller.model.setHighlightedProteins(toHighlight);
+        //call in super?
         const p = this.controller.getEventPoint(evt);
         this.controller.model.get("tooltipModel")
             .set("header", makeTooltipTitle.complex(this))
@@ -234,10 +269,10 @@ export class Group extends Interactor {
             });
     }
 
-    mouseOut(evt) {
-        this.showHighlight(false);
-        Interactor.prototype.mouseOut.call(this, evt);
-    }
+    // mouseOut(evt) {
+    //     this.highlighted = false;
+    //     Interactor.prototype.mouseOut.call(this, evt);
+    // }
 
     getAverageParticipantPosition() {
         let xSum = 0,
@@ -311,6 +346,7 @@ export class Group extends Interactor {
             };
 
             updateOutline(this.outline);
+            // noinspection JSCheckFunctionSignatures
             this.outline.setAttribute("stroke-width", 3 * this.controller.z);
 
             updateOutline(this.highlight);
@@ -393,6 +429,7 @@ export class Group extends Interactor {
         };
 
         updateOutline(this.outline);
+        // noinspection JSCheckFunctionSignatures
         this.outline.setAttribute("stroke-width", 3 * this.controller.z);
 
         updateOutline(this.highlight);
@@ -414,69 +451,67 @@ export class Group extends Interactor {
         this.outline.setAttribute("fill", colour);
     }
 
-    setHidden(bool) {
+    setHidden(bool) {  // todo: make this a property?
         d3.select(this.upperGroup).style("display", bool ? "none" : null);
         d3.select(this.labelSVG).style("display", bool ? "none" : null);
         this.hidden = !!bool;
     }
 
-    updateHighlight() {
-        if (this.expanded) {
-            let someHighlighted = false, allHighlighted = true;
-            for (let rp of this.renderedParticipants) {
-                if (!rp.hidden) {
-                    if (rp.isHighlighted) {
-                        someHighlighted = true;
-                    } else {
-                        allHighlighted = false;
-                    }
-                }
-            }
-            if (someHighlighted) {
-                if (!allHighlighted) {
-                    this.dashedOutline(true);
-                } else {
-                    this.dashedOutline(false);
-                }
-                this.showHighlight(true);
-            } else {
-                this.dashedOutline(false);
-                this.showHighlight(false);
-                this.updateSelected();
-            }
-        }
-    }
+    // updateHighlight() {
+    //     if (this.expanded) {
+    //         let someHighlighted = false, allHighlighted = true;
+    //         for (let rp of this.renderedParticipants) {
+    //             if (!rp.hidden) {
+    //                 if (rp.isHighlighted) {
+    //                     someHighlighted = true;
+    //                 } else {
+    //                     allHighlighted = false;
+    //                 }
+    //             }
+    //         }
+    //         if (someHighlighted) {
+    //             if (!allHighlighted) {
+    //                 this.dashedOutline(true);
+    //             } else {
+    //                 this.dashedOutline(false);
+    //             }
+    //             this.showHighlight(true);
+    //         } else {
+    //             this.dashedOutline(false);
+    //             this.showHighlight(false);
+    //             this.updateSelected();
+    //         }
+    //     }
+    // }
 
     updateSelected() {
         let someSelected = false, allSelected = true;
         for (let rp of this.renderedParticipants) {
-            if (rp.isSelected) {
+            if (rp.selected) {
                 someSelected = true;
             } else {
                 allSelected = false;
             }
         }
         if (someSelected) {
-            if (!allSelected) {
-                this.dashedOutline(true);
-            }
-            this.setSelected(true);
+            this.dashed = !allSelected;
+            this.selected = true;
         } else {
-            this.dashedOutline(false);
-            this.setSelected(false);
+            this.selected = false;
         }
     }
 
-    dashedOutline(dash) {
-        if (dash) {
-            this.highlight.setAttribute("stroke-dasharray", (4 * this.controller.z) + ", " + (4 * this.controller.z));
-        } else {
+    set dashed(dash) {
+        if (dash){// && !this._dashed) {
+            this.highlight.setAttribute("stroke-dasharray", (8 * this.controller.z) + ", " + (8 * this.controller.z));
+        } else if (!dash){//} && this._dashed) {
             this.highlight.removeAttribute("stroke-dasharray");
         }
+        this._dashed = !!dash;
     }
 
     updateCountLabel() {
-        this.labelSVG.innerHTML = this.labelText + " ("+ this.unhiddenParticipantCount() + ")";
+        this.labelSVG.innerHTML = this.labelText + " ("+ this.unhiddenParticipantCount + ")";
     }
 
     setExpanded(expanded, svgP) {
@@ -612,9 +647,9 @@ export class Group extends Interactor {
         const self = this;
 
         this.expanded = true;
-        if (transition) { // yucky, transition is being used to indicate whether this is one interactor collapsing or from 'Collapse All'
-            this.controller.render();
-        }
+        // if (transition) { // yucky, transition is being used to indicate whether this is one interactor collapsing or from 'Collapse All'
+        //     this.controller.render();
+        // }
 
         const proteinXPositionInterpolations = [];
         const proteinYPositionInterpolations = [];
@@ -623,17 +658,16 @@ export class Group extends Interactor {
 
         const cubicInOut = d3.ease("cubic-out");
 
-        this.labelSVG.setAttribute("dominant-baseline", null);
-        this.labelSVG.setAttribute("text-anchor", null);
+        // this.labelSVG.setAttribute("dominant-baseline", null);
+        // this.labelSVG.setAttribute("text-anchor", null);
+        // this.showSubgroups();
+        // this.controller.groupsSVG.appendChild(this.upperGroup);
+        // this.outline.setAttribute("fill-opacity", "0.5");
+        //
+        // for (let rp of this.renderedParticipants) {
+        //     rp.setHidden(rp.participant.hidden || rp.inCollapsedGroup());
+        // }
 
-        this.showSubgroups();
-
-        this.controller.groupsSVG.appendChild(this.upperGroup);
-        this.outline.setAttribute("fill-opacity", "0.5");
-
-        for (let rp of this.renderedParticipants) {
-            rp.setHidden(rp.participant.hidden || rp.inCollapsedGroup());
-        }
         const tl = this.controller.svgElement.createSVGPoint();
         tl.x = 0;
         tl.y =0;
@@ -646,7 +680,8 @@ export class Group extends Interactor {
         const bottomRight = br.matrixTransform(this.controller.container.getCTM().inverse());
 
         //bbox of the expanded group (before moving it on screen if necessary)
-        let bboxTL = this.controller.svgElement.createSVGPoint(), bboxBR = this.controller.svgElement.createSVGPoint();
+        let bboxTL = this.controller.svgElement.createSVGPoint();
+        let bboxBR = this.controller.svgElement.createSVGPoint();
 
         //  decide on new positions for proteins and collapsed subgroups
         if (transition) { // only if transition (not if no position, i.e. from saved layout)
@@ -656,6 +691,8 @@ export class Group extends Interactor {
                 ix = pPos[0];
                 iy = pPos[1];
             }
+
+            this.controller.hiddenProteinsChanged(); //needed for isOnScreen() to work
 
             let allOnScreen = true;
             for (let rp of this.renderedParticipants) {
@@ -680,26 +717,14 @@ export class Group extends Interactor {
                     proteinYPositionInterpolations.push(d3.interpolate(iy, rp.iy));
                 }
                 for (let sg of this.subgroups) {
-                    if (!sg.expanded) {
-                        collapsedSubgroupXPositionInterpolations.push(d3.interpolate(ix, sg.ix));
-                        collapsedSubgroupYPositionInterpolations.push(d3.interpolate(iy, sg.iy));
-                    }
+                    // if (!sg.expanded) {
+                    collapsedSubgroupXPositionInterpolations.push(d3.interpolate(ix, sg.ix));
+                    collapsedSubgroupYPositionInterpolations.push(d3.interpolate(iy, sg.iy));
+                    // }
                 }
             } else {
                 // alert("not all on screen");
                 console.log("not all on screen", bboxTL, bboxBR);
-
-                //get good new area for the expanded group
-                // this.controller.debugRectSel.attr({
-                //     x: ix - ((width / 8) * this.controller.z), // need to make sure is on screen
-                //     y: iy - ((width / 8) + this.controller.z),
-                //     width: (width / 4) * this.controller.z,
-                //     height: (width / 4) * this.controller.z
-                // });
-
-
-
-
 
                 const bboxMidPoint = this.controller.svgElement.createSVGPoint();
 
@@ -710,34 +735,47 @@ export class Group extends Interactor {
                 const yTrans = iy - bboxMidPoint.y;
 
                 //todo: scale?
-                // if still off screen, new top left will be 1/8 screen width lefyt of mouse position and 1/6 screen height above
-
-                // const newTLx = ix - ((width / 8) * this.controller.z);
-                // const newTLy = iy - ((height / 6) * this.controller.z);
-
-                // this.controller.debugRectSel2.attr({
-                //     x: bboxTL.x ,//ix - ((width / 8) * this.controller.z), // need to make sure is on screen
-                //     y: bboxTL.y, // iy - ((width / 8) + this.controller.z),
-                //     width: (bboxBR.x - bboxTL.x),// * self.controller.z,   //(width / 4) * this.controller.z,
-                //     height: (bboxBR.y - bboxTL.y),// * self.controller.z, //(width / 4) * this.controller.z
-                // });
-                // this.controller.debugRectSel.attr({
-                //     x: ix ,//ix - ((width / 8) * this.controller.z), // need to make sure is on screen
-                //     y: iy , // iy - ((width / 8) + this.controller.z),
-                //     width: 10,//bboxBR.x - bboxTL.x,   //(width / 4) * this.controller.z,
-                //     height: 10 // bboxBR.y - bboxTL.y //(width / 4) * this.controller.z
-                // });
+                // if still off screen, new top left will be 1/8 screen width lefyt of mouse position and 1/6 screen height above?
 
                 for (let rp of this.renderedParticipants) {
                     proteinXPositionInterpolations.push(d3.interpolate(ix, rp.ix + xTrans));
                     proteinYPositionInterpolations.push(d3.interpolate(iy, rp.iy + yTrans));
                 }
                 for (let sg of this.subgroups) {
-                    if (!sg.expanded) {
-                        collapsedSubgroupXPositionInterpolations.push(d3.interpolate(ix, sg.ix + xTrans));
-                        collapsedSubgroupYPositionInterpolations.push(d3.interpolate(iy, sg.iy + yTrans));
-                    }
+                    // if (!sg.expanded) {
+                    collapsedSubgroupXPositionInterpolations.push(d3.interpolate(ix, sg.ix + xTrans));
+                    collapsedSubgroupYPositionInterpolations.push(d3.interpolate(iy, sg.iy + yTrans));
+                    // }
                 }
+            }
+
+            //move all prots / subgroups to
+            for (let rp of this.renderedParticipants) {
+                if (!rp.hidden){
+                    rp.setPositionFromXinet(ix, iy);
+                }
+            }
+            for (let sg of this.subgroups) {
+                if (!sg.hidden) {
+                    sg.setPositionFromXinet(ix, iy);
+                }
+            }
+
+            // this.expanded = true;
+            this.labelSVG.setAttribute("dominant-baseline", null);
+            this.labelSVG.setAttribute("text-anchor", null);
+
+            this.showSubgroups();
+
+            this.controller.groupsSVG.appendChild(this.upperGroup);
+            this.outline.setAttribute("fill-opacity", "0.5");
+
+            for (let rp of this.renderedParticipants) {
+                rp.setHidden(rp.participant.hidden || rp.inCollapsedGroup());
+            }
+
+            if (transition) { // yucky, transition is being used to indicate whether this is one interactor collapsing or from 'Collapse All'
+                this.controller.render();
             }
 
             d3.timer(function (elapsed) {
@@ -749,22 +787,22 @@ export class Group extends Interactor {
 
         function isOnScreen(interactor){
             if (!interactor.hidden) {
-                console.log("TESTING", interactor);
+                // console.log("TESTING", interactor);
                 if (!bboxTL.x || interactor.ix < bboxTL.x) {
                     bboxTL.x = interactor.ix;
-                    console.log("SETTING BBOX TL X", bboxTL.x);
+                    // console.log("SETTING BBOX TL X", bboxTL.x);
                 }
                 if (!bboxTL.y || interactor.iy < bboxTL.y) {
                     bboxTL.y = interactor.iy;
-                    console.log("SETTING BBOX TL Y", bboxTL.y);
+                    // console.log("SETTING BBOX TL Y", bboxTL.y);
                 }
                 if (!bboxBR.x || interactor.ix > bboxBR.x) {
                     bboxBR.x = interactor.ix;
-                    console.log("SETTING BBOX BR X", bboxBR.x);
+                    // console.log("SETTING BBOX BR X", bboxBR.x);
                 }
                 if (!bboxBR.y || interactor.iy > bboxBR.y) {
                     bboxBR.y = interactor.iy;
-                    console.log("SETTING BBOX BR Y", bboxBR.y);
+                    // console.log("SETTING BBOX BR Y", bboxBR.y);
                 }
             }
             return interactor.ix > topLeft.x && interactor.ix < bottomRight.x && interactor.iy > topLeft.y && interactor.iy < bottomRight.y;
@@ -773,7 +811,7 @@ export class Group extends Interactor {
         function updateExpanding(interp) {
             if (interp === 1) { // finished - tidy up
                 self.updateExpandedGroup();
-                if (transition) { // todo: this is bit yucky
+                if (transition) { // yucky, transition is being used to indicate whether this is one interactor collapsing or from 'Collapse All'
                     self.controller.hiddenProteinsChanged();
                     self.controller.render();
                 }
@@ -809,21 +847,15 @@ export class Group extends Interactor {
 
     hideSubgroups() {
         for (let subgroup of this.subgroups) {
-            // subgroup.hideSubgroups();
-            // if (subgroup.upperGroup.parentNode) {
-            //      subgroup.upperGroup.parentNode.removeChild(subgroup.upperGroup);
-            // }
             subgroup.setHidden(true);
         }
     }
 
     showSubgroups() {
         for (let subgroup of this.subgroups) {
-            // subgroup.setExpanded(subgroup.expanded);
             if (!subgroup.inCollapsedGroup()) {
                 subgroup.setHidden(false);
             }
-            // subgroup.showSubgroups();
         }
     }
 
@@ -832,14 +864,6 @@ export class Group extends Interactor {
         for (let rp of this.renderedParticipants) {
             rp.setAllLinkCoordinates();
         }
-    }
-
-    get id () {
-        return this._id;
-    }
-
-    set id (id){
-        this._id = id;
     }
 
     // addConnectedNodes (subgraph) {
@@ -856,7 +880,7 @@ export class Group extends Interactor {
     //                         otherEnd = link.renderedFromProtein;
     //                     }
     //                     // if (otherEnd !== null) {
-    //                     const renderedOtherEnd = otherEnd.getRenderedParticipant();
+    //                     const renderedOtherEnd = otherEnd.getRenderedInteractor();
     //                     renderedOtherEnd.subgraph = subgraph;
     //                     //if (!subgraph.nodes.has(renderedOtherEnd.id)) {
     //                     subgraph.nodes.set(renderedOtherEnd.id, renderedOtherEnd);
@@ -888,7 +912,7 @@ export class Group extends Interactor {
     //     //     {
     //     //         if (link.isPassingFilter()) {
     //     //             //countExternal++;
-    //     //             renderedParticipantsLinkedTo.add(link.getOtherEnd(this).getRenderedParticipant());
+    //     //             renderedParticipantsLinkedTo.add(link.getOtherEnd(this).getRenderedInteractor());
     //     //         }
     //     //     }
     //     // }

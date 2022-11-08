@@ -323,8 +323,8 @@ export class RenderedCrosslink extends Link {
             //if not self link && not linker modified pep
             if (!this.crosslink.isSelfLink() && this.crosslink.toProtein) {
                 let x, y;
-                const source = this.renderedFromProtein.getRenderedParticipant();
-                const target = this.renderedToProtein.getRenderedParticipant();
+                const source = this.renderedFromProtein.getRenderedInteractor();
+                const target = this.renderedToProtein.getRenderedInteractor();
                 if (!source.ix || !source.iy) {
                     console.log("NOT");
                 }

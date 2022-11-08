@@ -23,8 +23,8 @@ export class RenderedProtein extends Interactor {
         this.expanded = false;
         this.hidden = false;
         this.isFlipped = false;
-        this.isSelected = false;
-        this.isHighlighted = false;
+        // this.isSelected = false;
+        // this.isHighlighted = false;
         this.createElements();
     }
 
@@ -123,6 +123,10 @@ export class RenderedProtein extends Interactor {
         };
     }
 
+    get proteins () {
+        return [this.participant];
+    }
+
     get bBox () {
         return this.upperGroup.getBBox();
         // return {
@@ -146,10 +150,6 @@ export class RenderedProtein extends Interactor {
         return 60;
     }
 
-    get selected () {
-        return this.isSelected;
-    }
-
     get symbolRadius() {
         if (this.controller.fixedSize) {
             return 12;
@@ -165,8 +165,8 @@ export class RenderedProtein extends Interactor {
         if (!this.stickZoom) {
             this.stickZoom = this.controller.defaultBarScale;
         }
-        this.showHighlight(this.isHighlighted);
-        this.setSelected(this.isSelected);
+        // this.showHighlight(this.isHighlighted);
+        // this.setSelected(this.isSelected);
         this.setPositionFromXinet(this.ix, this.iy);
         this.scale();
         this.setAllLinkCoordinates();
@@ -1212,7 +1212,7 @@ export class RenderedProtein extends Interactor {
     //                     otherEnd = link.renderedFromProtein;
     //                 }
     //                 // if (otherEnd !== null) {
-    //                 const renderedOtherEnd = otherEnd.getRenderedParticipant();
+    //                 const renderedOtherEnd = otherEnd.getRenderedInteractor();
     //                 renderedOtherEnd.subgraph = subgraph;
     //                 //if (!subgraph.nodes.has(renderedOtherEnd.id)) {
     //                 subgraph.nodes.set(renderedOtherEnd.id, renderedOtherEnd);
@@ -1235,7 +1235,7 @@ export class RenderedProtein extends Interactor {
     //         if (link.crosslinks[0].isSelfLink() === false) {
     //             if (link.isPassingFilter()) {
     //                 //countExternal++;
-    //                 renderedParticipantsLinkedTo.add(link.getOtherEnd(this).getRenderedParticipant());
+    //                 renderedParticipantsLinkedTo.add(link.getOtherEnd(this).getRenderedInteractor());
     //             }
     //         }
     //     }

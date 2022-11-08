@@ -225,8 +225,8 @@ export class P_PLink extends Link {
                     this.ambiguous = altP_PLinks.size > 1;
 
                     if (this.renderedFromProtein.inCollapsedGroup() && this.renderedToProtein.inCollapsedGroup()) {
-                        const source = this.renderedFromProtein.getRenderedParticipant();
-                        const target = this.renderedToProtein.getRenderedParticipant();
+                        const source = this.renderedFromProtein.getRenderedInteractor();
+                        const target = this.renderedToProtein.getRenderedInteractor();
                         let ggId;
                         if (source.id < target.id) {
                             ggId = source.id + "_" + target.id;
@@ -293,14 +293,14 @@ export class P_PLink extends Link {
         this.setSelected(this.isSelected);
     }
 
-    isPassingFilter() {
-        for (let crosslink of this.crosslinks) {
-            if (crosslink.filteredMatches_pp.length > 0) {
-                return true;
-            }
-        }
-        return false;
-    }
+    // isPassingFilter() {
+    //     for (let crosslink of this.crosslinks) {
+    //         if (crosslink.filteredMatches_pp.length > 0) {
+    //             return true;
+    //         }
+    //     }
+    //     return false;
+    // }
 
     updateThickLineWidth() {
         const steps = this.controller.model.get("xinetPpiSteps");
@@ -332,8 +332,8 @@ export class P_PLink extends Link {
     setLineCoordinates() {
         if (this.renderedToProtein && this.renderedFromProtein !== this.renderedToProtein) {
             if (this.shown) {
-                const source = this.renderedFromProtein.getRenderedParticipant();
-                const target = this.renderedToProtein.getRenderedParticipant();
+                const source = this.renderedFromProtein.getRenderedInteractor();
+                const target = this.renderedToProtein.getRenderedInteractor();
                 if (isNaN(source.ix) || isNaN(source.iy)) {
                     console.log("prot coords are NaN");
                 }
@@ -357,14 +357,14 @@ export class P_PLink extends Link {
         }
     }
 
-    getOtherEnd (protein) {
-        if (this.renderedFromProtein === protein) {
-            return this.renderedToProtein;
-        } else {
-            return this.renderedFromProtein;
-        }
-    }
-
+    // getOtherEnd (protein) {
+    //     if (this.renderedFromProtein === protein) {
+    //         return this.renderedToProtein;
+    //     } else {
+    //         return this.renderedFromProtein;
+    //     }
+    // }
+    //
     // getFromProtein(){
     //     return this.fromProtein;
     // }
