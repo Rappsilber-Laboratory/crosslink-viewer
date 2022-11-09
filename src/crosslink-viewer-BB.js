@@ -728,31 +728,6 @@ export class CrosslinkViewer extends Backbone.View {
         //remember edge of gridded proteins
         const layoutXOffset = this.xForColumn(column + 1);*/
 
-        //omething like following is still needed in autolayout to fix nested groups
-
-        // this is super confusing, better without it, new way is everyhting has all their parent and sub groups, now messes up auto layout if there are nested groups
-        //remove obsolete subgroups
-        // for (let gi = 0; gi < gCount; gi++) {
-        //     const group1 = groups[gi];
-        //     //if subgroup has parent also in group1.subgroups then remove it
-        //     const subgroupCount = group1.subgroups.length;
-        //     const subgroupsToRemove = [];
-        //     for (let gj = 0; gj < subgroupCount - 1; gj++) {
-        //         const subgroup1 = group1.subgroups[gj];
-        //         for (let gk = gj + 1; gk < subgroupCount; gk++) {
-        //             const subgroup2 = group1.subgroups[gk];
-        //             if (subgroup1.isSubsetOf(subgroup2)) {
-        //                 subgroupsToRemove.push(subgroup2);
-        //             }
-        //         }
-        //     }
-        //     for (let sgToRemove of subgroupsToRemove) {
-        //         const index = group1.subgroups.indexOf(sgToRemove);
-        //         group1.subgroups = group1.subgroups.splice(index, 1);
-        //     }
-        // }
-
-
         for (let renderedProtein of this.renderedProteins.values()) {
             if (fixedParticipants.length === 0) {
                 delete renderedProtein.x;
@@ -1401,19 +1376,16 @@ export class CrosslinkViewer extends Backbone.View {
     }
 
     mouseDown(evt) {
-        //prevent default, but allow propagation
         evt.preventDefault();
-        //stop layout
         this.d3cola.stop();
         this.dragStart = evt;
         this.state = CrosslinkViewer.STATES.SELECT_PAN;
         this.mouseMoved = false;
         this.toSelect = [];
-        // d3.select(".custom-menu-margin").style("display", "none");
-        // d3.select(".group-custom-menu-margin").style("display", "none");
+        d3.select(".xinet-context-menu").style("display", "none");
     }
 
-    // dragging/rotation/panning/selecting
+    // dragging/rotating/panning/selecting
     mouseMove(evt) {
         if (this.dragStart) {
             const p = this.getEventPoint(evt); // seems to be correct, see below
@@ -1556,7 +1528,7 @@ export class CrosslinkViewer extends Backbone.View {
             renderedProtein.setAllLinkCoordinates();
         }
         for (let g of this.groupMap.values()) {
-            if (!g.expanded && g.isSelected) {
+            if (!g.expanded && g.selected) {
                 g.setPositionFromXinet(g.ix - dx, g.iy - dy);
                 g.setAllLinkCoordinates();
             }

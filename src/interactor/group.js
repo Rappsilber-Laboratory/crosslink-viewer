@@ -160,15 +160,15 @@ export class Group extends Interactor {
         return count;
     }
 
-    // get selected () {
-    //     const selectedProteins = this.controller.model.get("selectedProteins");
-    //     for (let rp of this.renderedParticipants) {
-    //         if (selectedProteins.indexOf(rp.participant) === -1) {
-    //             return false;
-    //         }
-    //     }
-    //     return true;
-    // }
+    get selected () {
+        const selectedProteins = this.controller.model.get("selectedProteins");
+        for (let rp of this.renderedParticipants) {
+            if (selectedProteins.indexOf(rp.participant) === -1) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     set selected (selected) {
         super.selected = selected;
