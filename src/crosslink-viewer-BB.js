@@ -1688,7 +1688,7 @@ export class CrosslinkViewer extends Backbone.View {
                         const group = evt.target.getAttribute("data-group");
                         console.log("remove protein " + protien + " from group " + group);
                         d3.select(".xinet-context-menu").style("display", "none");
-                        self.contextMenuParticipant.showHighlight(false);
+                        self.contextMenuParticipant.highlighted = false;
                         self.model.removeProteinFromGroup(group, protien);
                     };
             }
