@@ -726,26 +726,70 @@ export class Group extends Interactor {
                 // alert("not all on screen");
                 console.log("not all on screen", bboxTL, bboxBR);
 
-                const bboxMidPoint = this.controller.svgElement.createSVGPoint();
 
-                bboxMidPoint.x = (bboxTL.x + bboxBR.x) / 2;
-                bboxMidPoint.y = (bboxTL.y + bboxBR.y) / 2;
+                //scale?
+                const bboxWidth = (bboxBR.x - bboxTL.x);
+                const bboxHeight = bboxBR.y - bboxTL.y;
+                const preferredWidth = (width / 2) * this.controller.z;
+                const preferredHeight = (height / 2) * this.controller.z;
+                let xScale, yScale, scale = 1;
+                if (bboxWidth > (width * this.controller.z) || bboxHeight > (height * this.controller.z)) {
+                    if (bboxWidth > preferredWidth) {
+                        xScale = preferredWidth / bboxWidth;
+                    }
+                    if (bboxHeight > preferredHeight) {
+                        yScale = preferredHeight / bboxHeight;
+                    }
+                    scale = Math.min(xScale, yScale);
+                    console.log("SCALE!!", scale);
+                    //bbox is that of the expanded group
 
-                const xTrans = ix - bboxMidPoint.x;
-                const yTrans = iy - bboxMidPoint.y;
+                    const bboxMidPoint = {};//= this.controller.svgElement.createSVGPoint();
 
-                //todo: scale?
-                // if still off screen, new top left will be 1/8 screen width lefyt of mouse position and 1/6 screen height above?
+                    bboxMidPoint.x = (bboxTL.x + bboxBR.x) / 2;
+                    bboxMidPoint.y = (bboxTL.y + bboxBR.y) / 2;
 
-                for (let rp of this.renderedParticipants) {
-                    proteinXPositionInterpolations.push(d3.interpolate(ix, rp.ix + xTrans));
-                    proteinYPositionInterpolations.push(d3.interpolate(iy, rp.iy + yTrans));
-                }
-                for (let sg of this.subgroups) {
-                    // if (!sg.expanded) {
-                    collapsedSubgroupXPositionInterpolations.push(d3.interpolate(ix, sg.ix + xTrans));
-                    collapsedSubgroupYPositionInterpolations.push(d3.interpolate(iy, sg.iy + yTrans));
-                    // }
+                    const xTrans = ix - bboxMidPoint.x;
+                    const yTrans = iy - bboxMidPoint.y;
+
+                    for (let rp of this.renderedParticipants) {
+                        const dx = rp.ix + xTrans - bboxMidPoint.x;
+                        const dy = rp.iy + yTrans - bboxMidPoint.y;
+                        // const dx = rp.ix + (ix - bboxMidPoint.x) - bboxMidPoint.x;
+                        // = rp.ix + ix - 2 * bboxMidPoint.x;
+                        proteinXPositionInterpolations.push(d3.interpolate(ix, ix + (dx * scale)));
+                        proteinYPositionInterpolations.push(d3.interpolate(iy, iy + (dy * scale)));
+                    }
+                    for (let sg of this.subgroups) {
+                        // if (!sg.expanded) {
+                        const dx = sg.ix + xTrans - bboxMidPoint.x;
+                        const dy = sg.iy + yTrans - bboxMidPoint.y;
+
+                        collapsedSubgroupXPositionInterpolations.push(d3.interpolate(ix, ix + (dx * scale)));
+                        collapsedSubgroupYPositionInterpolations.push(d3.interpolate(iy, iy + (dy * scale)));
+                        // }
+                    }
+                } else {
+                    //bbox is that of the expanded group
+
+                    const bboxMidPoint = {};//= this.controller.svgElement.createSVGPoint();
+
+                    bboxMidPoint.x = (bboxTL.x + bboxBR.x) / 2;
+                    bboxMidPoint.y = (bboxTL.y + bboxBR.y) / 2;
+
+                    const xTrans = ix - bboxMidPoint.x;
+                    const yTrans = iy - bboxMidPoint.y;
+
+                    for (let rp of this.renderedParticipants) {
+                        proteinXPositionInterpolations.push(d3.interpolate(ix, rp.ix + xTrans));
+                        proteinYPositionInterpolations.push(d3.interpolate(iy, rp.iy + yTrans));
+                    }
+                    for (let sg of this.subgroups) {
+                        // if (!sg.expanded) {
+                        collapsedSubgroupXPositionInterpolations.push(d3.interpolate(ix, sg.ix + xTrans));
+                        collapsedSubgroupYPositionInterpolations.push(d3.interpolate(iy, sg.iy + yTrans));
+                        // }
+                    }
                 }
             }
 

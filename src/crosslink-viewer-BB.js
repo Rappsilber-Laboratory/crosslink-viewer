@@ -1667,6 +1667,7 @@ export class CrosslinkViewer extends Backbone.View {
             menuListSel.append("li").text("Set Protein Colour").on("click", () => {
                 //todo: set protein colour for all selected proteins?
                 this.model.chooseInteractorColor(renderedInteractor.participant.id);
+                d3.select(".xinet-context-menu").style("display", "none");
             });
 
             if (proteinColourModel instanceof ManualColourModel) {
@@ -1674,6 +1675,7 @@ export class CrosslinkViewer extends Backbone.View {
                     menuListSel.append("li").text("Remove Protein Colour").on("click", () => {
                         proteinColourModel.removeManualAssignment(renderedInteractor.participant.id);
                         this.model.trigger("currentProteinColourModelChanged", proteinColourModel);
+                        d3.select(".xinet-context-menu").style("display", "none");
                     });
                 }
             }
@@ -1696,6 +1698,7 @@ export class CrosslinkViewer extends Backbone.View {
                 if (renderedInteractor.isOverlappingGroup()) {
                     menuListSel.append("li").text("Can't collapse overlapping groups").on("click", () => {
                         this.cantCollapseGroup(); //does nothing
+                        d3.select(".xinet-context-menu").style("display", "none");
                     });
                     // menuListSel.append("li").text("Enclose Overlapping Groups").on("click", () => {
                     //     alert("enclose overlapping groups not implemented yet");
@@ -1708,15 +1711,18 @@ export class CrosslinkViewer extends Backbone.View {
             } else {
                 menuListSel.append("li").text("Expand Group").on("click", () => {
                     renderedInteractor.setExpanded(true, this.getEventPoint(evt));
+                    d3.select(".xinet-context-menu").style("display", "none");
                 });
             }
 
             menuListSel.append("li").text("Ungroup").on("click", () => {
                 this.ungroup(renderedInteractor);
+                d3.select(".xinet-context-menu").style("display", "none");
             });
 
             menuListSel.append("li").text("Set Group Colour").on("click", () => {
                 this.model.chooseInteractorColor(renderedInteractor.id);
+                d3.select(".xinet-context-menu").style("display", "none");
             });
 
             if (proteinColourModel instanceof ManualColourModel) {
@@ -1724,6 +1730,7 @@ export class CrosslinkViewer extends Backbone.View {
                     menuListSel.append("li").text("Remove Group Colour").on("click", () => {
                         proteinColourModel.removeManualAssignment(renderedInteractor.id);
                         this.model.trigger("currentProteinColourModelChanged", proteinColourModel);
+                        d3.select(".xinet-context-menu").style("display", "none");
                     });
                 }
             }
