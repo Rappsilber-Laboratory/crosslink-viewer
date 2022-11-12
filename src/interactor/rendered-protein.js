@@ -17,21 +17,21 @@ export class RenderedProtein extends Interactor {
         this.renderedCrosslinks = [];
         this.parentGroups = new Set();
         // layout info
-        this.ix = 100;
+        this.ix = 300;
         this.iy = 40;
         this.rotation = 0;
         this.expanded = false;
         this.hidden = false;
         this.isFlipped = false;
-        this.isSelected = false;
-        this.isHighlighted = false;
+        // this.isSelected = false;
+        // this.isHighlighted = false;
         this.createElements();
     }
 
     createElements() {
         //'rotators'
-        // this.lowerRotator = new Rotator(this, 0, this.controller);
-        // this.upperRotator = new Rotator(this, 1, this.controller);
+        this.lowerRotator = new Rotator(this, 0, this.controller);
+        this.upperRotator = new Rotator(this, 1, this.controller);
 
         /*
          * Lower group
@@ -116,41 +116,38 @@ export class RenderedProtein extends Interactor {
 
         //going to use right click ourselves
         this.upperGroup.oncontextmenu = function (evt) {
-            if (evt.preventDefault) {
-                evt.preventDefault();
-            }
-            // if (evt.stopPropogation) {
-            //     evt.stopPropagation();
+            // if (evt.preventDefault) {
+            evt.preventDefault();
             // }
-            evt.returnValue = false;
             return false;
         };
     }
 
-    get BBox () {
-        return {
-            x:this.ix - 30,
-            y: this.iy - 30,
-            width: 60,
-            height: 60
-        };
+    get proteins () {
+        return [this.participant];
+    }
+
+    get bBox () {
+        return this.upperGroup.getBBox();
+        // return {
+        //     x:this.ix - 30,
+        //     y: this.iy - 30,
+        //     width: this.width,
+        //     height: this.height
+        // };
     }
 
     get width(){
-        // if (this.expanded) {
-        //     return this.upperGroup.getBBox().width + 10;
-        // } else {
-        //     return this.upperGroup.getBBox().width + 10;
-        // }
-        return 60;//
+        const approxLabelWidth = 10 * (this.labelText.length + 2);
+        if (!this.expanded) {
+            return (approxLabelWidth > this.symbolRadius)? approxLabelWidth : this.symbolRadius + 20;//this.upperGroup.getBBox().width + 10;
+        } else {
+            return (this.participant.size * this.stickZoom) + approxLabelWidth;
+        }
     }
 
     get height () {
-        // if (this.expanded) {
-        //     return this.upperGroup.getBBox().height + 10;
-        // } else {
-        return 60;//this.upperGroup.getBBox().height + 10;
-        // }
+        return 60;
     }
 
     get symbolRadius() {
@@ -170,51 +167,12 @@ export class RenderedProtein extends Interactor {
         }
         // this.showHighlight(this.isHighlighted);
         // this.setSelected(this.isSelected);
-
-
-
-        // const show = this.isHighlighted;
-        // const select = this.isSelected;
-        //
-        // const d3HighSel = d3.select(this.highlight);
-        // if (show === true) {
-        //     d3HighSel
-        //         .classed("selectedProtein", false)
-        //         .classed("highlightedProtein", true)
-        //         .attr("stroke-opacity", "1");
-        // } else {
-        //     if (!this.isSelected) {
-        //         d3HighSel.attr("stroke-opacity", "0");
-        //     }
-        //     d3HighSel
-        //         .classed("selectedProtein", true)
-        //         .classed("highlightedProtein", false);
-        // }
-        // this.isHighlighted = !!show; // mjg apr 18
-        //
-        // const d3HighSel2 = d3.select(this.highlight);
-        // if (select === true) {
-        //     d3HighSel2
-        //         .classed("selectedProtein", true)
-        //         .classed("highlightedProtein", false)
-        //         .attr("stroke-opacity", "1");
-        // } else {
-        //     d3HighSel2
-        //         .attr("stroke-opacity", "0")
-        //         .classed("selectedProtein", false)
-        //         .classed("highlightedProtein", true);
-        // }
-        // this.isSelected = !!select;
-
-
-
-        // this.setPositionFromXinet(this.ix, this.iy);
+        this.setPositionFromXinet(this.ix, this.iy);
         this.scale();
         this.setAllLinkCoordinates();
         if (this.newForm === true) { //hacky?
             this.toStickNoTransition();
         }
-
     }
 
     updateName() {
@@ -327,6 +285,7 @@ export class RenderedProtein extends Interactor {
         // }
         // }
         this.setPosition(this.x /*- xOffset*/, this.y);
+        this.updateExpandedGroup();
     }
 
     /* calculate top left of interactor's glyph,
@@ -337,15 +296,16 @@ export class RenderedProtein extends Interactor {
         this.px = this.x;
         this.py = this.y;
         let xOffset = 0;
-        // if (!this.hidden) { // todo - hacky
-        //     xOffset = (this.width / 2 - (this.getSymbolRadius()) + 5);
+        if (!this.hidden) { // todo - hacky
+            xOffset = (this.width / 2 - (this.symbolRadius) + 5);
         //     // if (this.expanded) {
         //     //   xOffset = xOffset + (this.participant.size / 2 * this.stickZoom );
         //     // }
-        // }
+        }
         this.x = ix - xOffset;
         this.y = iy;
         this.setPosition(ix, iy);
+        this.updateExpandedGroup();
     }
 
     // more accurately described as setting transform for top svg elements (sets scale also)
@@ -373,14 +333,15 @@ export class RenderedProtein extends Interactor {
                     " " + this.iy + ")" + " scale(" + (this.controller.z) + ")");
             }
         }
+    }
 
+    updateExpandedGroup() {
         for (let group of this.parentGroups) {
             if (group.expanded && !this.hidden) {
                 group.updateExpandedGroup();
             }
         }
     }
-
 
     setStickScale(scale, svgP) {
         const oldScale = this.stickZoom;
@@ -415,7 +376,7 @@ export class RenderedProtein extends Interactor {
         d3.select(this.peptides).attr("transform", "scale(" + (this.stickZoom) + ", 1)");
         const protLength = (this.participant.size) * this.stickZoom;
         if (this.expanded) {
-            const labelWidth = 40;//this.labelSVG.getBBox().width;
+            const labelWidth = this.labelSVG.getBBox().width;
             const labelTransform = d3.transform(this.labelSVG.getAttribute("transform"));
             const k = this.controller.svgElement.createSVGMatrix().rotate(labelTransform.rotate)
                 .translate((-(((this.participant.size / 2) * this.stickZoom) + +(labelWidth / 2) + 10)), 0);
@@ -548,18 +509,8 @@ export class RenderedProtein extends Interactor {
 
     setHidden(bool) {
         // MJG
-        // d3.select(this.upperGroup).style("display", bool ? "none" : null);
-        // d3.select(this.lowerGroup).style("display", bool ? "none" : null);
-
-        //changing display cuases DOM reflow but visibility does not
-        if (bool){
-            this.upperGroup.style.visibility = "hidden";
-            this.lowerGroup.style.visibility = "hidden";
-        } else {
-            this.upperGroup.style.visibility = null;
-            this.lowerGroup.style.visibility = null;
-        }
-
+        d3.select(this.upperGroup).style("display", bool ? "none" : null);
+        d3.select(this.lowerGroup).style("display", bool ? "none" : null);
         this.hidden = !!bool;
     }
 
@@ -582,8 +533,8 @@ export class RenderedProtein extends Interactor {
         const transitionTime = transition ? RenderedProtein.transitionTime : 0; //this maybe isn't so good
 
         this.busy = true;
-        // CrosslinkViewer.removeDomElement(this.lowerRotator.svg);
-        // CrosslinkViewer.removeDomElement(this.upperRotator.svg);
+        CrosslinkViewer.removeDomElement(this.lowerRotator.svg);
+        CrosslinkViewer.removeDomElement(this.upperRotator.svg);
 
         // const protLength = this.participant.size * this.stickZoom;
         const r = this.symbolRadius;
@@ -710,15 +661,13 @@ export class RenderedProtein extends Interactor {
 
                             d3.select(rectDomain).transition().attr("d", self.getAnnotationPieSliceApproximatePath(feature))
                                 .duration(transitionTime);
-                        }
-                        else {
+                        } else {
                             for (let b = 0; b < annotationCount; b++) {
                                 const annoB = annotArr[b];
                                 if (this === annoB.pieSlice) {
                                     d3.select(this).attr("d", self.getAnnotationPieSliceArcPath(annoB.feature));
                                 }
                             }
-
                         }
                     } else {
                         d3.select(pieSlice).transition().attr("d", this.getDisulfidAnnotationCircPath(feature))
@@ -752,6 +701,7 @@ export class RenderedProtein extends Interactor {
             const k = self.controller.svgElement.createSVGMatrix().rotate(labelTransform.rotate).translate(labelTranslateInterpol(cubicInOut(interp)), 0);
             if (self.labelSVG.transform) self.labelSVG.transform.baseVal.initialize(self.controller.svgElement.createSVGTransformFromMatrix(k));
             if (xInterpol !== null) {
+                // noinspection JSValidateTypes
                 self.setPositionFromXinet(xInterpol(cubicInOut(interp)), yInterpol(cubicInOut(interp)));
             }
             const rot = rotationInterpol(cubicInOut(interp));
@@ -794,9 +744,9 @@ export class RenderedProtein extends Interactor {
         this.expanded = true;
 
         //place rotators
-        // this.upperGroup.appendChild(this.lowerRotator.svg);
-        // this.upperGroup.appendChild(this.upperRotator.svg);
-        // this.placeRotators();
+        this.upperGroup.appendChild(this.lowerRotator.svg);
+        this.upperGroup.appendChild(this.upperRotator.svg);
+        this.placeRotators();
 
         const protLength = this.participant.size * this.stickZoom;
         const r = this.symbolRadius;
@@ -804,7 +754,7 @@ export class RenderedProtein extends Interactor {
         const lengthInterpol = d3.interpolate((2 * r), protLength);
         const stickZoomInterpol = d3.interpolate(0, this.stickZoom);
         const rotationInterpol = d3.interpolate(0, (this.rotation > 180) ? this.rotation - 360 : this.rotation);
-        const labelWidth = 40;//this.labelSVG.getBBox().width;
+        const labelWidth = this.labelSVG.getBBox().width;
         const labelTranslateInterpol = d3.interpolate(0 /*-(r + 5)*/, -(((this.participant.size / 2) * this.stickZoom) + (labelWidth / 2) + 10));
 
         const origStickZoom = this.stickZoom;
@@ -928,7 +878,7 @@ export class RenderedProtein extends Interactor {
             .delay(transitionTime * 0.8).duration(transitionTime / 2);
     }
 
-    toStickNoTransition() { //TODo - tidy this mess
+    toStickNoTransition() {
         this.toStick(false);
     }
 
@@ -1009,31 +959,6 @@ export class RenderedProtein extends Interactor {
     getResXwithStickZoom(r) {
         return (r - (this.participant.size / 2)) * this.stickZoom;
     }
-
-    //calculate the  coordinates of a residue (relative to this.controller.container)
-    // xiNET.RenderedProtein.prototype.getResidueCoordinates = function (r, yOff) {
-    //     if (typeof r === "undefined") {
-    //         alert("Error: residue number is undefined");
-    //     }
-    //     let x = this.getResXwithStickZoom(r * 1) * this.controller.z;
-    //     let y = 0;
-    //     if (x !== 0) {
-    //         const l = Math.abs(x);
-    //         const a = Math.acos(x / l);
-    //         const rotRad = (this.rotation / 360) * Math.PI * 2;
-    //         x = l * Math.cos(rotRad + a);
-    //         y = l * Math.sin(rotRad + a);
-    //         if (typeof yOff !== 'undefined') {
-    //             x += yOff * this.controller.z * Math.cos(rotRad + (Math.PI / 2));
-    //             y += yOff * this.controller.z * Math.sin(rotRad + (Math.PI / 2));
-    //         }
-    //     } else {
-    //         y = yOff;
-    //     }
-    //     x = x + this.ix;
-    //     y = y + this.iy;
-    //     return [x, y];
-    // };
 
     checkLinks() {
         for (let p_pLink of this.renderedP_PLinks) {
@@ -1269,6 +1194,55 @@ export class RenderedProtein extends Interactor {
     getDisulfidAnnotationCircPath(/*annotation*/) {
         return "M 0,0 L 0,0 L 0,0 L 0,0 ";
     }
+
+    get id () {
+        return this.participant.id;
+    }
+
+    // addConnectedNodes (subgraph) {
+    //     for (let link of this.renderedP_PLinks.values()) {
+    //         //visible, non-self links only
+    //         if (link.renderedFromProtein !== link.renderedToProtein && link.isPassingFilter()) {
+    //             if (!subgraph.links.has(link.id)) {
+    //                 subgraph.links.set(link.id, link);
+    //                 let otherEnd;
+    //                 if (link.renderedFromProtein === this) {
+    //                     otherEnd = link.renderedToProtein;
+    //                 } else {
+    //                     otherEnd = link.renderedFromProtein;
+    //                 }
+    //                 // if (otherEnd !== null) {
+    //                 const renderedOtherEnd = otherEnd.getRenderedInteractor();
+    //                 renderedOtherEnd.subgraph = subgraph;
+    //                 //if (!subgraph.nodes.has(renderedOtherEnd.id)) {
+    //                 subgraph.nodes.set(renderedOtherEnd.id, renderedOtherEnd);
+    //                 otherEnd.subgraph = subgraph;
+    //                 otherEnd.addConnectedNodes(subgraph);
+    //                 //}
+    //                 // }
+    //             }
+    //         }
+    //     }
+    //     return subgraph;
+    // }
+    //
+    //
+    // countExternalLinks () {
+    //     // return this.renderedP_PLinks.length;
+    //     const renderedParticipantsLinkedTo = new Set();
+    //     //let countExternal = 0;
+    //     for (let link of this.renderedP_PLinks) {
+    //         if (link.crosslinks[0].isSelfLink() === false) {
+    //             if (link.isPassingFilter()) {
+    //                 //countExternal++;
+    //                 renderedParticipantsLinkedTo.add(link.getOtherEnd(this).getRenderedInteractor());
+    //             }
+    //         }
+    //     }
+    //     return renderedParticipantsLinkedTo.size;
+    //
+    // }
+
 }
 
 RenderedProtein.STICKHEIGHT = 20; // height of stick in pixels

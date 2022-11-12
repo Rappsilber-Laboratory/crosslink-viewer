@@ -2,17 +2,21 @@ import d3 from "d3";
 import {Interactor} from "./interactor";
 import {CrosslinkViewer} from "../crosslink-viewer-BB";
 import {makeTooltipContents, makeTooltipTitle} from "../../../xi3/js/make-tooltip";
+import {RenderedProtein} from "./rendered-protein";
 
 export class Group extends Interactor {
     constructor(id, participantIds, controller) {
         super(controller);
 
-        this.id = id;
+        this._id = id;
         this.name = id;
 
         this.renderedParticipants = [];
         for (let pId of participantIds) {
-            this.renderedParticipants.push(this.controller.renderedProteins.get(pId));
+            const p = this.controller.renderedProteins.get(pId);
+            if (p) { // no decoys in this.controller.renderedProteins
+                this.renderedParticipants.push(p);
+            }
         }
         this.parentGroups = new Set();
         this.subgroups = [];
@@ -32,7 +36,6 @@ export class Group extends Interactor {
         this.highlight.setAttribute("stroke-width", "3");
         this.highlight.setAttribute("fill", "none");
         this.highlight.setAttribute("stroke-opacity", "0");
-        // this.highlight.setAttribute("stroke", "white");
 
         //create label - we will move this svg element around when expand / collapse
         this.labelSVG = document.createElementNS(CrosslinkViewer.svgns, "text");
@@ -40,8 +43,6 @@ export class Group extends Interactor {
         this.labelSVG.setAttribute("x", "0");
         this.labelSVG.setAttribute("y", "0");
         this.labelSVG.setAttribute("class", "xlv_text proteinLabel");
-        // this.labelSVG.setAttribute("alignment-baseline", "central");
-        // this.labelSVG.setAttribute("text-anchor", "middle");
         this.labelSVG.setAttribute("text-decoration", "underline");
         this.labelText = this.name;
         this.labelTextNode = document.createTextNode(this.labelText);
@@ -73,66 +74,65 @@ export class Group extends Interactor {
         this.upperGroup.onmouseout = function (evt) {
             self.mouseOut(evt);
         };
-
-        // Object.defineProperty(this, "width", {
-        //     get: function width() {
-        //         return this.upperGroup.getBBox().width + 10;
-        //     }
-        // });
-        // Object.defineProperty(this, "height", {
-        //     get: function height() {
-        //         return 60;//this.upperGroup.getBBox().height + 10;
-        //     }
-        // });
     }
 
-    get width(){
-        // if (this.expanded) {
-        //     return this.upperGroup.getBBox().width + 10;
-        // } else {
-        //     return this.upperGroup.getBBox().width + 10;
-        // }
-        return 60;//
+    get id () {
+        return this._id;
+    }
+
+    set id (id){
+        this._id = id;
+    }
+
+    get proteins () {
+        const proteins = [];
+        for (let renderedParticipant of this.renderedParticipants) {
+            proteins.push(renderedParticipant.participant);
+        }
+        return proteins;
+    }
+
+    get width() {
+        // return 60;
+        const approxLabelWidth = 10 * (this.labelText.length + 2);
+        return (approxLabelWidth > this.symbolRadius) ? approxLabelWidth : this.symbolRadius + 20;
     }
 
     get height () {
-        // if (this.expanded) {
-        //     return this.upperGroup.getBBox().height + 10;
-        // } else {
-        return 60;//this.upperGroup.getBBox().height + 10;
-        // }
+        return 60;
     }
 
-    get BBox () {
-        let x1 = 0, y1 = 0, x2 = 0, y2 = 0;
-        const z = this.controller.z, pad = 5 * z;
-
-        for (let rp of this.renderedParticipants) {
-            if (!rp.hidden && !this.containsInSubgroup(rp)) {
-                const rpBbox = rp.BBox;
-                if (!x1 || (rpBbox.x * z) + rp.ix < x1) {
-                    x1 = (rpBbox.x * z) + rp.ix;
-                }
-                if (!y1 || (rpBbox.y * z) + rp.iy < y1) {
-                    y1 = (rpBbox.y * z) + rp.iy;
-                }
-                if (!x2 || ((rpBbox.x + rpBbox.width) * z) + rp.ix > x2) {
-                    x2 = ((rpBbox.x + rpBbox.width) * z) + rp.ix;
-                }
-                if (!y2 || ((rpBbox.y + rpBbox.height) * z) + rp.iy > y2) {
-                    y2 = ((rpBbox.y + rpBbox.height) * z) + rp.iy;
-                }
-            }
-        }
-
-        const w = x2 - x1, h = y2 -y1;
-
-        return {
-            x: x1,
-            y: y1,
-            width: w,
-            height: h
-        };
+    get bBox () {
+        return this.upperGroup.getBBox();
+        // let x1 = 0, y1 = 0, x2 = 0, y2 = 0;
+        // const z = this.controller.z;//, pad = 5 * z;
+        //
+        // for (let rp of this.renderedParticipants) {
+        //     if (!rp.hidden && !this.containsInSubgroup(rp)) {
+        //         const rpBbox = rp.bBox;
+        //         if (!x1 || (rpBbox.x * z) + rp.ix < x1) {
+        //             x1 = (rpBbox.x * z) + rp.ix;
+        //         }
+        //         if (!y1 || (rpBbox.y * z) + rp.iy < y1) {
+        //             y1 = (rpBbox.y * z) + rp.iy;
+        //         }
+        //         if (!x2 || ((rpBbox.x + rpBbox.width) * z) + rp.ix > x2) {
+        //             x2 = ((rpBbox.x + rpBbox.width) * z) + rp.ix;
+        //         }
+        //         if (!y2 || ((rpBbox.y + rpBbox.height) * z) + rp.iy > y2) {
+        //             y2 = ((rpBbox.y + rpBbox.height) * z) + rp.iy;
+        //         }
+        //     }
+        // }
+        //
+        // const w = x2 - x1, h = y2 -y1;
+        //
+        // return {
+        //     x: x1,
+        //     y: y1,
+        //     width: w,
+        //     height: h
+        // };
     }
 
     //only output the info needed to reproduce the layout, used by save layout function
@@ -150,7 +150,7 @@ export class Group extends Interactor {
         };
     }
 
-    unhiddenParticipantCount() {
+    get unhiddenParticipantCount () {
         let count = 0;
         for (let renderedParticipant of this.renderedParticipants) {
             if (!renderedParticipant.participant.hidden) {
@@ -158,6 +158,34 @@ export class Group extends Interactor {
             }
         }
         return count;
+    }
+
+    get selected () {
+        const selectedProteins = this.controller.model.get("selectedProteins");
+        for (let rp of this.renderedParticipants) {
+            if (selectedProteins.indexOf(rp.participant) === -1) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    set selected (selected) {
+        super.selected = selected;
+        if (selected) {
+            this.outline.setAttribute("stroke", "none");
+        } else {
+            this.outline.setAttribute("stroke", "white");
+        }
+    }
+
+    set highlighted (highlight) {
+        super.highlighted = highlight;
+        if (highlight) {
+            this.outline.setAttribute("stroke", "none");
+        } else {
+            this.outline.setAttribute("stroke", "white");
+        }
     }
 
     // result depends on whats hidden
@@ -192,7 +220,16 @@ export class Group extends Interactor {
         for (let renderedParticipant of this.renderedParticipants) {
             if (!renderedParticipant.participant.hidden && renderedParticipant.parentGroups.size > 1) {
                 for (let parentGroup of renderedParticipant.parentGroups) {
-                    if (!parentGroup.isSubsetOf(this)) {
+                    if (!parentGroup.isSubsetOf(this) && !this.isSubsetOf(parentGroup)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        for (let subgroup of this.subgroups) {
+            if (!subgroup.hidden && subgroup.parentGroups.size > 1) {
+                for (let subgroupParentGroup of subgroup.parentGroups) {
+                    if (!subgroupParentGroup.isSubsetOf(this) && !this.isSubsetOf(subgroupParentGroup)) {
                         return true;
                     }
                 }
@@ -215,12 +252,13 @@ export class Group extends Interactor {
     }
 
     mouseOver(evt) {
-        this.showHighlight(true);
+        // this.showHighlight(true);
         const toHighlight = [];
         for (let rp of this.renderedParticipants) {
             toHighlight.push(rp.participant);
         }
         this.controller.model.setHighlightedProteins(toHighlight);
+        //call in super?
         const p = this.controller.getEventPoint(evt);
         this.controller.model.get("tooltipModel")
             .set("header", makeTooltipTitle.complex(this))
@@ -231,10 +269,10 @@ export class Group extends Interactor {
             });
     }
 
-    mouseOut(evt) {
-        this.showHighlight(false);
-        Interactor.prototype.mouseOut.call(this, evt);
-    }
+    // mouseOut(evt) {
+    //     this.highlighted = false;
+    //     Interactor.prototype.mouseOut.call(this, evt);
+    // }
 
     getAverageParticipantPosition() {
         let xSum = 0,
@@ -272,12 +310,12 @@ export class Group extends Interactor {
         this.px = this.x;
         this.py = this.y;
         let xOffset = 0;
-        // if (!this.hidden) { // todo - hacky
-        //     xOffset = (this.width / 2); // - (this.getBlobRadius()) + 5)
-        //     // if (this.expanded) {
-        //     //   xOffset = xOffset + (this.participant.size / 2 * this.stickZoom );
-        //     // }
-        // }
+        if (!this.hidden) { // todo - hacky
+            xOffset = (this.width / 2); // - (this.getBlobRadius()) + 5)
+            // if (this.expanded) {
+            //   xOffset = xOffset + (this.participant.size / 2 * this.stickZoom );
+            // }
+        }
         this.x = ix - xOffset;
         this.y = iy;
         this.setPosition(ix, iy);
@@ -295,6 +333,10 @@ export class Group extends Interactor {
             const cornerRadii = 5 * this.controller.z;
 
             const updateOutline = function (svgElement) {
+                if (!x){
+                    console.log("!x");
+                }
+
                 svgElement.setAttribute("x", x);
                 svgElement.setAttribute("y", y);
                 svgElement.setAttribute("width", scaledWidth);
@@ -304,10 +346,11 @@ export class Group extends Interactor {
             };
 
             updateOutline(this.outline);
-            // this.outline.setAttribute("stroke-width", 3 * this.controller.z);
+            // noinspection JSCheckFunctionSignatures
+            this.outline.setAttribute("stroke-width", 3 * this.controller.z);
 
             updateOutline(this.highlight);
-            // this.highlight.setAttribute("stroke-width", 9 * this.controller.z);
+            this.highlight.setAttribute("stroke-width", 9 * this.controller.z);
 
             this.labelSVG.setAttribute("transform", "translate(" + this.ix + " " + this.iy + ")" +
                 " scale(" + (this.controller.z) + ")");
@@ -338,50 +381,43 @@ export class Group extends Interactor {
 
     updateExpandedGroup() {
         let x1 = 0, y1 = 0, x2 = 0, y2 = 0;
-        const z = 1/*this.controller.z*/, pad = 5 * z;
+        const z = this.controller.z, pad = 5 * z;
 
         for (let rp of this.renderedParticipants) {
             if (!rp.hidden && !this.containsInSubgroup(rp)) {
-
-                const rpBbox = rp.BBox;
-
-                console.log("RP", rpBbox);
-
+                const rpBbox = rp.bBox;
                 if (!x1 || (rpBbox.x * z) + rp.ix < x1) {
-                    x1 = (rpBbox.x * z);// + rp.ix;
+                    x1 = (rpBbox.x * z) + rp.ix;
                 }
                 if (!y1 || (rpBbox.y * z) + rp.iy < y1) {
-                    y1 = (rpBbox.y * z);// + rp.iy;
+                    y1 = (rpBbox.y * z) + rp.iy;
                 }
                 if (!x2 || ((rpBbox.x + rpBbox.width) * z) + rp.ix > x2) {
-                    x2 = ((rpBbox.x + rpBbox.width) * z);// + rp.ix;
+                    x2 = ((rpBbox.x + rpBbox.width) * z) + rp.ix;
                 }
                 if (!y2 || ((rpBbox.y + rpBbox.height) * z) + rp.iy > y2) {
-                    y2 = ((rpBbox.y + rpBbox.height) * z);// + rp.iy;
+                    y2 = ((rpBbox.y + rpBbox.height) * z) + rp.iy;
                 }
             }
         }
 
         for (let sg of this.subgroups) {
-            // sg.updateExpandedGroup();
-            const sgBbox = sg.BBox();
-            console.log("SG", sgBbox);
-            if (!x1 || (sgBbox.x) < x1) {
-                x1 = (sgBbox.x);
-            }
-            if (!y1 || (sgBbox.y) < y1) {
-                y1 = (sgBbox.y);
-            }
-            if (!x2 || ((sgBbox.x + sgBbox.width)) > x2) {
-                x2 = ((sgBbox.x + sgBbox.width));
-            }
-            if (!y2 || ((sgBbox.y + sgBbox.height)) > y2) {
-                y2 = ((sgBbox.y + sgBbox.height));
+            if (!sg.hidden) {
+                const sgBbox = sg.bBox;
+                if (!x1 || (sgBbox.x) < x1) {
+                    x1 = (sgBbox.x);
+                }
+                if (!y1 || (sgBbox.y) < y1) {
+                    y1 = (sgBbox.y);
+                }
+                if (!x2 || ((sgBbox.x + sgBbox.width)) > x2) {
+                    x2 = ((sgBbox.x + sgBbox.width));
+                }
+                if (!y2 || ((sgBbox.y + sgBbox.height)) > y2) {
+                    y2 = ((sgBbox.y + sgBbox.height));
+                }
             }
         }
-
-        console.log("G:", x1, y1, x2, y2);
-
 
         const updateOutline = function (svgElement) {
             svgElement.setAttribute("x", x1 - pad);
@@ -393,10 +429,11 @@ export class Group extends Interactor {
         };
 
         updateOutline(this.outline);
-        // this.outline.setAttribute("stroke-width", 3 * this.controller.z);
+        // noinspection JSCheckFunctionSignatures
+        this.outline.setAttribute("stroke-width", 3 * this.controller.z);
 
         updateOutline(this.highlight);
-        // this.highlight.setAttribute("stroke-width", 9 * this.controller.z);
+        this.highlight.setAttribute("stroke-width", 9 * this.controller.z);
 
         //move label
         this.labelSVG.setAttribute("transform", "translate(" + (x1 - pad) + " " + (y1 - pad) + ")" +
@@ -409,186 +446,460 @@ export class Group extends Interactor {
         }
     }
 
-    setHidden(bool) {
-        // d3.select(this.upperGroup).style("display", bool ? "none" : null);
-        // d3.select(this.labelSVG).style("display", bool ? "none" : null);
+    setColour(colour) {
+        if (colour === "#FFFFFF") colour = "#CCCCCC";
+        this.outline.setAttribute("fill", colour);
+    }
 
-        if (bool){
-            this.upperGroup.style.visibility = "hidden";
-            this.labelSVG.style.visibility = "hidden";
-        } else {
-            this.upperGroup.style.visibility = null;
-            this.labelSVG.style.visibility = null;
-        }
-
+    setHidden(bool) {  // todo: make this a property?
+        d3.select(this.upperGroup).style("display", bool ? "none" : null);
+        d3.select(this.labelSVG).style("display", bool ? "none" : null);
         this.hidden = !!bool;
     }
 
-    updateHighlight() {
-        // for (let rp of this.renderedParticipants) {
-        //     if (rp.isHighlighted) {
-        //         this.dashedOutline(false);
-        //         this.showHighlight(true);
-        //         return;
-        //     }
-        // }
-        // this.updateSelected();
-        // this.showHighlight(false);
-
-        let someHighlighted = false, allHighlighted = true;
-        for (let rp of this.renderedParticipants) {
-            if (rp.isHighlighted) {
-                someHighlighted = true;
-            } else {
-                allHighlighted = false;
-            }
-        }
-        if (someHighlighted) {
-            if (!allHighlighted) {
-                this.dashedOutline(true);
-            } else {
-                this.dashedOutline(false);
-            }
-            this.showHighlight(true);
-        } else {
-            this.dashedOutline(false);
-            this.showHighlight(false);
-            this.updateSelected();
-        }
-    }
+    // updateHighlight() {
+    //     if (this.expanded) {
+    //         let someHighlighted = false, allHighlighted = true;
+    //         for (let rp of this.renderedParticipants) {
+    //             if (!rp.hidden) {
+    //                 if (rp.isHighlighted) {
+    //                     someHighlighted = true;
+    //                 } else {
+    //                     allHighlighted = false;
+    //                 }
+    //             }
+    //         }
+    //         if (someHighlighted) {
+    //             if (!allHighlighted) {
+    //                 this.dashedOutline(true);
+    //             } else {
+    //                 this.dashedOutline(false);
+    //             }
+    //             this.showHighlight(true);
+    //         } else {
+    //             this.dashedOutline(false);
+    //             this.showHighlight(false);
+    //             this.updateSelected();
+    //         }
+    //     }
+    // }
 
     updateSelected() {
         let someSelected = false, allSelected = true;
         for (let rp of this.renderedParticipants) {
-            if (rp.isSelected) {
+            if (rp.selected) {
                 someSelected = true;
             } else {
                 allSelected = false;
             }
         }
         if (someSelected) {
-            if (!allSelected) {
-                this.dashedOutline(true);
-            }
-            this.setSelected(true);
+            this.dashed = !allSelected;
+            this.selected = true;
         } else {
-            this.dashedOutline(false);
-            this.setSelected(false);
+            this.selected = false;
         }
     }
 
-    /*
-    xiNET.Group.prototype.showHighlight = function (show) {
-        const d3HighSel = d3.select(this.highlight);
-        if (show === true) {
-            d3HighSel
-                .classed("selectedProtein", false)
-                .classed("highlightedProtein", true)
-                .attr("stroke-opacity", "1");
-        } else {
-            if (!this.isSelected) {
-                d3HighSel.attr("stroke-opacity", "0");
-            }
-            d3HighSel
-                .classed("selectedProtein", true)
-                .classed("highlightedProtein", false);
-        }
-        this.isHighlighted = !!show; // mjg apr 18
-    };
-
-    xiNET.Group.prototype.setSelected = function (select) {
-        const d3HighSel = d3.select(this.highlight);
-        if (select === true) {
-            d3HighSel
-                .classed("selectedProtein", true)
-                .classed("highlightedProtein", false)
-                .attr("stroke-opacity", "1");
-        } else {
-            d3HighSel
-                .attr("stroke-opacity", "0")
-                .classed("selectedProtein", false)
-                .classed("highlightedProtein", true);
-        }
-        this.isSelected = !!select;
-    };
-    */
-
-    dashedOutline(dash) {
-        if (dash) {
-            this.highlight.setAttribute("stroke-dasharray", (4 * this.controller.z) + ", " + (4 * this.controller.z));
-        } else {
+    set dashed(dash) {
+        if (dash){// && !this._dashed) {
+            this.highlight.setAttribute("stroke-dasharray", (8 * this.controller.z) + ", " + (8 * this.controller.z));
+        } else if (!dash){//} && this._dashed) {
             this.highlight.removeAttribute("stroke-dasharray");
         }
+        this._dashed = !!dash;
     }
 
-    setExpanded(expanded) {
-        this.expanded = !!expanded;
-        const expandedGroupLabels = this.controller.model.get("xinetShowExpandedGroupLabels"); // todo - will need to look at this again (for anim)
-        if (!expanded) { // is collapsing
-            this.labelSVG.setAttribute("dominant-baseline", "central");
-            this.labelSVG.setAttribute("text-anchor", "middle");
+    updateCountLabel() {
+        this.labelSVG.innerHTML = this.labelText + " ("+ this.unhiddenParticipantCount + ")";
+    }
 
-            this.hideSubgroups();
-
-            this.controller.proteinUpper.appendChild(this.upperGroup);
-            if (!expandedGroupLabels) {
-                this.upperGroup.appendChild(this.labelSVG);
+    setExpanded(expanded, svgP) {
+        this.controller.model.get("tooltipModel").set("contents", null);
+        if (this.busy !== true) {
+            if (this.isOverlappingGroup()) {
+                console.error("overlapping group", this.id);
+                expanded = true;
             }
+            if (expanded) {
+                if (this.expanded !== expanded) {
+                    this.expand();
+                }
+            } else {
+                if (this.expanded !== expanded) {
+                    this.collapse(svgP);
+                }
+            }
+        }
+    }
 
-            this.outline.setAttribute("fill-opacity", "1");
+    collapse(svgP, transition = true) {
+        // transition = false;
+        if (this.isOverlappingGroup()) {
+            console.error("overlapping group", this.id);
+            this.expand(false);
+            return;
+        }
+        let newX, newY;
+        if (svgP) {
+            newX = svgP.x;
+            newY = svgP.y;
+        } else {
+            const avPos = this.getAverageParticipantPosition();
+            newX = avPos[0];
+            newY = avPos[1];
+        }
 
-            const pPos = this.getAverageParticipantPosition(); // todo - use svgP?
-            this.setPositionFromXinet(pPos[0], pPos[1]);
+        const originalProteinPositions = []; // will reset positions after transition
+        const originalCollapsedSubgroupPositions = []; // will reset positions after transition
+        const proteinXPositionInterpolations = [];
+        const proteinYPositionInterpolations = [];
+        const collapsedSubgroupXPositionInterpolations = [];
+        const collapsedSubgroupYPositionInterpolations = [];
+        const cubicInOut = d3.ease("cubic-in-out");
+        this.busy = true;
+        const self = this;
+
+        if (transition) {
             for (let rp of this.renderedParticipants) {
-                // rp.setPositionFromXinet(pPos[0], pPos[1]);
-                rp.setAllLinkCoordinates();
-                rp.setHidden(true);
-                //rp.checkLinks();
+                originalProteinPositions.push([rp.ix, rp.iy]);
+                proteinXPositionInterpolations.push(d3.interpolate(rp.ix, newX));
+                proteinYPositionInterpolations.push(d3.interpolate(rp.iy, newY));
             }
 
-        } else { // is expanding
+            for (let sg of this.subgroups) {
+                // if (!sg.expanded) {
+                originalCollapsedSubgroupPositions.push([sg.ix, sg.iy]);
+                collapsedSubgroupXPositionInterpolations.push(d3.interpolate(sg.ix, newX));
+                collapsedSubgroupYPositionInterpolations.push(d3.interpolate(sg.iy, newY));
+                // }
+            }
+
+            d3.timer(function (elapsed) {
+                return updateCollapsing(elapsed / (RenderedProtein.transitionTime * 2));
+            });
+
+        } else {
+            updateCollapsing(1);
+        }
+
+        function updateCollapsing(interp) {
+            if (interp === 1) { // finished - tidy up
+                self.expanded = false;
+                self.setPositionFromXinet(newX, newY);
+
+                for (let i = 0; i < self.renderedParticipants.length; i++) {
+                    const rp = self.renderedParticipants[i];
+                    rp.setHidden(true);
+                    if (transition){
+                        rp.setPositionFromXinet(originalProteinPositions[i][0], originalProteinPositions[i][1]);
+                    }
+                    // rp.setAllLinkCoordinates();
+                }
+
+                for (let i = 0; i < self.subgroups.length; i++) {
+                    const sg = self.subgroups[i];
+                    // if (!sg.expanded) {
+                    if (transition){
+                        sg.setPositionFromXinet(originalCollapsedSubgroupPositions[i][0], originalCollapsedSubgroupPositions[i][1]);
+                    }
+                    // }
+                }
+                self.labelSVG.setAttribute("dominant-baseline", "central");
+                self.labelSVG.setAttribute("text-anchor", "middle");
+                self.hideSubgroups();
+                self.controller.proteinUpper.appendChild(self.upperGroup);
+                self.outline.setAttribute("fill-opacity", "1");
+                if (transition) {
+                    self.controller.hiddenProteinsChanged();
+                    self.controller.render();
+                }
+                self.busy = false;
+                return true;
+            } else if (interp > 1 || isNaN(interp)) {
+                return updateCollapsing(1);
+            } else {
+                for (let i = 0; i < self.renderedParticipants.length; i++) {
+                    const rp = self.renderedParticipants[i];
+                    const x = proteinXPositionInterpolations[i](cubicInOut(interp));
+                    const y = proteinYPositionInterpolations[i](cubicInOut(interp));
+                    rp.setPositionFromXinet(x, y);
+                    rp.setAllLinkCoordinates();
+                }
+
+                for (let i = 0; i < self.subgroups.length; i++) {
+                    const sg = self.subgroups[i];
+                    if (!sg.expanded) {
+                        const x = collapsedSubgroupXPositionInterpolations[i](cubicInOut(interp));
+                        const y = collapsedSubgroupYPositionInterpolations[i](cubicInOut(interp));
+                        sg.setPositionFromXinet(x, y);
+                    }
+                }
+                self.updateExpandedGroup();
+                return false;
+            }
+        }
+    }
+
+    expand(transition = true) {
+        // transition = false;
+        this.busy = true;
+        const self = this;
+
+        this.expanded = true;
+        // if (transition) { // yucky, transition is being used to indicate whether this is one interactor collapsing or from 'Collapse All'
+        //     this.controller.render();
+        // }
+
+        const proteinXPositionInterpolations = [];
+        const proteinYPositionInterpolations = [];
+        const collapsedSubgroupXPositionInterpolations = [];
+        const collapsedSubgroupYPositionInterpolations = [];
+
+        const cubicInOut = d3.ease("cubic-out");
+
+        // this.labelSVG.setAttribute("dominant-baseline", null);
+        // this.labelSVG.setAttribute("text-anchor", null);
+        // this.showSubgroups();
+        // this.controller.groupsSVG.appendChild(this.upperGroup);
+        // this.outline.setAttribute("fill-opacity", "0.5");
+        //
+        // for (let rp of this.renderedParticipants) {
+        //     rp.setHidden(rp.participant.hidden || rp.inCollapsedGroup());
+        // }
+
+        const tl = this.controller.svgElement.createSVGPoint();
+        tl.x = 0;
+        tl.y =0;
+        const br = this.controller.svgElement.createSVGPoint();
+        const width = this.controller.svgElement.parentNode.clientWidth;
+        const height = this.controller.svgElement.parentNode.clientHeight;
+        br.x = width;
+        br.y = height;
+        const topLeft = tl.matrixTransform(this.controller.container.getCTM().inverse());
+        const bottomRight = br.matrixTransform(this.controller.container.getCTM().inverse());
+
+        //bbox of the expanded group (before moving it on screen if necessary)
+        let bboxTL = this.controller.svgElement.createSVGPoint();
+        let bboxBR = this.controller.svgElement.createSVGPoint();
+
+        //  decide on new positions for proteins and collapsed subgroups
+        if (transition) { // only if transition (not if no position, i.e. from saved layout)
+            let ix = this.ix, iy = this.iy;
+            if (!ix) { // todo? um, check why this can be undefined (is it when loading from saved layout)
+                const pPos = this.getAverageParticipantPosition();
+                ix = pPos[0];
+                iy = pPos[1];
+            }
+
+            this.controller.hiddenProteinsChanged(); //needed for isOnScreen() to work
+
+            let allOnScreen = true;
+            for (let rp of this.renderedParticipants) {
+                if (!isOnScreen(rp)) {
+                    allOnScreen = false;
+                    // can't break here because we need to get the bbox of the expanded group
+                }
+            }
+
+            for (let sg of this.subgroups) {
+                if (!sg.expanded) {
+                    if (!isOnScreen(sg)) {
+                        allOnScreen = false;
+                        // can't break here because we need to get the bbox of the expanded group
+                    }
+                }
+            }
+
+            if (allOnScreen) {
+                for (let rp of this.renderedParticipants) {
+                    proteinXPositionInterpolations.push(d3.interpolate(ix, rp.ix));
+                    proteinYPositionInterpolations.push(d3.interpolate(iy, rp.iy));
+                }
+                for (let sg of this.subgroups) {
+                    // if (!sg.expanded) {
+                    collapsedSubgroupXPositionInterpolations.push(d3.interpolate(ix, sg.ix));
+                    collapsedSubgroupYPositionInterpolations.push(d3.interpolate(iy, sg.iy));
+                    // }
+                }
+            } else {
+                // alert("not all on screen");
+                console.log("not all on screen", bboxTL, bboxBR);
+
+
+                //scale?
+                const bboxWidth = (bboxBR.x - bboxTL.x);
+                const bboxHeight = bboxBR.y - bboxTL.y;
+                const preferredWidth = (width / 2) * this.controller.z;
+                const preferredHeight = (height / 2) * this.controller.z;
+                let xScale, yScale, scale = 1;
+                if (bboxWidth > (width * this.controller.z) || bboxHeight > (height * this.controller.z)) {
+                    if (bboxWidth > preferredWidth) {
+                        xScale = preferredWidth / bboxWidth;
+                    }
+                    if (bboxHeight > preferredHeight) {
+                        yScale = preferredHeight / bboxHeight;
+                    }
+                    scale = Math.min(xScale, yScale);
+                    console.log("SCALE!!", scale);
+                    //bbox is that of the expanded group
+
+                    const bboxMidPoint = {};//= this.controller.svgElement.createSVGPoint();
+
+                    bboxMidPoint.x = (bboxTL.x + bboxBR.x) / 2;
+                    bboxMidPoint.y = (bboxTL.y + bboxBR.y) / 2;
+
+                    const xTrans = ix - bboxMidPoint.x;
+                    const yTrans = iy - bboxMidPoint.y;
+
+                    for (let rp of this.renderedParticipants) {
+                        const dx = rp.ix + xTrans - bboxMidPoint.x;
+                        const dy = rp.iy + yTrans - bboxMidPoint.y;
+                        // const dx = rp.ix + (ix - bboxMidPoint.x) - bboxMidPoint.x;
+                        // = rp.ix + ix - 2 * bboxMidPoint.x;
+                        proteinXPositionInterpolations.push(d3.interpolate(ix, ix + (dx * scale)));
+                        proteinYPositionInterpolations.push(d3.interpolate(iy, iy + (dy * scale)));
+                    }
+                    for (let sg of this.subgroups) {
+                        // if (!sg.expanded) {
+                        const dx = sg.ix + xTrans - bboxMidPoint.x;
+                        const dy = sg.iy + yTrans - bboxMidPoint.y;
+
+                        collapsedSubgroupXPositionInterpolations.push(d3.interpolate(ix, ix + (dx * scale)));
+                        collapsedSubgroupYPositionInterpolations.push(d3.interpolate(iy, iy + (dy * scale)));
+                        // }
+                    }
+                } else {
+                    //bbox is that of the expanded group
+
+                    const bboxMidPoint = {};//= this.controller.svgElement.createSVGPoint();
+
+                    bboxMidPoint.x = (bboxTL.x + bboxBR.x) / 2;
+                    bboxMidPoint.y = (bboxTL.y + bboxBR.y) / 2;
+
+                    const xTrans = ix - bboxMidPoint.x;
+                    const yTrans = iy - bboxMidPoint.y;
+
+                    for (let rp of this.renderedParticipants) {
+                        proteinXPositionInterpolations.push(d3.interpolate(ix, rp.ix + xTrans));
+                        proteinYPositionInterpolations.push(d3.interpolate(iy, rp.iy + yTrans));
+                    }
+                    for (let sg of this.subgroups) {
+                        // if (!sg.expanded) {
+                        collapsedSubgroupXPositionInterpolations.push(d3.interpolate(ix, sg.ix + xTrans));
+                        collapsedSubgroupYPositionInterpolations.push(d3.interpolate(iy, sg.iy + yTrans));
+                        // }
+                    }
+                }
+            }
+
+            //move all prots / subgroups to
+            for (let rp of this.renderedParticipants) {
+                if (!rp.hidden){
+                    rp.setPositionFromXinet(ix, iy);
+                }
+            }
+            for (let sg of this.subgroups) {
+                if (!sg.hidden) {
+                    sg.setPositionFromXinet(ix, iy);
+                }
+            }
+
+            // this.expanded = true;
             this.labelSVG.setAttribute("dominant-baseline", null);
             this.labelSVG.setAttribute("text-anchor", null);
 
             this.showSubgroups();
 
             this.controller.groupsSVG.appendChild(this.upperGroup);
-            if (!expandedGroupLabels) {
-                if (this.upperGroup.contains(this.labelSVG)) {
-                    this.upperGroup.removeChild(this.labelSVG);
-                }
-            } else { // this is a mess? todo
-                this.upperGroup.appendChild(this.labelSVG);
-            }
-
             this.outline.setAttribute("fill-opacity", "0.5");
 
             for (let rp of this.renderedParticipants) {
-                rp.setAllLinkCoordinates();
                 rp.setHidden(rp.participant.hidden || rp.inCollapsedGroup());
-                //rp.checkLinks();
             }
 
-            this.updateExpandedGroup();
+            if (transition) { // yucky, transition is being used to indicate whether this is one interactor collapsing or from 'Collapse All'
+                this.controller.render();
+            }
+
+            d3.timer(function (elapsed) {
+                return updateExpanding(elapsed / (RenderedProtein.transitionTime * 2));
+            });
+        } else {
+            updateExpanding(1);
         }
 
+        function isOnScreen(interactor){
+            if (!interactor.hidden) {
+                // console.log("TESTING", interactor);
+                if (!bboxTL.x || interactor.ix < bboxTL.x) {
+                    bboxTL.x = interactor.ix;
+                    // console.log("SETTING BBOX TL X", bboxTL.x);
+                }
+                if (!bboxTL.y || interactor.iy < bboxTL.y) {
+                    bboxTL.y = interactor.iy;
+                    // console.log("SETTING BBOX TL Y", bboxTL.y);
+                }
+                if (!bboxBR.x || interactor.ix > bboxBR.x) {
+                    bboxBR.x = interactor.ix;
+                    // console.log("SETTING BBOX BR X", bboxBR.x);
+                }
+                if (!bboxBR.y || interactor.iy > bboxBR.y) {
+                    bboxBR.y = interactor.iy;
+                    // console.log("SETTING BBOX BR Y", bboxBR.y);
+                }
+            }
+            return interactor.ix > topLeft.x && interactor.ix < bottomRight.x && interactor.iy > topLeft.y && interactor.iy < bottomRight.y;
+        }
+
+        function updateExpanding(interp) {
+            if (interp === 1) { // finished - tidy up
+                self.updateExpandedGroup();
+                if (transition) { // yucky, transition is being used to indicate whether this is one interactor collapsing or from 'Collapse All'
+                    self.controller.hiddenProteinsChanged();
+                    self.controller.render();
+                }
+                self.busy = false;
+                return true;
+            } else if (interp > 1 || isNaN(interp)) {
+                return updateExpanding(1);
+            } else {
+                for (let i = 0; i < self.renderedParticipants.length; i++) {
+                    const rp = self.renderedParticipants[i];
+                    const x = proteinXPositionInterpolations[i](cubicInOut(interp));
+                    const y = proteinYPositionInterpolations[i](cubicInOut(interp));
+                    rp.setPosition(x, y);
+                    rp.setAllLinkCoordinates();
+                }
+
+                for (let i = 0; i < self.subgroups.length; i++) {
+                    const sg = self.subgroups[i];
+                    if (!sg.expanded) {
+                        const x = collapsedSubgroupXPositionInterpolations[i](cubicInOut(interp));
+                        const y = collapsedSubgroupYPositionInterpolations[i](cubicInOut(interp));
+                        sg.setPosition(x, y);
+                    } else {
+                        sg.updateExpandedGroup();
+                    }
+                }
+                
+                self.updateExpandedGroup();
+                return false;
+            }
+        }
     }
 
     hideSubgroups() {
         for (let subgroup of this.subgroups) {
-            subgroup.hideSubgroups();
-            // if (subgroup.upperGroup.parentNode) {
-            //      subgroup.upperGroup.parentNode.removeChild(subgroup.upperGroup);
-            // }
             subgroup.setHidden(true);
         }
     }
 
     showSubgroups() {
         for (let subgroup of this.subgroups) {
-            // subgroup.setExpanded(subgroup.expanded);
-            subgroup.setHidden(false);
-            subgroup.showSubgroups();
+            if (!subgroup.inCollapsedGroup()) {
+                subgroup.setHidden(false);
+            }
         }
     }
 
@@ -598,4 +909,58 @@ export class Group extends Interactor {
             rp.setAllLinkCoordinates();
         }
     }
+
+    // addConnectedNodes (subgraph) {
+    //     for (let p of this.renderedParticipants) {
+    //         for (let link of p.renderedP_PLinks.values()) {
+    //             //visible, non-self links only
+    //             if (link.renderedFromProtein !== link.renderedToProtein && link.isPassingFilter()) {
+    //                 if (!subgraph.links.has(link.id)) {
+    //                     subgraph.links.set(link.id, link);
+    //                     let otherEnd;
+    //                     if (link.renderedFromProtein === this) {
+    //                         otherEnd = link.renderedToProtein;
+    //                     } else {
+    //                         otherEnd = link.renderedFromProtein;
+    //                     }
+    //                     // if (otherEnd !== null) {
+    //                     const renderedOtherEnd = otherEnd.getRenderedInteractor();
+    //                     renderedOtherEnd.subgraph = subgraph;
+    //                     //if (!subgraph.nodes.has(renderedOtherEnd.id)) {
+    //                     subgraph.nodes.set(renderedOtherEnd.id, renderedOtherEnd);
+    //                     otherEnd.subgraph = subgraph;
+    //                     otherEnd.addConnectedNodes(subgraph);
+    //                     //}
+    //                     // }
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     return subgraph;
+    // }
+
+    // countExternalLinks () {
+    //     // return this.renderedP_PLinks.length;
+    //     const renderedParticipantsLinkedTo = new Set();
+    //
+    //     for (let link of this.subgraph.links.values()) {
+    //         const rp = link.getOtherEnd(this);
+    //         renderedParticipantsLinkedTo.add(rp);
+    //     }
+    //
+    //
+    //
+    //     // //let countExternal = 0;
+    //     // for (let link of this.renderedP_PLinks) {
+    //     //     if (link.crosslinks[0].isSelfLink() === false)
+    //     //     {
+    //     //         if (link.isPassingFilter()) {
+    //     //             //countExternal++;
+    //     //             renderedParticipantsLinkedTo.add(link.getOtherEnd(this).getRenderedInteractor());
+    //     //         }
+    //     //     }
+    //     // }
+    //     return renderedParticipantsLinkedTo.size;
+    //
+    // }
 }

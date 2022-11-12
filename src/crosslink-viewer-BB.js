@@ -1,12 +1,11 @@
 import "../css/xiNET.css";
 
 import * as d3 from "d3";
-import * as _ from "underscore";
+// import * as _ from "underscore";
 import Backbone from "backbone";
 import * as cola from "../vendor/cola";
 
-
-import {svgUtils} from "../../xi3/vendor/svgexp";
+import {capture, makeXMLStr} from "../../xi3/js/svgexp";
 import {filterStateToString, makeLegalFileName, searchesToString} from "../../xi3/js/utils";
 import {download} from "../../xi3/js/downloads";
 
@@ -15,81 +14,49 @@ import {RenderedCrosslink} from "./link/rendered-crosslink";
 import {Group} from "./interactor/group";
 import {P_PLink} from "./link/p_p-link";
 import {G_GLink} from "./link/g_g-link";
+import {ManualColourModel} from "../../xi3/js/model/color/protein-color-model";
 
 export class CrosslinkViewer extends Backbone.View {
 
-    constructor(attributes, options) {
-        super(_.extend(attributes, {
-            events: {
-                "click .collapse": "collapseParticipant",
-                "click .collapse-group": "collapseParticipant",
-                "click .cant-collapse-group": "cantCollapseGroup",
-                "click .ungroup": "ungroup"
-            }
-        }), options);
-    }
+    // constructor(attributes, options) {
+    //     super(_.extend(attributes, {
+    //         events: {
+    //         }
+    //     }), options);
+    // }
 
     initialize() {
-        this.debug = true;
+        // this.debug = true;
         this.fixedSize = this.model.get("xinetFixedSize");
         const self = this;
 
-        //avoids prob with 'save - web page complete'
-        d3.select(this.el).selectAll("*").remove();
+        function newCustomContextMenuSel(outerDivClass) {
+            const contextMenuSel = d3.select(self.el)
+                .append("div").classed("custom-menu-margin", true)
+                .classed(outerDivClass, true);
+            const menuUL = contextMenuSel.append("div").classed("custom-menu", true)
+                .append("ul");
+            contextMenuSel.node().onmouseover = function () {
+                // self.contextMenuParticipant.highlighted = true; // todo - look at - change hidden proteins in model
+                self.model.setHighlightedProteins(self.contextMenuParticipant.proteins);
+            };
+            contextMenuSel.node().onmouseout = function (evt) {
+                let e = evt.toElement || evt.relatedTarget;
+                do {
+                    if (e === this) return;
+                    if (e) e = e.parentNode; // seems like tab changing when uniprot opens can cause e to become null
+                } while (e);
+                if (self.contextMenuParticipant){
+                    self.model.setHighlightedProteins([]); // todo - look at
+                }
+                self.contextMenuParticipant = null;
+                d3.select(this).style("display", "none");
+            };
+            return menuUL;
+        }
 
-        //protein context menu
-        const customMenuSel = d3.select(this.el)
-            .append("div").classed("custom-menu-margin", true)
-            .append("div").classed("custom-menu", true)
-            .append("ul");
-        customMenuSel.append("li").classed("collapse", true).text("Collapse");
-        const scaleButtonsListItemSel = customMenuSel.append("li").text("Scale: ");
-        const scaleButtons = scaleButtonsListItemSel.selectAll("ul.custom-menu")
-            .data(CrosslinkViewer.barScales)
-            .enter()
-            .append("div")
-            .attr("class", "barScale")
-            .append("label");
-        scaleButtons.append("span")
-            .text(function (d) {
-                if (d === 8) return "AA";
-                else return d;
-            });
-        scaleButtons.append("input")
-            // .attr ("id", function(d) { return d*100; })
-            .attr("class", function (d) {
-                return "scaleButton scaleButton_" + (d * 100);
-            })
-            .attr("name", "scaleButtons")
-            .attr("type", "radio")
-            .on("change", function (d) {
-                self.contextMenuParticipant.setStickScale(d, self.contextMenuPoint);
-            });
-        const contextMenu = d3.select(".custom-menu-margin").node();
-        const contextMenuMouseOut = function (evt) {
-            let e = evt.toElement || evt.relatedTarget;
-            do {
-                if (e === this) return;
-                e = e.parentNode;
-            } while (e);
-            self.contextMenuParticipant = null;
-            d3.select(this).style("display", "none");
-        };
-        contextMenu.onmouseout = contextMenuMouseOut;
-
-        //group context menu
-        const groupCustomMenuSel = d3.select(this.el)
-            .append("div").classed("group-custom-menu-margin", true)
-            .append("div").classed("custom-menu", true)
-            .append("ul");
-        groupCustomMenuSel.append("li").classed("cant-collapse-group", true).text("Can't Collapse (members overlap)");
-        groupCustomMenuSel.append("li").classed("collapse-group", true).text("Collapse");
-        groupCustomMenuSel.append("li").classed("ungroup", true).text("Ungroup");
-        // groupCustomMenuSel.append("li").classed("ungroupAll", true).text("Clear All Groups");
-        const groupContextMenu = d3.select(".group-custom-menu-margin").node();
-        groupContextMenu.onmouseout = contextMenuMouseOut;
-
-        //create SVG elemnent
+        this.contextMenuUlSel = newCustomContextMenuSel("xinet-context-menu");
+        //create SVG element
         this.svgElement = d3.select(this.el).append("div").style("height", "100%").append("svg").node(); //document.createElementNS(CrosslinkViewer.svgns, "svg");
         this.svgElement.setAttribute("width", "100%");
         this.svgElement.setAttribute("height", "100%");
@@ -110,23 +77,14 @@ export class CrosslinkViewer extends Backbone.View {
             if (evt.preventDefault) { // necessary for addEventListener, works with traditional
                 evt.preventDefault();
             }
-            // if (evt.stopPropogation) {
-            //     evt.stopPropagation();
-            // }
             evt.returnValue = false; // necessary for attachEvent, works with traditional
             return false; // works with traditional, not with attachEvent or addEventListener
         };
 
         const mouseWheelEvt = (/Firefox/i.test(navigator.userAgent)) ? "DOMMouseScroll" : "mousewheel"; //FF doesn't recognize mousewheel as of FF3.x
-        // if (document.attachEvent) { //if IE (and Opera depending on user setting)
-        //     this.svgElement.attachEvent("on" + mouseWheelEvt, function (evt) {
-        //         self.mouseWheel(evt);
-        //     });
-        // } else if (document.addEventListener) { //WC3 browsers
         this.svgElement.addEventListener(mouseWheelEvt, function (evt) {
             self.mouseWheel(evt);
         }, false);
-        // }
 
         this.lastMouseUp = new Date().getTime();
 
@@ -169,6 +127,9 @@ export class CrosslinkViewer extends Backbone.View {
 
         this.svgElement.appendChild(this.wrapper);
 
+        // this.debugRectSel = d3.select(this.proteinUpper).append("rect").attr("stroke", "green").attr("fill", "none").style("pointer-events", "none");
+        // this.debugRectSel2 = d3.select(this.proteinUpper).append("rect").attr("stroke", "blue").attr("fill", "none").style("pointer-events", "none");
+
         //is a d3 selection unlike those above
         this.selectionRectSel = d3.select(this.svgElement).append("rect")
             .attr("x", 10)
@@ -206,8 +167,8 @@ export class CrosslinkViewer extends Backbone.View {
         let maxSeqLength = 0;
         for (let participant of this.model.get("clmsModel").get("participants").values()) {
             if (participant.is_decoy === false && this.renderedProteins.has(participant.id) === false) {
-                const newProt = new RenderedProtein(participant, this);
-                this.renderedProteins.set(participant.id, newProt);
+                const newProtien = new RenderedProtein(participant, this);
+                this.renderedProteins.set(participant.id, newProtien);
 
                 const protSize = participant.size;
                 if (protSize > maxSeqLength) {
@@ -272,12 +233,11 @@ export class CrosslinkViewer extends Backbone.View {
         this.listenTo(this.model, "filteringDone", this.render);
         this.listenTo(this.model, "hiddenChanged", this.hiddenProteinsChanged);
         this.listenTo(this.model, "change:groups", this.groupsChanged);
-
         this.listenTo(this.model, "change:highlights", this.highlightedLinksChanged);
         this.listenTo(this.model, "change:selection", this.selectedLinksChanged);
 
         this.listenTo(this.model, "change:linkColourAssignment currentColourModelChanged", this.render);
-        this.listenTo(this.model, "change:proteinColourAssignment currentProteinColourModelChanged", this.proteinMetadataUpdated);
+        this.listenTo(this.model, "change:proteinColourAssignment currentProteinColourModelChanged", this.proteinColoursUpdated);
 
         this.listenTo(this.model.get("annotationTypes"), "change:shown", this.setAnnotations);
         this.listenTo(this.model.get("alignColl"), "bulkAlignChange", this.setAnnotations);
@@ -295,12 +255,65 @@ export class CrosslinkViewer extends Backbone.View {
         this.listenTo(window.vent, "expandGroups", this.expandGroups);
 
         this.listenTo(this.model, "change:xinetShowLabels", this.showLabels);
-        this.listenTo(this.model, "change:xinetShowExpandedGroupLabels", this.showExpandedGroupLabels);
         this.listenTo(this.model, "change:xinetFixedSize", this.setFixedSize);
         this.listenTo(this.model, "change:xinetThickLinks", this.render);
         this.listenTo(this.model, "change:xinetPpiSteps", this.render);
 
         return this;
+    }
+
+    expandProtein() {
+        d3.select(".xinet-context-menu").style("display", "none");
+        this.contextMenuParticipant.setExpanded(true);
+        this.render();
+        this.contextMenuParticipant = null;
+    }
+
+    collapseInteractor() {
+        d3.select(".xinet-context-menu").style("display", "none");
+        this.model.setHighlightedProteins([]);
+        this.contextMenuParticipant.setExpanded(false, this.contextMenuPoint);
+        // if (this.contextMenuParticipant.type === "group") {
+        //     this.render();
+        // }
+        //this.hiddenProteinsChanged(); //REINSTATE?
+        //this.render();
+        this.contextMenuParticipant = null;
+    }
+
+    cantCollapseGroup() {
+        // d3.select(".custom-menu-margin").style("display", "none");
+        // d3.select(".group-custom-menu-margin").style("display", "none");
+    }
+
+    ungroup() {
+        d3.select(".xinet-context-menu").style("display", "none");
+        this.model.setHighlightedProteins([]);
+        this.model.get("groups").delete(this.contextMenuParticipant.id);
+        this.model.trigger("change:groups");
+        this.contextMenuParticipant = null;
+    }
+
+    collapseGroups() {
+        for (let group of this.groupMap.values()) {
+            if (group.expanded === true && !group.isOverlappingGroup()) {
+                // group.setExpanded(false);
+                group.collapse(null, false);
+            }
+        }
+        this.hiddenProteinsChanged();
+        this.render();
+    }
+
+    expandGroups() {
+        for (let group of this.groupMap.values()) {
+            if (group.expanded === false) {
+                // group.setExpanded(true);
+                group.expand(false);// todo: reanme this to expandNoTransition
+            }
+        }
+        this.hiddenProteinsChanged();
+        this.render();
     }
 
     groupsChanged() {
@@ -311,10 +324,10 @@ export class CrosslinkViewer extends Backbone.View {
         const modelGroups = this.model.get("groups");
 
         //clear out old groups -- https://stackoverflow.com/questions/9882284/looping-through-array-and-removing-items-without-breaking-for-loop
-        const groupIdsToremove = [];
+        const groupIdsToRemove = [];
         for (let group of this.groupMap.values()) {
             if (!modelGroups.has(group.id)) {
-                groupIdsToremove.push(group.id);
+                groupIdsToRemove.push(group.id);
 
                 group.parentGroups = new Set();//[]; //don't think necessary but just in case
                 group.subroups = [];
@@ -329,19 +342,27 @@ export class CrosslinkViewer extends Backbone.View {
                 }
             }
         }
-        for (let rgId of groupIdsToremove) {
+        for (let rgId of groupIdsToRemove) {
             this.groupMap.delete(rgId);
         }
 
-        //init
         for (let g of modelGroups.entries()) {
-            if (!this.groupMap.has(g[0])) {
+            if (!this.groupMap.has(g[0])) { //if group doesn't exist
                 const group = new Group(g[0], g[1], this);
                 group.init(); // z ordering... later (todo), so is by count of visible participants
                 this.groupMap.set(group.id, group);
+            } else { // group already exists but the proteins in it may have changed
+                const group = this.groupMap.get(g[0]);
+                group.renderedParticipants = [];
+                for (let pId of g[1]) {
+                    const p = this.renderedProteins.get(pId);
+                    if (p) { // no decoys in this.renderedProteins
+                        group.renderedParticipants.push(this.renderedProteins.get(pId));
+                    }
+                }
             }
         }
-        // this.scale();//just to update groups selection highlights
+        this.scale();//just to update groups selection highlights
         this.hiddenProteinsChanged();
         this.render();
     }
@@ -349,17 +370,22 @@ export class CrosslinkViewer extends Backbone.View {
     // handle changes to manually hidden proteins,
     // but also deal with stuff to do with groups / group hierarchy
     // specifically subgroups could change as result of things being hidden so this is here
-    // (i.e overlapping group becomes subgroup)
+    // (i.e. overlapping group becomes subgroup)
     hiddenProteinsChanged() {
         console.log("xiNET HIDDEN PROTEINS CHANGED");
         this.d3cola.stop();
 
-        // parent groups may change, so clear
+        //clear parent groups of all proteins
+        for (let rp of this.renderedProteins.values()) {
+            rp.parentGroups = new Set();//[];
+        }
+
+        // parent groups may change, so clear groups
         for (let g of this.groupMap.values()) {
             g.subgroups = []; // subgroups as xiNET.Groups
             g.parentGroups = new Set();
             g.leaves = []; // different from g.renderedParticipants coz only contains ungrouped RenderedProteins, used by cola.js
-            g.groups = []; // indexes of subgroups in resulting groupArr, used by cola.js // needed? prob not coz groups already refered to by index
+            g.groups = []; // indexes of subgroups in resulting groupArr, used by cola.js // needed? prob not coz groups already referred to by index
 
             for (let rp of g.renderedParticipants) {
                 rp.parentGroups.delete(g); // sometimes it won't have contained g as parentGroup
@@ -367,14 +393,14 @@ export class CrosslinkViewer extends Backbone.View {
         }
 
         //sort it by count not hidden (not manually hidden and not filtered)
-        const sortedGroupMap = new Map([...this.groupMap.entries()].sort((a, b) => a[1].unhiddenParticipantCount() - b[1].unhiddenParticipantCount()));
+        const sortedGroupMap = new Map([...this.groupMap.entries()].sort((a, b) => a[1].unhiddenParticipantCount - b[1].unhiddenParticipantCount));
 
         // get maximal set of possible subgroups
         const groups = Array.from(sortedGroupMap.values());
         const gCount = groups.length; // contains xiNET.Groups
         for (let gi = 0; gi < gCount - 1; gi++) {
             const group1 = groups[gi];
-            if (group1.unhiddenParticipantCount() > 0) {
+            if (group1.unhiddenParticipantCount > 0) {
                 for (let gj = gi + 1; gj < gCount; gj++) {
                     const group2 = groups[gj];
                     if (group1.isSubsetOf(group2)) {
@@ -385,50 +411,20 @@ export class CrosslinkViewer extends Backbone.View {
             }
         }
 
-        //remove obselete subgroups
-        for (let gi = 0; gi < gCount; gi++) {
-            const group1 = groups[gi];
-            //if subgroup has parent also in group1.subgroups then remove it
-            const subgroupCount = group1.subgroups.length;
-            const subgroupsToRemove = [];
-            for (let gj = 0; gj < subgroupCount - 1; gj++) {
-                const subgroup1 = group1.subgroups[gj];
-                for (let gk = gj + 1; gk < subgroupCount; gk++) {
-                    const subgroup2 = group1.subgroups[gk];
-                    if (subgroup1.isSubsetOf(subgroup2)) {
-                        subgroupsToRemove.push(subgroup2);
-                    }
-                }
-            }
-            for (let sgToremove of subgroupsToRemove) {
-                const index = group1.subgroups.indexOf(sgToremove);
-                group1.subgroups = group1.subgroups.splice(index, 1);
-            }
-        }
-
         for (let g of groups) {
-            g.leaves = []; // clear this, its used by cola, gets filled by auto
             for (let rp of g.renderedParticipants) {
-                let inSubGroup = false;
-                for (let subgroup of g.subgroups) {
-                    if (subgroup.contains(rp)) {
-                        inSubGroup = true;
-                        break;
-                    }
-                }
-                if (!inSubGroup) {
-                    rp.parentGroups.add(g);
-                }
+                rp.parentGroups.add(g);
             }
         }
 
         //sort out parentGroups
         for (let group1 of groups.reverse()) {
-            // if (group1.upperGroup.parentNode) {
-            //     const pn = group1.upperGroup.parentNode;
-            //     pn.removeChild(group1.upperGroup);
-            //     pn.appendChild(group1.upperGroup);
-            // }
+            if (group1.upperGroup.parentNode) {
+                // z-ordering (?)
+                const pn = group1.upperGroup.parentNode;
+                pn.removeChild(group1.upperGroup);
+                pn.appendChild(group1.upperGroup);
+            }
             for (let group2 of group1.subgroups) {
                 group2.parentGroups.add(group1);
             }
@@ -451,8 +447,8 @@ export class CrosslinkViewer extends Backbone.View {
         } else {
             const pSel = d3.select("#hiddenProteinsText");
             pSel.text((manuallyHidden > 1) ? (manuallyHidden + " Hidden Proteins") : (manuallyHidden + " Hidden Protein"));
-            const messgeSel = d3.select("#hiddenProteinsMessage");
-            messgeSel.style("display", "block");
+            const messageSel = d3.select("#hiddenProteinsMessage");
+            messageSel.style("display", "block");
         }
 
 
@@ -461,7 +457,7 @@ export class CrosslinkViewer extends Backbone.View {
                 group.setExpanded(true);
             }
         }
-        for (let group of groups) { // todo z-ordering
+        for (let group of groups) {
             let hasVisible = false;
             for (let p of group.renderedParticipants) {
                 if (p.participant.hidden === false) {
@@ -472,11 +468,78 @@ export class CrosslinkViewer extends Backbone.View {
                 group.setHidden(true);
             } else {
                 group.setHidden(false);
+                group.updateCountLabel();
                 if (group.expanded) {
                     group.updateExpandedGroup();
+                } else {
+                    group.setPosition(group.ix, group.iy);
                 }
             }
         }
+
+        /*
+        this.subgraphs = [];
+
+        for (let interactor of this.renderedProteins.values()) {
+            interactor.subgraph = null;
+        }
+        for (let interactor of this.groupMap.values()) {
+            interactor.subgraph = null;
+        }
+
+        for (let interactor of this.renderedProteins.values()) {
+            if (!interactor.hidden) {
+                interactor.getSubgraph();//adds new subgraphs to this.subgraphs
+            }
+        }
+        for (let interactor of this.groupMap.values()) {
+            if (!interactor.hidden) {
+                interactor.getSubgraph();//adds new subgraphs to this.subgraphs
+            }
+        }
+
+        this.subgraphs.sort(function (a, b) {
+            return b.nodes.size - a.nodes.size;
+        });
+
+
+        //Sort subgraphs into linear and non-linear sets
+        this.linearGraphs = [];
+        this.nonLinearGraphs = [];
+        for (let graph of this.subgraphs) {
+            // const nodes = graph.nodes.values();
+            const nodeCount = graph.nodes.size;
+            let isLinear = true;
+            if (nodeCount === 1) {
+                isLinear = true;
+            } else {
+                var endFound = false;
+                for (let node of graph.nodes.values()) {
+                    const externalLinkCount = node.countExternalLinks();
+                    // console.log("ELC*: " + externalLinkCount);
+                    if (node.expanded === true) {
+                        isLinear = false;
+                        break;
+                    }
+                    if (externalLinkCount > 2) {
+                        isLinear = false;
+                        break;
+                    } else if (externalLinkCount < 2) {
+                        endFound = true;
+                    }
+                }
+                //check not circular
+                if (!endFound) {
+                    isLinear = false;
+                }
+            }
+            if (isLinear === true) {
+                this.linearGraphs.push(graph);
+            } else {
+                this.nonLinearGraphs.push(graph);
+            }
+        }*/
+
         return this;
     }
 
@@ -523,7 +586,7 @@ export class CrosslinkViewer extends Backbone.View {
             ppLink.ambiguous = altP_PLinks.size > 1;
 
             if (!ppLink.renderedToProtein || // not linear
-                //or either end hidden hidden
+                //or either end hidden
                 ppLink.renderedFromProtein.participant.hidden ||
                 ppLink.renderedToProtein.participant.hidden) {
                 ppLink.hide();
@@ -531,44 +594,56 @@ export class CrosslinkViewer extends Backbone.View {
                 const fromProtInCollapsedGroup = ppLink.renderedFromProtein.inCollapsedGroup();
                 const toProtInCollapsedGroup = ppLink.renderedToProtein.inCollapsedGroup();
 
-                if (// or is self link in collapsed group
-                    (ppLink.crosslinks[0].isSelfLink() && fromProtInCollapsedGroup) ||
-                    // or either end is expanded to bar and not in collapsed group
-                    (ppLink.renderedFromProtein.expanded && !fromProtInCollapsedGroup) ||
-                    (ppLink.renderedToProtein.expanded && !toProtInCollapsedGroup) ||
-                    (fromProtInCollapsedGroup && toProtInCollapsedGroup)
-                ) {
+                // if (// or is self link in collapsed group
+                //     (ppLink.crosslinks[0].isSelfLink() && fromProtInCollapsedGroup) ||
+                //     // or either end is expanded to bar and not in collapsed group
+                //     (ppLink.renderedFromProtein.expanded && !fromProtInCollapsedGroup) ||
+                //     (ppLink.renderedToProtein.expanded && !toProtInCollapsedGroup) ||
+                //     (fromProtInCollapsedGroup && toProtInCollapsedGroup)
+                // ) {
+                //     ppLink.hide();
+                // }
+                // else {
+                if (ppLink.filteredCrossLinkCount === 0) {
                     ppLink.hide();
                 } else {
-                    if (ppLink.filteredCrossLinkCount === 0) {
+                    ppLink.ambiguous = altP_PLinks.size > 1;
+                    if (fromProtInCollapsedGroup && toProtInCollapsedGroup) {
+                        const source = ppLink.renderedFromProtein.getRenderedInteractor();
+                        const target = ppLink.renderedToProtein.getRenderedInteractor();
+                        let ggId;
+                        if (source.id < target.id) {
+                            ggId = source.id + "_" + target.id;
+                        } else {
+                            ggId = target.id + "_" + source.id;
+                        }
+                        let ggLink = ppLink.controller.g_gLinks.get(ggId);
+                        if (!ggLink) {
+                            if (source.id < target.id) {
+                                ggLink = new G_GLink(ggId, source, target, this);
+                            } else {
+                                ggLink = new G_GLink(ggId, target, source, this);
+                            }
+                            this.g_gLinks.set(ggId, ggLink);
+                        }
+                        ggLink.p_pLinks.set(ppLink.id, ppLink);
                         ppLink.hide();
                     } else {
-                        ppLink.ambiguous = altP_PLinks.size > 1;
-                        if (fromProtInCollapsedGroup && toProtInCollapsedGroup) {
-                            const source = ppLink.renderedFromProtein.getRenderedParticipant();
-                            const target = ppLink.renderedToProtein.getRenderedParticipant();
-                            let ggId;
-                            if (source.id < target.id) {
-                                ggId = source.id + "_" + target.id;
-                            } else {
-                                ggId = target.id + "_" + source.id;
-                            }
-                            let ggLink = ppLink.controller.g_gLinks.get(ggId);
-                            if (!ggLink) {
-                                if (source.id < target.id) {
-                                    ggLink = new G_GLink(ggId, source, target, this);
-                                } else {
-                                    ggLink = new G_GLink(ggId, target, source, this);
-                                }
-                                this.g_gLinks.set(ggId, ggLink);
-                            }
-                            ggLink.p_pLinks.set(ppLink.id, ppLink);
+                        // ppLink.show();
+                        if (// or is self link in collapsed group
+                            (ppLink.crosslinks[0].isSelfLink() && fromProtInCollapsedGroup) ||
+                            // or either end is expanded to bar and not in collapsed group
+                            (ppLink.renderedFromProtein.expanded && !fromProtInCollapsedGroup) ||
+                            (ppLink.renderedToProtein.expanded && !toProtInCollapsedGroup) ||
+                            (fromProtInCollapsedGroup && toProtInCollapsedGroup)
+                        ) {
                             ppLink.hide();
                         } else {
                             ppLink.show();
                         }
                     }
                 }
+                // }
             }
         }
         for (let cLink of this.renderedCrosslinks.values()) {
@@ -576,9 +651,12 @@ export class CrosslinkViewer extends Backbone.View {
         }
         const ggLinkIdsToRemove = [];
         for (let ggLink of this.g_gLinks.values()) {
-            if (ggLink.group1.expanded === false && ggLink.group2.expanded === false && ggLink.check()
+            if ( //true
+                ggLink.group1.expanded === false && ggLink.group2.expanded === false
+                && ggLink.check()
                 && this.groupMap.has(ggLink.group1.id) && this.groupMap.has(ggLink.group2.id)
-                && !(ggLink.group1.inCollapsedGroup() || ggLink.group2.inCollapsedGroup)) {
+                && !(ggLink.group1.inCollapsedGroup() || ggLink.group2.inCollapsedGroup())
+            ) {
                 ggLink.show();
                 //set line coord?
             } else {
@@ -599,41 +677,92 @@ export class CrosslinkViewer extends Backbone.View {
             this.scale();
         }
 
+        const linkLength = (this.renderedProteins.size < 20) ? 40 : 20;
+        const width = this.svgElement.parentNode.clientWidth;
+        const height = this.svgElement.parentNode.clientHeight;
+
+        /*        const tempGroupMap = new Map (this.groupMap);
+
+        //Grid layout linear graphs
+        var column = 0, row = 0;
+        if (this.linearGraphs.length > 0) {
+            column++;
+            for (let graph of this.linearGraphs) {
+                // todo - this is a right mess, fixing can wait til i'm back from holiday
+                var nodes = Array.from(graph.nodes.keys()); //
+                var nodeCount = nodes.length;
+                if (nodeCount > 2) {
+                    nodes = this.reorderedNodes(graph);
+                }
+                nodeCount = nodes.length;
+                for (var n = 0; n < nodeCount; n++) {
+                    var p = this.renderedProteins.get(nodes[n]);
+                    if (!p) {
+                        p = this.groupMap.get(nodes[n]);
+                        tempGroupMap.delete(nodes[n]);
+                    }
+                    for (let pg of p.parentGroups.values()) {
+                        tempGroupMap.delete(pg.id);
+                    }
+                    var x, y;
+                    row++;
+                    x = this.xForColumn(column);
+                    y = this.yForRow(row);
+                    var lastNodeY = this.yForRow(row + ((nodeCount - 1 - n) * 2));
+                    let lowerBound = height;
+                    if (column < 4) {
+                        lowerBound = lowerBound - 100;
+                    }
+                    if ((lastNodeY + 20) > lowerBound) {
+                        column++;
+                        row = 1;
+                        x = this.xForColumn(column);
+                        y = this.yForRow(row);
+                    }
+                    // console.log("??", p.id, column, row);
+                    p.setPosition(x, y);
+                    p.setAllLinkCoordinates();
+                }
+            }
+        }
+        //remember edge of gridded proteins
+        const layoutXOffset = this.xForColumn(column + 1);*/
+
         for (let renderedProtein of this.renderedProteins.values()) {
             if (fixedParticipants.length === 0) {
                 delete renderedProtein.x;
                 delete renderedProtein.y;
-                delete renderedProtein.px; // todo - check if this is necessary
+                delete renderedProtein.px;
                 delete renderedProtein.py;
             }
             renderedProtein.fixed = fixedParticipants.indexOf(renderedProtein.participant) !== -1;
             delete renderedProtein.index;
         }
         for (let g of this.groupMap.values()) {
-            if (fixedParticipants.length === 0) { // todo - some issues here (select a collpased group and select fixed selected)
+            if (fixedParticipants.length === 0) { // todo - some issues here (select a collapsed group and select fixed selected)
                 delete g.x;
                 delete g.y;
-                delete g.px; // todo - check if this is necessary
+                delete g.px;
                 delete g.py;
             }
             delete g.index;
             delete g.parent;
-            g.leaves = []; // clear this, its used by cola, gets filled by auto
+            g.leaves = []; // clear this, it's used by cola, gets filled by auto
         }
 
-        const linkLength = (this.renderedProteins.size < 20) ? 40 : 20;
-        const width = this.svgElement.parentNode.clientWidth;
-        const height = this.svgElement.parentNode.clientHeight;
-        this.d3cola.size([height - 40, width - 40]).symmetricDiffLinkLengths(linkLength);
+        this.d3cola.size([height - /*layoutXOffset -*/ 40, width - 40]).symmetricDiffLinkLengths(linkLength);
 
         const self = this;
 
         const links = new Map();
         const nodeSet = new Set();
         for (let crosslink of self.model.getFilteredCrossLinks()) {
-            if (crosslink.toProtein) { //?
-                const source = self.renderedProteins.get(crosslink.fromProtein.id).getRenderedParticipant();
-                const target = self.renderedProteins.get(crosslink.toProtein.id).getRenderedParticipant();
+        // for (let graph of this.nonLinearGraphs) {
+        //     for (let link of graph.links.values()) {
+            if (crosslink.toProtein) { // not linears
+            // if (link.crosslinks[0].isSelfLink() === false) {
+                const source = self.renderedProteins.get(crosslink.fromProtein.id).getRenderedInteractor();
+                const target = self.renderedProteins.get(crosslink.toProtein.id).getRenderedInteractor();
                 nodeSet.add(source);
                 const fromId = crosslink.fromProtein.id;
                 const toId = crosslink.toProtein.id;
@@ -643,12 +772,13 @@ export class CrosslinkViewer extends Backbone.View {
                     // todo - maybe do use indexes, might avoid probs in cola
                     linkObj.source = source;
                     linkObj.target = target;
-                    nodeSet.add(target);
+                    nodeSet.add(target); // bit weird doing ths here
                     linkObj.id = linkId;
                     links.set(linkId, linkObj);
                 }
             }
         }
+        // }
         const nodeArr = Array.from(nodeSet);
         const linkArr = Array.from(links.values());
         doLayout(nodeArr, linkArr, false);
@@ -663,19 +793,17 @@ export class CrosslinkViewer extends Backbone.View {
             const groups = [];
             if (self.groupMap) {
                 for (let g of self.groupMap.values()) {
-                    // delete g.index;
+                    delete g.index;
                     if (!g.hidden && g.expanded) {
                         g.groups = [];
-                        // put any rp not contained in a subgroup(recursive) in group1.leaves
-
+                        // put any rp not contained in a subgroup in group1.leaves
                         for (let rp of g.renderedParticipants) {
                             if (!rp.hidden) {
                                 let inSubGroup = false;
                                 for (let subgroup of g.subgroups) {
-                                    // UR HERE
                                     if (subgroup.contains(rp)) {
                                         inSubGroup = true;
-                                        // break; ?
+                                        break;
                                     }
                                 }
                                 if (!inSubGroup) {
@@ -688,11 +816,28 @@ export class CrosslinkViewer extends Backbone.View {
                 }
                 //need to use indexes of groups
                 for (let g of groups) {
+                    console.log("GROUP ", g.unhiddenParticipantCount, g.id);
                     for (let i = 0; i < g.subgroups.length; i++) {
-                        if (g.subgroups[i].expanded) {
-                            g.groups[i] = groups.indexOf(g.subgroups[i]);
-                        } else {
-                            g.leaves.push(g.subgroups[i]);
+                        console.log("\tSUBGROUP ", g.subgroups[i].unhiddenParticipantCount, g.subgroups[i].id);
+                        if (!g.subgroups[i].hidden) {
+                            // todo - this is where you need to sort out issue of nested subgroups...
+                            // the problem is when the same subgroup gets added to multiple parent groups
+                            // the following seems to be working but not convinced it's totally reliable (depends on order groups end up in?)
+                            let isSubset = false;
+                            for (let j = i + 1; j < g.subgroups.length; j++) {
+                                if (g.subgroups[i].isSubsetOf(g.subgroups[j])) {
+                                    isSubset = true;
+                                    break;
+                                }
+                            }
+                            if (!isSubset) {
+                                if (g.subgroups[i].expanded) {
+                                    g.groups.push(groups.indexOf(g.subgroups[i]));
+
+                                } else {
+                                    g.leaves.push(g.subgroups[i]);
+                                }
+                            }
                         }
                     }
                 }
@@ -708,7 +853,8 @@ export class CrosslinkViewer extends Backbone.View {
                         ry: 5
                     })
                     .style("stroke", "red")
-                    .style("fill", "none");
+                    .style("fill", "none")
+                    .style("pointer-events", "none");
                 groupDebugSel = d3.select(self.groupsSVG).selectAll(".group")
                     .data(groups);
                 groupDebugSel.enter().append("rect")
@@ -718,13 +864,36 @@ export class CrosslinkViewer extends Backbone.View {
                         ry: 5
                     })
                     .style("stroke", "blue")
-                    .style("fill", "none");
+                    .style("fill", "none")
+                    .style("pointer-events", "none");
                 groupDebugSel.exit().remove();
                 participantDebugSel.exit().remove();
             }
             self.d3cola.nodes(nodes).groups(groups).links(links).start(23, 10, 1, 0, true).on("tick", function () { //.start(23, 10, 1, 0, true)
+                // let x1 = null, y1 = null, x2 = null, y2 = null;
+                // for (let node of self.d3cola.nodes()) {
+                //     if (!x1 || node.x < x1) {
+                //         x1 = node.x;
+                //     }
+                //     if (!y1 || node.y < y1) {
+                //         y1 = node.y;
+                //     }
+                //     if (!x2 || node.x > x2) {
+                //         x2 = node.x;
+                //     }
+                //     if (!y2 || node.y > y2) {
+                //         y2 = node.y;
+                //     }
+                // }
+                //
+                // let c = 0;
+                // let xr = (width - /*layoutXOffset -*/ 120) / (x2 - x1);
+                // let yr = ((height - 60) / (y2 - y1));
+
                 for (let node of self.d3cola.nodes()) {
-                    node.setPositionFromCola(node.x, node.y);
+                    // node.setPositionFromCola((node.x * xr) - (x1 * xr) /*+ layoutXOffset*/,
+                    //     (node.y * yr) - (y1 * yr) + 30);
+                    node.setPositionFromCola();
                     node.setAllLinkCoordinates();
                 }
                 for (let g of self.d3cola.groups()) { // todo -  seems a bit of a weird way to have done this?
@@ -733,7 +902,7 @@ export class CrosslinkViewer extends Backbone.View {
                     }
                 }
                 if (fixedParticipants.length === 0) {
-                    // self.zoomToFullExtent();
+                    self.zoomToFullExtent();
                 }
 
                 if (self.debug) {
@@ -771,8 +940,82 @@ export class CrosslinkViewer extends Backbone.View {
         }
     }
 
+    // //functions used...
+    // xForColumn(c) {
+    //     const maxBlobRadius = 40;
+    //     // var LABELMAXLENGTH = 0;
+    //     // return (c * ((2 * maxBlobRadius) + LABELMAXLENGTH)) - maxBlobRadius;
+    //     return c * maxBlobRadius - (maxBlobRadius / 2);
+    // }
+    //
+    // yForRow(r) {
+    //     const maxBlobRadius = 50;
+    //     return (r * maxBlobRadius) - 10;
+    // }
+    //
+    // reorderedNodes(linearGraph) {
+    //     const reorderedNodes = [];
+    //     appendNode(getStartNode(), new Set ());
+    //     return reorderedNodes;
+    //
+    //     function getStartNode() {
+    //         // var ns = Array.from(linearGraph.nodes.values());
+    //         // var count = ns.length;
+    //         // //                    alert (nodeCount);
+    //         // for (var n = 0; n < count; n++) {
+    //         //     if (ns[n].countExternalLinks() < 2) {
+    //         //         //                            alert("got start");
+    //         //         return ns[n];
+    //         //     }
+    //         // }
+    //         for (let node of linearGraph.nodes.values()) {
+    //             if (node.countExternalLinks() < 2) {
+    //                 console.log("StartNode", node.id);
+    //                 return node;
+    //             }
+    //         }
+    //         console.error("missed linear subgraph start");
+    //         return null;
+    //     }
+    //
+    //     function appendNode(currentNode, checkedNodes) {
+    //         checkedNodes.add(currentNode.id); // yeah, wierdness, this all needs tidied up
+    //         if (!currentNode.hidden) {
+    //             reorderedNodes.push(currentNode.participant.id);
+    //         }
+    //
+    //         // var proteinLinksArr = Array.from(currentNode.renderedP_PLinks.values());
+    //         // for (var l = 0; l < proteinLinksArr.length; l++) {
+    //         //     var link = proteinLinksArr[l];
+    //         //     if (link.isPassingFilter()) {
+    //         //         var nextNode = link.getOtherEnd(currentNode);
+    //         //         if (reorderedNodes.indexOf(nextNode.participant.id) === -1) {
+    //         //             //                    alert("here");
+    //         //             appendNode(nextNode);
+    //         //             break;
+    //         //         }
+    //         //     }
+    //         // }
+    //
+    //         for (let link of currentNode.renderedP_PLinks.values()) {
+    //             if (link.isPassingFilter()) {
+    //                 const nextNode = link.getOtherEnd(currentNode);
+    //                 if (!checkedNodes.has(nextNode.id)) {
+    //                     console.log("nextNode", nextNode.id);
+    //                     appendNode(nextNode, checkedNodes);
+    //                     break;
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
+
     saveLayout(callback) {
         const layout = {};
+        const proteinColourModel = this.model.get("proteinColourAssignment");
+        if (proteinColourModel instanceof ManualColourModel) {
+            layout.manualColourAssignment = JSON.stringify(Object.fromEntries(proteinColourModel.colourAssignment));
+        }
         layout.groups = Array.from(this.groupMap.values());
         layout.proteins = Array.from(this.renderedProteins.values());
         const myJSONText = JSON.stringify(layout, null);
@@ -791,13 +1034,13 @@ export class CrosslinkViewer extends Backbone.View {
         } else {
             proteinPositions = layout;
         }
-        let layoutIsDodgy = false;
         let namesChanged = false;
         for (let protLayout of proteinPositions) {
             const protein = this.renderedProteins.get(protLayout.id);
             if (protein !== undefined) {
                 protein.setPositionFromXinet(protLayout["x"], protLayout["y"]);
                 if (typeof protLayout["rot"] !== "undefined") {
+                    // noinspection PointlessArithmeticExpressionJS
                     protein.rotation = protLayout["rot"] - 0;
                 }
                 protein.ix = protLayout["x"];
@@ -806,6 +1049,7 @@ export class CrosslinkViewer extends Backbone.View {
                 if (CrosslinkViewer.barScales.indexOf(+protLayout["stickZoom"]) > -1) {
                     protein.stickZoom = protLayout["stickZoom"];
                 }
+                // noinspection PointlessArithmeticExpressionJS
                 protein.rotation = protLayout["rot"] - 0;
                 protein.flipped = protLayout["flipped"];
                 protein.participant.manuallyHidden = protLayout["manuallyHidden"];
@@ -815,9 +1059,6 @@ export class CrosslinkViewer extends Backbone.View {
                     namesChanged = true;
                 }
 
-            } else {
-                layoutIsDodgy = true;
-                console.log("! protein in layout but not search:" + protLayout.id);
             }
         }
 
@@ -830,20 +1071,27 @@ export class CrosslinkViewer extends Backbone.View {
             for (const savedGroup of groups) {
                 //gonna need to check for proteins now missing from results
                 const presentProteins = new Set();
+
                 for (let pId of savedGroup.participantIds) {
                     if (this.renderedProteins.get(pId)) {
                         presentProteins.add(pId);
                     }
                 }
-                modelGroupMap.set(savedGroup.id, presentProteins);
+                if (presentProteins.size === 0) {
+                    // layoutIsDodgy = true;
+                    // this prob happens as a result of revalidating data in lab version
+                    console.log("! group in layout but no proteins in search:" + savedGroup.id + "; " + savedGroup.participantIds);
+                } else {
+                    modelGroupMap.set(savedGroup.id, presentProteins);
+                }
             }
             this.model.set("groups", modelGroupMap);
             this.model.trigger("change:groups");
 
             for (const savedGroup of groups) {
                 const xiNetGroup = this.groupMap.get(savedGroup.id);
-                if (savedGroup.expanded === false) {
-                    xiNetGroup.setExpanded(savedGroup.expanded);
+                if (xiNetGroup && savedGroup.expanded === false) {
+                    xiNetGroup.collapse(null, false);
                     xiNetGroup.setPositionFromXinet(savedGroup.x, savedGroup.y);
                 }
             }
@@ -851,14 +1099,19 @@ export class CrosslinkViewer extends Backbone.View {
 
         this.model.get("filterModel").trigger("change", this.model.get("filterModel"));
 
-        // this.zoomToFullExtent();
+        this.zoomToFullExtent();
 
-        if (layoutIsDodgy) {
-            alert("Looks like something went wrong with the saved layout, if you can't see your proteins click Auto layout");
+        if (layout.manualColourAssignment) {
+            window.linkColor.manualProteinColoursBB.setMap(JSON.parse(layout.manualColourAssignment));
+            this.model.set("proteinColourAssignment", window.linkColor.manualProteinColoursBB);
         }
 
+        // if (layoutIsDodgy) {
+        //     alert("Looks like something went wrong with the saved layout, if you can't see your proteins click Auto layout");
+        // }
+
         if (namesChanged) {
-            // vent.trigger("proteinMetadataUpdated", {}); //aint gonna work
+            // vent.trigger("proteinMetadataUpdated", {}); //ain't gonna work
             for (let renderedParticipant of this.renderedProteins.values()) {
                 renderedParticipant.updateName();
             }
@@ -867,8 +1120,8 @@ export class CrosslinkViewer extends Backbone.View {
 
     downloadSVG() {
         const svgArr = [this.svgElement];
-        const svgStrings = svgUtils.capture(svgArr);
-        let svgXML = svgUtils.makeXMLStr(new XMLSerializer(), svgStrings[0]);
+        const svgStrings = capture(svgArr);
+        let svgXML = makeXMLStr(new XMLSerializer(), svgStrings[0]);
         //bit of a hack
         const bBox = this.svgElement.getBoundingClientRect();
         const width = Math.round(bBox.width);
@@ -930,16 +1183,13 @@ export class CrosslinkViewer extends Backbone.View {
     selectedProteinsChanged() {
         const selectedProteins = this.model.get("selectedProteins");
         for (let renderedProtein of this.renderedProteins.values()) {
-            if (selectedProteins.indexOf(renderedProtein.participant) === -1 && renderedProtein.isSelected === true) {
-                renderedProtein.setSelected(false);
+            if (selectedProteins.indexOf(renderedProtein.participant) === -1 ){//&& renderedProtein.isSelected === true) {
+                renderedProtein.selected = false;
             }
         }
         for (let selectedProtein of selectedProteins) {
             if (selectedProtein.is_decoy !== true) {
-                const renderedProtein = this.renderedProteins.get(selectedProtein.id);
-                if (renderedProtein.isSelected === false) {
-                    renderedProtein.setSelected(true);
-                }
+                this.renderedProteins.get(selectedProtein.id).selected = true;
             }
         }
         if (this.groupMap) {
@@ -952,38 +1202,70 @@ export class CrosslinkViewer extends Backbone.View {
 
     highlightedProteinsChanged() {
         const highlightedProteins = this.model.get("highlightedProteins");
+
         for (let renderedProtein of this.renderedProteins.values()) {
-            if (highlightedProteins.indexOf(renderedProtein.participant) === -1 && renderedProtein.isHighlighted === true) {
-                renderedProtein.showHighlight(false);
-                renderedProtein.isHighlighted = false; // todo - this is a bit wierd
+            if (highlightedProteins.indexOf(renderedProtein.participant) === -1){//} && renderedProtein.highlight === true) {
+                renderedProtein.highlighted = false;
             }
         }
         for (let highlightedProtein of highlightedProteins) {
             if (highlightedProtein.is_decoy !== true) {
                 const renderedProtein = this.renderedProteins.get(highlightedProtein.id);
-                if (renderedProtein.isHighlighted === false) {
-                    renderedProtein.showHighlight(true);
+                renderedProtein.highlighted = true;
+            }
+
+        }
+
+        if (this.groupMap) {
+            for (let g of this.groupMap.values()) {
+                let someHighlighted = false, allHighlighted = true;
+                for (let rp of g.renderedParticipants) {
+                    if (rp.highlighted) {
+                        someHighlighted = true;
+                    } else {
+                        allHighlighted = false;
+                    }
+                }
+                if (someHighlighted) {
+                    g.dashed = !allHighlighted;
+                    g.highlighted = true;
+                } else {
+                    g.highlighted = false;
+                    g.updateSelected();
                 }
             }
         }
-        if (this.groupMap) {
-            for (let g of this.groupMap.values()) {
-                g.updateHighlight();
-            }
-        }
+
         return this;
     }
 
     // updates protein names and colours
     proteinMetadataUpdated() {
-        const proteinColourModel = window.compositeModelInst.get("proteinColourAssignment");
         for (let renderedParticipant of this.renderedProteins.values()) {
             renderedParticipant.updateName();
+        }
+        this.proteinColoursUpdated();
+        return this;
+    }
+
+    proteinColoursUpdated() {
+        const proteinColourModel = window.compositeModelInst.get("proteinColourAssignment");
+        for (let renderedParticipant of this.renderedProteins.values()) {
             if (proteinColourModel) {
+                const c = proteinColourModel.getColour(renderedParticipant.participant);
                 d3.select(renderedParticipant.outline)
-                    .attr("fill", proteinColourModel.getColour(renderedParticipant.participant));
+                    .attr("fill", c);
                 d3.select(renderedParticipant.background)
-                    .attr("fill", proteinColourModel.getColour(renderedParticipant.participant));
+                    .attr("fill", c);
+            }
+        }
+        //groups also
+        for (let g of this.groupMap.values()) {
+            if (proteinColourModel && proteinColourModel instanceof ManualColourModel) {
+                const c = proteinColourModel.getColour(g);
+                g.setColour(c);
+            } else {
+                g.setColour("#CCCCCC");
             }
         }
         return this;
@@ -997,61 +1279,12 @@ export class CrosslinkViewer extends Backbone.View {
         return this;
     }
 
-    showExpandedGroupLabels() {
-        for (let group of this.groupMap.values()) {
-            group.setExpanded(group.expanded);
-        }
-        return this;
-    }
-
     setFixedSize() {
         this.fixedSize = this.model.get("xinetFixedSize");
         for (let renderedParticipant of this.renderedProteins.values()) {
             renderedParticipant.resize();
         }
         return this;
-    }
-
-    collapseParticipant() {
-        d3.select(".custom-menu-margin").style("display", "none");
-        d3.select(".group-custom-menu-margin").style("display", "none");
-        this.contextMenuParticipant.setExpanded(false, this.contextMenuPoint);
-        if (this.contextMenuParticipant.type === "group") {
-            this.render();
-        }
-        this.hiddenProteinsChanged();
-        this.render();
-        this.contextMenuParticipant = null;
-    }
-
-    cantCollapseGroup() {
-        d3.select(".custom-menu-margin").style("display", "none");
-        d3.select(".group-custom-menu-margin").style("display", "none");
-    }
-
-    ungroup() {
-        d3.select(".group-custom-menu-margin").style("display", "none");
-        this.model.get("groups").delete(this.contextMenuParticipant.id);
-        this.model.trigger("change:groups");
-        this.contextMenuParticipant = null;
-    }
-
-    collapseGroups() {
-        for (let group of this.groupMap.values()) {
-            if (group.expanded === true && !group.isOverlappingGroup()) {
-                group.setExpanded(false);
-            }
-        }
-        this.render();
-    }
-
-    expandGroups() {
-        for (let group of this.groupMap.values()) {
-            if (group.expanded === false) {
-                group.setExpanded(true);
-            }
-        }
-        this.render();
     }
 
     zoomToFullExtent() {
@@ -1068,12 +1301,16 @@ export class CrosslinkViewer extends Backbone.View {
             scaleFactor = xr;
         }
         this.container.setAttribute("transform", "scale(" + scaleFactor
-            + ") translate(" + ((width / scaleFactor) - bbox.width - bbox.x + (margin /scaleFactor)) + " " + (-bbox.y + (margin /scaleFactor)) + ")");
+            + ") translate(" + ((width / scaleFactor) - bbox.width - bbox.x + (margin / scaleFactor)) + " " + (-bbox.y + (margin / scaleFactor)) + ")");
         this.scale();
     }
 
     scale() {
         this.z = this.container.getCTM().inverse().a;
+        if (this.z < 0) {
+            console.error("weird negative value for this.z");
+            this.z = 1;
+        }
         for (let prot of this.renderedProteins.values()) {
             prot.setPositionFromXinet(prot.ix, prot.iy); // this rescales the protein
             if (prot.expanded)
@@ -1096,7 +1333,7 @@ export class CrosslinkViewer extends Backbone.View {
                     p_pLink.highlightLine.setAttribute("stroke-width", this.z * 10);
                     p_pLink.updateThickLineWidth();
                     if (p_pLink.ambiguous) {
-                        p_pLink.dashedLine(true); //rescale spacing of dashes // preformance issue?
+                        p_pLink.dashedLine(true); //rescale spacing of dashes // performance issue?
                     }
                 }
             }
@@ -1122,7 +1359,7 @@ export class CrosslinkViewer extends Backbone.View {
                 } else {
                     g.setPositionFromXinet(g.ix, g.iy);
                 }
-                g.updateSelected();
+                g.dashed = g._dashed; // rescale dashes
             }
         }
     }
@@ -1139,19 +1376,16 @@ export class CrosslinkViewer extends Backbone.View {
     }
 
     mouseDown(evt) {
-        //prevent default, but allow propogation
         evt.preventDefault();
-        //stop layout
         this.d3cola.stop();
         this.dragStart = evt;
         this.state = CrosslinkViewer.STATES.SELECT_PAN;
         this.mouseMoved = false;
         this.toSelect = [];
-        d3.select(".custom-menu-margin").style("display", "none");
-        d3.select(".group-custom-menu-margin").style("display", "none");
+        d3.select(".xinet-context-menu").style("display", "none");
     }
 
-    // dragging/rotation/panning/selecting
+    // dragging/rotating/panning/selecting
     mouseMove(evt) {
         if (this.dragStart) {
             const p = this.getEventPoint(evt); // seems to be correct, see below
@@ -1162,60 +1396,35 @@ export class CrosslinkViewer extends Backbone.View {
             if (Math.sqrt(dx * dx + dy * dy) > (5 * this.z)) {
                 this.mouseMoved = true;
             }
-            if (this.dragElement != null && evt.which !== 3) { //dragging or rotating / not right click mouse down
+            if (this.dragElement != null && evt.which !== 3) { //dragging or rotating / not right-click mouse down
                 //remove tooltip
                 this.model.get("tooltipModel").set("contents", null);
                 if (this.state === CrosslinkViewer.STATES.DRAGGING) {
                     // we are currently dragging things around
-                    let ox, oy, nx, ny;
-                    if (this.dragElement.participant) {
-                        //its a protein - drag it, or drag all selcted if it is selected
-                        let toDrag;
-                        if (this.dragElement.isSelected === false) {
-                            toDrag = [this.dragElement.participant];
-                        } else {
-                            toDrag = this.model.get("selectedProteins");
-                        }
-
-                        for (let d = 0; d < toDrag.length; d++) {
-                            const renderedProtein = this.renderedProteins.get(toDrag[d].id);
-                            ox = renderedProtein.ix;
-                            oy = renderedProtein.iy;
-                            nx = ox - dx;
-                            ny = oy - dy;
-                            renderedProtein.setPositionFromXinet(nx, ny);
-                            renderedProtein.setAllLinkCoordinates();
-                        }
-                    } else if (this.dragElement.type === "group") {
-                        if (this.dragElement.expanded) {
+                    if (this.dragElement.type === "group" && this.dragElement.expanded) {
+                        if (!this.dragElement.selected) {
                             const toDrag = this.dragElement.renderedParticipants;
                             for (let d = 0; d < toDrag.length; d++) {
                                 const renderedProtein = toDrag[d];
-                                ox = renderedProtein.ix;
-                                oy = renderedProtein.iy;
-                                nx = ox - dx;
-                                ny = oy - dy;
-                                renderedProtein.setPositionFromXinet(nx, ny);
+                                renderedProtein.setPositionFromXinet(renderedProtein.ix - dx, renderedProtein.iy - dy);
                                 renderedProtein.setAllLinkCoordinates();
                             }
                             for (let g of this.dragElement.subgroups) {
                                 if (!g.expanded) {
-                                    ox = g.ix;
-                                    oy = g.iy;
-                                    nx = ox - dx;
-                                    ny = oy - dy;
-                                    g.setPositionFromXinet(nx, ny);
+                                    g.setPositionFromXinet(g.ix - dx, g.iy - dy);
                                     g.setAllLinkCoordinates();
                                 }
                             }
-                            this.dragElement.updateExpandedGroup();
-                        } else {
-                            ox = this.dragElement.ix;
-                            oy = this.dragElement.iy;
-                            nx = ox - dx;
-                            ny = oy - dy;
-                            this.dragElement.setPositionFromXinet(nx, ny);
+                        }else {
+                            this.moveSelected(dx, dy);
+                        }
+                        this.dragElement.updateExpandedGroup();
+                    } else if (this.dragElement.participant || this.dragElement.type === "group"){ //collapsed group or protein
+                        if (!this.dragElement.selected) {
+                            this.dragElement.setPositionFromXinet(this.dragElement.ix - dx, this.dragElement.iy - dy);
                             this.dragElement.setAllLinkCoordinates();
+                        } else {
+                            this.moveSelected(dx, dy);
                         }
                     }
                     this.dragStart = evt;
@@ -1236,7 +1445,6 @@ export class CrosslinkViewer extends Backbone.View {
                     // don't start dragging just on a click - we need to move the mouse a bit first
                     if (Math.sqrt(dx * dx + dy * dy) > (5 * this.z)) { //this.mouseMoved?
                         this.state = CrosslinkViewer.STATES.DRAGGING;
-
                     }
                 }
             } else if (this.state === CrosslinkViewer.STATES.SELECT_PAN) {
@@ -1266,31 +1474,42 @@ export class CrosslinkViewer extends Backbone.View {
 
                     this.toSelect = [];
 
+                    const svgRect = this.svgElement.createSVGRect();
+                    svgRect.x = rectX;
+                    svgRect.y = rectY;
+                    svgRect.width = Math.abs(sx);
+                    svgRect.height = Math.abs(sy);
+
                     for (let renderedParticipant of this.renderedProteins.values()) {
                         if (renderedParticipant.hidden !== true) {
-                            const svgRect = this.svgElement.createSVGRect();
-                            svgRect.x = rectX;
-                            svgRect.y = rectY;
-                            svgRect.width = Math.abs(sx);
-                            svgRect.height = Math.abs(sy);
                             const intersects = this.svgElement.getIntersectionList(svgRect, renderedParticipant.upperGroup);
                             if (intersects.length > 0) {
-                                renderedParticipant.showHighlight(true);
+                                renderedParticipant.highlighted = true; // todo - use model
                                 this.toSelect.push(renderedParticipant.participant);
                             } else {
-                                renderedParticipant.showHighlight(false);
+                                renderedParticipant.highlighted = false; // todo - use model
                             }
                         }
 
                     }
-
-
+                    for (let renderedGroup of this.groupMap.values()) {
+                        if (renderedGroup.hidden !== true && renderedGroup.expanded === false) {
+                            const intersects = this.svgElement.getIntersectionList(svgRect, renderedGroup.upperGroup);
+                            if (intersects.length > 0) {
+                                renderedGroup.highlighted = true;  // todo - use model
+                                for (let renderedParticipant of renderedGroup.renderedParticipants) {
+                                    this.toSelect.push(renderedParticipant.participant);
+                                }
+                            } else {
+                                renderedGroup.highlighted = false;  // todo - use model
+                            }
+                        }
+                    }
                 } else {
                     //PAN
                     const ds = this.getEventPoint(this.dragStart).matrixTransform(this.container.getCTM().inverse());
                     const dx = c.x - ds.x;
                     const dy = c.y - ds.y;
-
                     this.setCTM(this.container,
                         this.container.getCTM()
                             .translate(dx, dy)
@@ -1301,88 +1520,79 @@ export class CrosslinkViewer extends Backbone.View {
         }
     }
 
+    moveSelected(dx, dy) {
+        const toDrag = this.model.get("selectedProteins");
+        for (let d = 0; d < toDrag.length; d++) {
+            const renderedProtein = this.renderedProteins.get(toDrag[d].id);
+            renderedProtein.setPositionFromXinet(renderedProtein.ix - dx, renderedProtein.iy - dy);
+            renderedProtein.setAllLinkCoordinates();
+        }
+        for (let g of this.groupMap.values()) {
+            if (!g.expanded && g.selected) {
+                g.setPositionFromXinet(g.ix - dx, g.iy - dy);
+                g.setAllLinkCoordinates();
+            }
+        }
+    }
+
     // this ends all dragging and rotating
     mouseUp(evt) {
         this.preventDefaultsAndStopPropagation(evt);
         //remove selection rect, may not be shown but just do this now
         this.selectionRectSel.attr("display", "none");
-        //eliminate some spurious mouse up events - a simple version of debouncing but it seems to work better than for e.g. _.debounce
+        //eliminate some spurious mouse up events - a simple version of debouncing, but it seems to work better than for e.g. _.debounce
         const time = new Date().getTime();
         if ((time - this.lastMouseUp) > 150) {
             const rightClick = (evt.button === 2);
             const add = evt.ctrlKey || evt.shiftKey;
             const p = this.getEventPoint(evt);
             const c = p.matrixTransform(this.container.getCTM().inverse());
-
             if (this.state === CrosslinkViewer.STATES.ROTATING) {
                 //round protein rotation to nearest 5 degrees (looks neater)
                 this.dragElement.setRotation(Math.round(this.dragElement.rotation / 5) * 5);
                 this.dragElement.setAllLinkCoordinates();
-
             } else {
-                if (this.dragElement) { // issue re selection drag that started on group, in this case drag element is set
+                if (this.dragElement) {
                     if (rightClick) {
                         if (this.mouseMoved) { // move and right click
                             // ADD TO SELECT POST RIGHT CLICK DRAG -- RIGHT CLICK, HAS MOVED, NO DRAG ELEMENT
                             this.model.setSelectedProteins(this.toSelect, add);
                         }
                         // EXPANDING / COLLAPSING -- RIGHT CLICK, NO MOVE, IS A DRAG ELEMENT
+                        this.contextMenuParticipant = this.dragElement;
                         if (this.dragElement.ix || this.dragElement.type === "group") {
-                            if (!this.dragElement.expanded) {
-                                //expand the collapsed
-                                this.dragElement.setExpanded(true, c);
-                                if (this.dragElement.type === "group") {
-                                    this.hiddenProteinsChanged();
-                                    this.render();
-                                    /*
-                                                                        const fixed = [];
-                                                                        for (let rp of this.renderedProteins.values()) {
-                                                                            if (this.dragElement.renderedParticipants.indexOf(rp) == -1) {
-                                                                                fixed.push(rp.participant)
-                                                                            }
-                                                                        }
-                                                                        this.autoLayout(fixed); //pass in those NOT to autolayout
-                                    */
-                                }
-                            } else {
-                                //give context menu that allows collapsing the expanded...
-                                this.model.get("tooltipModel").set("contents", null);
-                                this.contextMenuParticipant = this.dragElement;
-                                this.contextMenuPoint = c;
-
-                                if (this.dragElement.type !== "group") {
-                                    //...for proteins
-                                    const menu = d3.select(".custom-menu-margin");
-                                    menu.style("top", (evt.pageY - 20) + "px").style("left", (evt.pageX - 20) + "px").style("display", "block");
-                                    d3.select(".scaleButton_" + (this.dragElement.stickZoom * 100)).property("checked", true);
-                                } else {
-                                    // for groups
-
-                                    const overlapping = this.dragElement.isOverlappingGroup();
-                                    const canny = d3.select(".cant-collapse-group");
-                                    canny.style("display", (overlapping ? null : "none"));
-                                    d3.select(".collapse-group").style("display", (overlapping ? "none" : null));
-
-                                    const menu = d3.select(".group-custom-menu-margin");
-                                    menu.style("top", (evt.pageY - 20) + "px").style("left", (evt.pageX - 20) + "px").style("display", "block");
+                            this.model.get("tooltipModel").set("contents", null);
+                            this.contextMenuPoint = c;
+                            this.showContextMenu(evt);
+                        }
+                    } else if (this.dragElement.participant && !this.mouseMoved) { // it's a protein
+                        // ADD SINGLE PROTEIN TO SELECTION - LEFT CLICK, NO MOVE, IS A DRAG ELEMENT
+                        this.model.setSelectedProteins([this.dragElement.participant], add);
+                    } else if (this.dragElement.participant && add && this.mouseMoved) {
+                        // alert ("add protein to group, not implemented yet");
+                        // get list of groups intersecting point where protein was 'dropped'
+                        const groupsAtPoint = [];
+                        for (let renderedGroup of this.groupMap.values()) {
+                            if (renderedGroup.hidden !== true){ // && renderedGroup.expanded === false) {
+                                const bbox = renderedGroup.upperGroup.getBBox();
+                                if (c.x > bbox.x && c.x < bbox.x + bbox.width && c.y > bbox.y && c.y < bbox.y + bbox.height) {
+                                    console.log("just dropped in" + renderedGroup.id); //to see-ee what condition my condition was in
+                                    groupsAtPoint.push(renderedGroup);
                                 }
                             }
                         }
-
-                    } else if (this.dragElement.participant && !this.mouseMoved) { // its a protein
-
-                        // ADD SINGLE PROTEIN TO SELECTION - LEFT CLICK, NO MOVE, IS A DRAG ELEMENT
-                        this.model.setSelectedProteins([this.dragElement.participant], add);
-
-                    } else if (this.dragElement.type === "group" && !this.mouseMoved) { // was left click on a group, no move mouse
-                        //add all group proteins to selection
-                        const participants = [];
-                        for (let rp of this.dragElement.renderedParticipants) {
-                            participants.push(rp.participant);
+                        // if only one group, add protein to that group
+                        if (groupsAtPoint.length === 1) {
+                            const group = groupsAtPoint[0];
+                            this.model.addProteinToGroup(group.id, this.dragElement.participant.id);
+                        } else if (groupsAtPoint.length > 1) {
+                            // if more than one group, show a menu of groups to add to
+                            alert("more than one group at that point, this not implemented yet. You need a menu to confirm which group(s) to add to");
                         }
-                        this.model.setSelectedProteins(participants, add);
+                    } else if (this.dragElement.type === "group" && !this.mouseMoved) { // was left-click on a group, no move mouse
+                        //add all group's proteins to selection
+                        this.model.setSelectedProteins(this.dragElement.proteins, add);
                     }
-
                 } else { //no drag element
                     if (rightClick) {
                         if (this.mouseMoved) { // move and right click
@@ -1390,7 +1600,6 @@ export class CrosslinkViewer extends Backbone.View {
                             this.model.setSelectedProteins(this.toSelect, add);
                         }
                     } else if (!this.mouseMoved) {
-
                         //UNSELECT - EITHER MOUSE BUTTON, NO MOVE, NO DRAG ELEMENT
                         this.model.setMarkedCrossLinks("selection", [], false, add);
                         this.model.setSelectedProteins([]);
@@ -1398,7 +1607,6 @@ export class CrosslinkViewer extends Backbone.View {
                     }
                 }
             }
-
             this.dragElement = null;
             this.whichRotator = -1;
             this.state = CrosslinkViewer.STATES.MOUSE_UP;
@@ -1408,11 +1616,148 @@ export class CrosslinkViewer extends Backbone.View {
         return false;
     }
 
+    showContextMenu(evt) {
+        const self = this;
+        const menuListSel = this.contextMenuUlSel;
+        menuListSel.selectAll("li").remove();
+
+        const renderedInteractor = this.contextMenuParticipant;
+        const proteinColourModel = this.model.get("proteinColourAssignment");
+
+        if (renderedInteractor.participant) { //protein
+            if (renderedInteractor.expanded) {
+                menuListSel.append("li").text("Collapse Protein").on("click", () => {
+                    this.collapseInteractor(renderedInteractor);
+                });
+                //scale buttons
+                const scaleButtonsListItemSel = menuListSel.append("li").text("Scale: ");
+                const scaleButtons = scaleButtonsListItemSel.selectAll("ul.custom-menu")
+                    .data(CrosslinkViewer.barScales)
+                    .enter()
+                    .append("div")
+                    .attr("class", "barScale")
+                    .append("label");
+                scaleButtons.append("span")
+                    .text(function (d) {
+                        if (d === 8) return "AA";
+                        else return d;
+                    });
+                scaleButtons.append("input")
+                    // .attr ("id", function(d) { return d*100; })
+                    .attr("class", function (d) {
+                        return "scaleButton scaleButton_" + (d * 100);
+                    })
+                    .attr("name", "scaleButtons")
+                    .attr("type", "radio")
+                    .on("change", function (d) {
+                        self.contextMenuParticipant.setStickScale(d, self.contextMenuPoint);
+                    });
+                d3.select(".scaleButton_" + (renderedInteractor.stickZoom * 100)).property("checked", true);
+
+            } else {
+                menuListSel.append("li").text("Expand Protein").on("click", () => {
+                    this.expandProtein(renderedInteractor);
+                });
+            }
+
+            menuListSel.append("li").text("Open in UniProt").on("click", () => {
+                window.open("https://www.uniprot.org/uniprot/" + renderedInteractor.participant.accession);
+            });
+
+            menuListSel.append("li").text("Set Protein Colour").on("click", () => {
+                //todo: set protein colour for all selected proteins?
+                this.model.chooseInteractorColor(renderedInteractor.participant.id);
+                d3.select(".xinet-context-menu").style("display", "none");
+            });
+
+            if (proteinColourModel instanceof ManualColourModel) {
+                if (proteinColourModel.hasManualAssignment(renderedInteractor.participant.id)) {
+                    menuListSel.append("li").text("Remove Protein Colour").on("click", () => {
+                        proteinColourModel.removeManualAssignment(renderedInteractor.participant.id);
+                        this.model.trigger("currentProteinColourModelChanged", proteinColourModel);
+                        d3.select(".xinet-context-menu").style("display", "none");
+                    });
+                }
+            }
+
+            for (let pg of renderedInteractor.parentGroups) {
+                menuListSel.append("li").text("Remove from group " + pg.name)
+                    .attr("data-group", pg.name).attr("data-protein", renderedInteractor.participant.id)
+                    .node().onclick = function (evt) { //on("click", function (evt)  {
+                        const protien = evt.target.getAttribute("data-protein");
+                        const group = evt.target.getAttribute("data-group");
+                        console.log("remove protein " + protien + " from group " + group);
+                        d3.select(".xinet-context-menu").style("display", "none");
+                        self.contextMenuParticipant.highlighted = false;
+                        self.model.removeProteinFromGroup(group, protien);
+                    };
+            }
+
+        } else { // group
+            if (renderedInteractor.expanded) {
+                if (renderedInteractor.isOverlappingGroup()) {
+                    menuListSel.append("li").text("Can't collapse overlapping groups").on("click", () => {
+                        this.cantCollapseGroup(); //does nothing
+                        d3.select(".xinet-context-menu").style("display", "none");
+                    });
+                    // menuListSel.append("li").text("Enclose Overlapping Groups").on("click", () => {
+                    //     alert("enclose overlapping groups not implemented yet");
+                    // });
+                } else {
+                    menuListSel.append("li").text("Collapse Group").on("click", () => {
+                        this.collapseInteractor(renderedInteractor);
+                    });
+                }
+            } else {
+                menuListSel.append("li").text("Expand Group").on("click", () => {
+                    renderedInteractor.setExpanded(true, this.getEventPoint(evt));
+                    d3.select(".xinet-context-menu").style("display", "none");
+                });
+            }
+
+            menuListSel.append("li").text("Ungroup").on("click", () => {
+                this.ungroup(renderedInteractor);
+                d3.select(".xinet-context-menu").style("display", "none");
+            });
+
+            menuListSel.append("li").text("Set Group Colour").on("click", () => {
+                this.model.chooseInteractorColor(renderedInteractor.id);
+                d3.select(".xinet-context-menu").style("display", "none");
+            });
+
+            if (proteinColourModel instanceof ManualColourModel) {
+                if (proteinColourModel.hasManualAssignment(renderedInteractor.id)) {
+                    menuListSel.append("li").text("Remove Group Colour").on("click", () => {
+                        proteinColourModel.removeManualAssignment(renderedInteractor.id);
+                        this.model.trigger("currentProteinColourModelChanged", proteinColourModel);
+                        d3.select(".xinet-context-menu").style("display", "none");
+                    });
+                }
+            }
+        }
+
+        //keep menu on screen
+        const width = this.svgElement.parentNode.clientWidth;
+        const height = this.svgElement.parentNode.clientHeight;
+        const pageX = evt.pageX;
+        const pageY = evt.pageY - 37; //todo: hacky, 37 is height of top bar
+        const menu = d3.select(".xinet-context-menu");
+        menu.style("display", "block");
+        const menuWidth = menu.node().getBoundingClientRect().width;
+        const menuHeight = menu.node().getBoundingClientRect().height;
+        console.log("menuWidth: " + menuWidth, "menuHeight: " + menuHeight);
+        const mouseOffset = 20;
+        const x = pageX + mouseOffset + menuWidth > width ? pageX - mouseOffset - menuWidth : pageX + mouseOffset;
+        const y = pageY + mouseOffset + menuHeight > height ? pageY - mouseOffset - menuHeight : pageY + mouseOffset;
+        menu.style("top", y + "px").style("left", x + "px");
+    }
+
     mouseWheel(evt) {
         this.preventDefaultsAndStopPropagation(evt);
         this.d3cola.stop();
         let delta;
         //see http://stackoverflow.com/questions/5527601/normalizing-mousewheel-speed-across-browsers
+        // noinspection JSUnresolvedVariable
         if (evt.wheelDelta) {
             delta = evt.wheelDelta / 3600; // Chrome/Safari
         } else {
@@ -1429,7 +1774,7 @@ export class CrosslinkViewer extends Backbone.View {
     }
 
     mouseOut() { //todo
-        // don't, causes prob's - RenderedInteractor mouseOut getting propogated?
+        // don't, causes problem's - RenderedInteractor mouseOut getting propagated?
         // d3.select(".custom-menu-margin").style("display", "none");
         // d3.select(".group-custom-menu-margin").style("display", "none");
     }
@@ -1449,7 +1794,7 @@ export class CrosslinkViewer extends Backbone.View {
         return p;
     }
 
-    //stop event propogation and defaults; only do what we ask
+    //stop event propagation and defaults; only do what we ask
     preventDefaultsAndStopPropagation(evt) {
         if (evt.stopPropagation)
             evt.stopPropagation();
