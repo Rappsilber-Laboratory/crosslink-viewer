@@ -1496,12 +1496,12 @@ export class CrosslinkViewer extends Backbone.View {
                         if (renderedGroup.hidden !== true && renderedGroup.expanded === false) {
                             const intersects = this.svgElement.getIntersectionList(svgRect, renderedGroup.upperGroup);
                             if (intersects.length > 0) {
-                                renderedGroup.highlighted = true;  // todo - use model
+                                renderedGroup.highlighted = true;  // todo - use model?
                                 for (let renderedParticipant of renderedGroup.renderedParticipants) {
                                     this.toSelect.push(renderedParticipant.participant);
                                 }
                             } else {
-                                renderedGroup.highlighted = false;  // todo - use model
+                                renderedGroup.highlighted = false;  // todo - use model?
                             }
                         }
                     }
