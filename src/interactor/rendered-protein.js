@@ -176,7 +176,12 @@ export class RenderedProtein extends Interactor {
     }
 
     updateName() {
-        this.labelTextNode.textContent = this.participant.name;
+        //choose label text
+        this.labelText = this.participant.name;
+        if (this.labelText.length > 25) {
+            this.labelText = this.labelText.substr(0, 16) + "...";
+        }
+        this.labelTextNode.textContent = this.labelText;
     }
 
     mouseOver(evt) {
