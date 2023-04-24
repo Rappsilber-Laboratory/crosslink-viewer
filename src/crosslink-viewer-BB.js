@@ -28,6 +28,7 @@ export class CrosslinkViewer extends Backbone.View {
     initialize() {
         // this.debug = true;
         this.fixedSize = this.model.get("xinetFixedSize");
+        this.cropLabels = this.model.get("xinetCropLabels");
         const self = this;
 
         function newCustomContextMenuSel(outerDivClass) {
@@ -256,6 +257,7 @@ export class CrosslinkViewer extends Backbone.View {
 
         this.listenTo(this.model, "change:xinetShowLabels", this.showLabels);
         this.listenTo(this.model, "change:xinetFixedSize", this.setFixedSize);
+        this.listenTo(this.model, "change:xinetCropLabels", this.setCropLabels);
         this.listenTo(this.model, "change:xinetThickLinks", this.render);
         this.listenTo(this.model, "change:xinetPpiSteps", this.render);
 
@@ -1283,6 +1285,14 @@ export class CrosslinkViewer extends Backbone.View {
         this.fixedSize = this.model.get("xinetFixedSize");
         for (let renderedParticipant of this.renderedProteins.values()) {
             renderedParticipant.resize();
+        }
+        return this;
+    }
+
+    setCropLabels() {
+        this.cropLabels = this.model.get("xinetCropLabels");
+        for (let renderedParticipant of this.renderedProteins.values()) {
+            renderedParticipant.updateName();
         }
         return this;
     }

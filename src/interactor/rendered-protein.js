@@ -73,12 +73,8 @@ export class RenderedProtein extends Interactor {
             .attr("x", 0)
             .attr("y", 0)
             .classed("protein xlv_text proteinLabel", true);
-        //choose label text
-        this.labelText = this.participant.name;
-        if (this.labelText.length > 25) {
-            this.labelText = this.labelText.substr(0, 16) + "...";
-        }
-        this.labelTextNode = document.createTextNode(this.labelText);
+        this.labelTextNode = document.createTextNode(this.participant.name);
+        this.updateName();
         this.labelSVG.appendChild(this.labelTextNode);
 
         //ticks (and animo acid letters)
@@ -177,7 +173,11 @@ export class RenderedProtein extends Interactor {
 
     updateName() {
         //choose label text
-        this.labelText = this.participant.name;
+        if (!this.controller.cropLabels) {
+            this.labelText = this.participant.name;
+        } else {
+            this.labelText = this.participant.name.split("_")[0];
+        }
         if (this.labelText.length > 25) {
             this.labelText = this.labelText.substr(0, 16) + "...";
         }
