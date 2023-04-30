@@ -714,7 +714,7 @@ export class CrosslinkViewer extends Backbone.View {
                 // if (link.crosslinks[0].isSelfLink() === false) {
                 const source = self.renderedProteins.get(crosslink.fromProtein.id).getRenderedInteractor();
                 const target = self.renderedProteins.get(crosslink.toProtein.id).getRenderedInteractor();
-                if (group.renderedParticipants.indexOf(source) !== -1 && group.renderedParticipants.indexOf(target) !== -1) {
+                if (group.renderedParticipants.indexOf(source) !== -1 || group.renderedParticipants.indexOf(target) !== -1) {
                     nodeSet.add(source);
                     const fromId = crosslink.fromProtein.id;
                     const toId = crosslink.toProtein.id;
@@ -1863,10 +1863,10 @@ export class CrosslinkViewer extends Backbone.View {
                         this.collapseInteractor(renderedInteractor);
                     });
                 }
-                menuListSel.append("li").text("Autolayout Group").on("click", () => {
-                    this.autoLayoutGroup(renderedInteractor, []);
-                    d3.select(".xinet-context-menu").style("display", "none");
-                });
+                // menuListSel.append("li").text("Autolayout Group").on("click", () => {
+                //     this.autoLayoutGroup(renderedInteractor, []);
+                //     d3.select(".xinet-context-menu").style("display", "none");
+                // });
             } else {
                 menuListSel.append("li").text("Expand Group").on("click", () => {
                     renderedInteractor.setExpanded(true, this.getEventPoint(evt));
