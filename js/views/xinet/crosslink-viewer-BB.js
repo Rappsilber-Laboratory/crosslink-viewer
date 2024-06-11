@@ -1825,6 +1825,22 @@ export class CrosslinkViewer extends Backbone.View {
                 d3.select(".xinet-context-menu").style("display", "none");
             });
 
+            menuListSel.append("li").text("stoichiometry for AlphaLink2 export:")
+                .append("input")
+                .attr("id", "alphaLinkStoich")
+                .attr("type", "number")
+                .attr("max", "99")
+                .attr("min", "1")
+                .attr("step", 1)
+                // .attr("max-width", "70px")
+                .property("value",
+                    renderedInteractor.participant.alphaLinkStoich? renderedInteractor.participant.alphaLinkStoich : 1)
+                .on("change", () => {
+                    const stoich = d3.select("#alphaLinkStoich").property("value");
+                    // console.log("STOICH", stoich);
+                    renderedInteractor.participant.alphaLinkStoich = stoich;
+                });
+
             if (proteinColourModel instanceof ManualColourModel) {
                 if (proteinColourModel.hasManualAssignment(renderedInteractor.participant.id)) {
                     menuListSel.append("li").text("Remove Protein Colour").on("click", () => {
@@ -1904,7 +1920,7 @@ export class CrosslinkViewer extends Backbone.View {
         menu.style("display", "block");
         const menuWidth = menu.node().getBoundingClientRect().width;
         const menuHeight = menu.node().getBoundingClientRect().height;
-        console.log("menuWidth: " + menuWidth, "menuHeight: " + menuHeight);
+        // console.log("menuWidth: " + menuWidth, "menuHeight: " + menuHeight);
         const mouseOffset = 20;
         const x = pageX + mouseOffset + menuWidth > width ? pageX - mouseOffset - menuWidth : pageX + mouseOffset;
         const y = pageY + mouseOffset + menuHeight > height ? pageY - mouseOffset - menuHeight : pageY + mouseOffset;
