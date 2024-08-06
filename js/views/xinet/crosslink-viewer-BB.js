@@ -563,7 +563,8 @@ export class CrosslinkViewer extends Backbone.View {
             ppLink.hd = false;
             const filteredCrossLinks = new Set();
             const filteredMatches = new Set();
-            const altP_PLinks = new Set();
+            // const altP_PLinks = new Set();
+            ppLink.ambiguous = true;
             for (let crosslink of ppLink.crosslinks) {
                 if (crosslink.filteredMatches_pp.length > 0) {
                     filteredCrossLinks.add(crosslink.id);
@@ -573,19 +574,20 @@ export class CrosslinkViewer extends Backbone.View {
                         if (match.hd === true) {
                             ppLink.hd = true;
                         }
-                        if (match.crosslinks.length > 1) {
-                            for (let matchCrossLink of match.crosslinks) {
-                                if (!matchCrossLink.isDecoyLink()) {
-                                    altP_PLinks.add(matchCrossLink.p_pLink.id);
-                                }
-                            }
+                        if (match.crosslinks.length == 1) {
+                            // for (let matchCrossLink of match.crosslinks) {
+                            //     if (!matchCrossLink.isDecoyLink()) {
+                            //         altP_PLinks.add(matchCrossLink.p_pLink.id);
+                            //     }
+                            // }
+                            ppLink.ambiguous = false;
                         }
                     }
                 }
             }
             ppLink.filteredMatchCount = filteredMatches.size;
             ppLink.filteredCrossLinkCount = filteredCrossLinks.size;
-            ppLink.ambiguous = altP_PLinks.size > 1;
+            // ppLink.ambiguous = altP_PLinks.size > 1;
 
             if (!ppLink.renderedToProtein || // not linear
                 //or either end hidden
@@ -609,7 +611,7 @@ export class CrosslinkViewer extends Backbone.View {
                 if (ppLink.filteredCrossLinkCount === 0) {
                     ppLink.hide();
                 } else {
-                    ppLink.ambiguous = altP_PLinks.size > 1;
+                    // ppLink.ambiguous = altP_PLinks.size > 1;
                     if (fromProtInCollapsedGroup && toProtInCollapsedGroup) {
                         const source = ppLink.renderedFromProtein.getRenderedInteractor();
                         const target = ppLink.renderedToProtein.getRenderedInteractor();

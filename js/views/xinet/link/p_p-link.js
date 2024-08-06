@@ -195,23 +195,28 @@ export class P_PLink extends Link {
             this.hd = false;
             const filteredCrossLinks = new Set();
             const filteredMatches = new Set();
-            const altP_PLinks = new Set();
-
+            // const altP_PLinks = new Set();
+            this.ambiguous = true;
             for (let crosslink of this.crosslinks) {
                 if (crosslink.filteredMatches_pp.length > 0) {
                     filteredCrossLinks.add(crosslink.id);
                     for (let m of crosslink.filteredMatches_pp) {
                         const match = m.match; // oh dear, this...
                         filteredMatches.add(match.id);
+                        //todo check this - what if mix of hd and not hd
                         if (match.hd === true) {
                             this.hd = true;
                         }
-                        if (match.crosslinks.length > 1) {
-                            for (let matchCrossLink of match.crosslinks) {
-                                if (!matchCrossLink.isDecoyLink()) {
-                                    altP_PLinks.add(matchCrossLink.p_pLink.id);
-                                }
-                            }
+                        // if (match.crosslinks.length > 1) {
+                        //     for (let matchCrossLink of match.crosslinks) {
+                        //         if (!matchCrossLink.isDecoyLink()) {
+                        //             altP_PLinks.add(matchCrossLink.p_pLink.id);
+                        //         }
+                        //     }
+                        // }
+                        console.log("yo")
+                        if (match.crosslinks.length == 1) {
+                            this.ambiguous = false;
                         }
                     }
                 }
@@ -222,7 +227,7 @@ export class P_PLink extends Link {
                 if (this.filteredCrossLinkCount === 0) {
                     this.hide();
                 } else {
-                    this.ambiguous = altP_PLinks.size > 1;
+                    //  this.ambiguous = altP_PLinks.size > 1;
 
                     if (this.renderedFromProtein.inCollapsedGroup() && this.renderedToProtein.inCollapsedGroup()) {
                         const source = this.renderedFromProtein.getRenderedInteractor();
