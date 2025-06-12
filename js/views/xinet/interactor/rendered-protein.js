@@ -4,7 +4,7 @@ import {Interactor} from "./interactor";
 import {Rotator} from "./rotator";
 import {CrosslinkViewer} from "../crosslink-viewer-BB";
 import d3 from "d3";
-import {makeTooltipContents, makeTooltipTitle} from "../../../xi3/js/make-tooltip";
+import {makeTooltipContents, makeTooltipTitle} from "../../../../../xiview/js/make-tooltip";
 import {rotatePointAboutPoint, trig} from "../trig";
 
 export class RenderedProtein extends Interactor {
@@ -73,12 +73,8 @@ export class RenderedProtein extends Interactor {
             .attr("x", 0)
             .attr("y", 0)
             .classed("protein xlv_text proteinLabel", true);
-        //choose label text
-        this.labelText = this.participant.name;
-        if (this.labelText.length > 25) {
-            this.labelText = this.labelText.substr(0, 16) + "...";
-        }
-        this.labelTextNode = document.createTextNode(this.labelText);
+        this.labelTextNode = document.createTextNode(this.participant.name);
+        this.updateName();
         this.labelSVG.appendChild(this.labelTextNode);
 
         //ticks (and animo acid letters)
@@ -176,7 +172,16 @@ export class RenderedProtein extends Interactor {
     }
 
     updateName() {
-        this.labelTextNode.textContent = this.participant.name;
+        //choose label text
+        if (!this.controller.cropLabels) {
+            this.labelText = this.participant.name;
+        } else {
+            this.labelText = this.participant.name.split("_")[0];
+        }
+        if (this.labelText.length > 25) {
+            this.labelText = this.labelText.substr(0, 16) + "...";
+        }
+        this.labelTextNode.textContent = this.labelText;
     }
 
     mouseOver(evt) {
