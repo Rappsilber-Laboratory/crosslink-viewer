@@ -18,12 +18,9 @@ import {ManualColourModel} from "../../../../xiview/js/model/color/protein-color
 
 export class CrosslinkViewer extends Backbone.View {
 
-    // constructor(attributes, options) {
-    //     super(_.extend(attributes, {
-    //         events: {
-    //         }
-    //     }), options);
-    // }
+    constructor(attributes, options) {
+        super(attributes, options);
+    }
 
     initialize() {
         // this.debug = true;
@@ -374,7 +371,6 @@ export class CrosslinkViewer extends Backbone.View {
     // specifically subgroups could change as result of things being hidden so this is here
     // (i.e. overlapping group becomes subgroup)
     hiddenProteinsChanged() {
-        console.log("xiNET HIDDEN PROTEINS CHANGED");
         this.d3cola.stop();
 
         //clear parent groups of all proteins
@@ -546,7 +542,6 @@ export class CrosslinkViewer extends Backbone.View {
     }
 
     render() {
-        console.log("xiNET RENDER");
         this.d3cola.stop();
         if (this.firstRender) { // first render
             this.firstRender = false;
@@ -819,7 +814,6 @@ export class CrosslinkViewer extends Backbone.View {
     }
 
     autoLayout(fixedParticipants) {
-        console.log("xiNET AUTO LAYOUT");
         this.d3cola.stop();
         if (fixedParticipants.length === 0) {
             this.container.setAttribute("transform", "scale(" + 1 + ")");// translate(" + ((width / scaleFactor) - bbox.width - bbox.x) + " " + -bbox.y + ")");
