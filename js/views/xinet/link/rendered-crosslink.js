@@ -137,11 +137,13 @@ export class RenderedCrosslink extends Link {
 
                         const fromPepStart = matchAndPepPos.pepPos[0].start - 1;
                         const fromPepLength = matchAndPepPos.pepPos[0].length;
-                        const toPepStart = matchAndPepPos.pepPos[1].start - 1;
-                        const toPepLength = matchAndPepPos.pepPos[1].length;
-
                         fromPeptides.push([fromPepStart, fromPepLength, match.overlap[0], match.overlap[1]]);
-                        toPeptides.push([toPepStart, toPepLength, match.overlap[0], match.overlap[1]]);
+                        //loop link defenses - todo - revisit
+                        if (matchAndPepPos.pepPos[1].start) {
+                            const toPepStart = matchAndPepPos.pepPos[1].start - 1;
+                            const toPepLength = matchAndPepPos.pepPos[1].length;
+                            toPeptides.push([toPepStart, toPepLength, match.overlap[0], match.overlap[1]]);
+                        }
                     }
                     if (this.renderedFromProtein.expanded) {
                         this.showPeptides(fromPeptides, this.renderedFromProtein);

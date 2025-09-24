@@ -119,11 +119,11 @@ export class RenderedProtein extends Interactor {
         };
     }
 
-    get proteins () {
+    get proteins() {
         return [this.participant];
     }
 
-    get bBox () {
+    get bBox() {
         return this.upperGroup.getBBox();
         // return {
         //     x:this.ix - 30,
@@ -133,16 +133,16 @@ export class RenderedProtein extends Interactor {
         // };
     }
 
-    get width(){
+    get width() {
         const approxLabelWidth = 10 * (this.labelText.length + 2);
         if (!this.expanded) {
-            return (approxLabelWidth > this.symbolRadius)? approxLabelWidth : this.symbolRadius + 20;//this.upperGroup.getBBox().width + 10;
+            return (approxLabelWidth > this.symbolRadius) ? approxLabelWidth : this.symbolRadius + 20;//this.upperGroup.getBBox().width + 10;
         } else {
             return (this.participant.size * this.stickZoom) + approxLabelWidth;
         }
     }
 
-    get height () {
+    get height() {
         return 60;
     }
 
@@ -303,9 +303,9 @@ export class RenderedProtein extends Interactor {
         let xOffset = 0;
         if (!this.hidden) { // todo - hacky
             xOffset = (this.width / 2 - (this.symbolRadius) + 5);
-        //     // if (this.expanded) {
-        //     //   xOffset = xOffset + (this.participant.size / 2 * this.stickZoom );
-        //     // }
+            //     // if (this.expanded) {
+            //     //   xOffset = xOffset + (this.participant.size / 2 * this.stickZoom );
+            //     // }
         }
         this.x = ix - xOffset;
         this.y = iy;
@@ -654,15 +654,15 @@ export class RenderedProtein extends Interactor {
                         if (transition) {
                             d3.select(pieSlice).transition().attr("d", this.getAnnotationPieSliceApproximatePath(feature))
                                 .duration(transitionTime).each("end",
-                                    function () {
-                                        for (let b = 0; b < annotationCount; b++) {
-                                            const annoB = annotArr[b];
-                                            if (this === annoB.pieSlice) {
-                                                d3.select(this).attr("d", self.getAnnotationPieSliceArcPath(annoB.feature));
-                                            }
+                                function () {
+                                    for (let b = 0; b < annotationCount; b++) {
+                                        const annoB = annotArr[b];
+                                        if (this === annoB.pieSlice) {
+                                            d3.select(this).attr("d", self.getAnnotationPieSliceArcPath(annoB.feature));
                                         }
                                     }
-                                );
+                                }
+                            );
 
                             d3.select(rectDomain).transition().attr("d", self.getAnnotationPieSliceApproximatePath(feature))
                                 .duration(transitionTime);
@@ -922,16 +922,13 @@ export class RenderedProtein extends Interactor {
 
             //~ // draws a a little triangle for *truly* intraMolecular - e.g. internally linked peptides
             //~ // not in use
-            //~ if (renderedCrossLink.intraMolecular === true){
-            //~ var curveMidX = x1 + ((x2 - x1) / 2);
-            //~ arcStart = [ curveMidX, height - arcRadius];
-            //~ arcEnd =  [ curveMidX, height - arcRadius];
-            //~ cp1 = [ curveMidX, height - arcRadius];
-            //~ cp2 =  [ curveMidX, height - arcRadius];
-
-            //~ }
-            //~ else
-            if (renderedCrossLink.crosslink.confirmedHomomultimer) {
+            if (renderedCrossLink.crosslink.isLoopLink() === true) {
+                var curveMidX = x1 + ((x2 - x1) / 2);
+                arcStart = [curveMidX, height - arcRadius];
+                arcEnd = [curveMidX, height - arcRadius];
+                cp1 = [curveMidX, height - arcRadius];
+                cp2 = [curveMidX, height - arcRadius];
+            } else if (renderedCrossLink.crosslink.confirmedHomomultimer) {
                 const curveMidX = x1 + ((x2 - x1) / 2);
                 arcStart = [curveMidX, height - arcRadius];
                 arcEnd = [curveMidX, height - arcRadius];
@@ -1200,7 +1197,7 @@ export class RenderedProtein extends Interactor {
         return "M 0,0 L 0,0 L 0,0 L 0,0 ";
     }
 
-    get id () {
+    get id() {
         return this.participant.id;
     }
 
