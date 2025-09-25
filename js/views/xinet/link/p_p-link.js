@@ -214,7 +214,7 @@ export class P_PLink extends Link {
                         //         }
                         //     }
                         // }
-                        console.log("yo")
+                        console.log("yo");
                         if (match.crosslinks.length == 1) {
                             this.ambiguous = false;
                         }

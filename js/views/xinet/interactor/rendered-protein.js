@@ -654,15 +654,15 @@ export class RenderedProtein extends Interactor {
                         if (transition) {
                             d3.select(pieSlice).transition().attr("d", this.getAnnotationPieSliceApproximatePath(feature))
                                 .duration(transitionTime).each("end",
-                                function () {
-                                    for (let b = 0; b < annotationCount; b++) {
-                                        const annoB = annotArr[b];
-                                        if (this === annoB.pieSlice) {
-                                            d3.select(this).attr("d", self.getAnnotationPieSliceArcPath(annoB.feature));
+                                    function () {
+                                        for (let b = 0; b < annotationCount; b++) {
+                                            const annoB = annotArr[b];
+                                            if (this === annoB.pieSlice) {
+                                                d3.select(this).attr("d", self.getAnnotationPieSliceArcPath(annoB.feature));
+                                            }
                                         }
                                     }
-                                }
-                            );
+                                );
 
                             d3.select(rectDomain).transition().attr("d", self.getAnnotationPieSliceApproximatePath(feature))
                                 .duration(transitionTime);

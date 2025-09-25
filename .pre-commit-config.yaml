@@ -1,0 +1,61 @@
+# Pre-commit configuration for xiNET crosslink viewer
+repos:
+  # Standard pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: 'vendor/'
+      - id: end-of-file-fixer
+        exclude: 'vendor/'
+      - id: check-json
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+        exclude: 'vendor/'
+
+  # Basic JavaScript syntax validation
+  - repo: local
+    hooks:
+      - id: check-js-syntax
+        name: check JavaScript syntax
+        entry: bash -c 'for file in "$@"; do node --input-type=module -c < "$file" || exit 1; done'
+        language: system
+        files: '^js/.*\.js$'
+        exclude: 'vendor/'
+
+  # NPM linting with autofix
+  #  - repo: local
+  #    hooks:
+  #      - id: npm-lint-fix
+  #        name: npm lint with autofix
+  #        entry: npm run lint:fix
+  #        language: system
+  #        pass_filenames: false
+  #        files: '^src/.*\.(js|jsx)$'
+
+  # CSS validation
+  - repo: local
+    hooks:
+      - id: check-css-syntax
+        name: check CSS syntax
+        entry: bash -c 'for file in "$@"; do if ! node -e "require('\''css'\'').parse(require('\''fs'\'').readFileSync(\"$file\", '\''utf8'\''));" 2>/dev/null; then echo "CSS syntax error in $file"; exit 1; fi; done'
+        language: system
+        files: '^css/.*\.css$'
+
+
+  # ESLint
+  - repo: local
+    hooks:
+      - id: eslint-crosslink-viewer
+        name: ESLint crosslink viewer files
+        entry: npx eslint
+        language: system
+        files: '^js/.*\.(js|jsx)$'
+        args: ['--fix']
+
+# Global configuration
+default_stages: [commit]
+fail_fast: false

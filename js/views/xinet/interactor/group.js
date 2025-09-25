@@ -882,7 +882,7 @@ export class Group extends Interactor {
                         sg.updateExpandedGroup();
                     }
                 }
-                
+
                 self.updateExpandedGroup();
                 return false;
             }

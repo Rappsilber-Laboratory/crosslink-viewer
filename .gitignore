@@ -1,6 +1,100 @@
-.svn
+# Build outputs
+dist/
+build/
+
+# Dependencies
+node_modules/
+bower_components/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+.nyc_output/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Package manager files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Cache directories
+.cache/
+.parcel-cache/
+.webpack/
+
+# Build tool artifacts
+*.js.map
+*.min.js
+*.min.css
+
+# Test coverage
+coverage/
+.nyc_output/
+*.lcov
+
+# NetBeans project files
 /nbproject/
-node_modules
-bower_components
-npm-debug.log
-.idea
+
+# Dreamweaver sync files (legacy)
+_notes/
+*/_notes/dwsync.xml
+build/_notes/dwsync.xml
+src/_notes/dwsync.xml
+uml/_notes/dwsync.xml
+vendor/_notes/dwsync.xml
+src/graph/_notes/dwsync.xml
+
+# KDE directory preferences
+.directory
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Claude Code directories
+.claude/
+claudedocs/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+
+# PHP session files
+/tmp/
+sessions/
